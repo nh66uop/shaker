@@ -1,0 +1,42 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 원장 20행 PASS(접근 방향 3행·뒤집힌 파지 1행 < 90 % 포함)",
+ "decided_by": "결정론 게이트(메인 확인), 기동은 사용자 '접근 중 방향 유지 필요'",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator(iter_02/prompt.md)",
+   "hypothesis": null,
+   "gate": "PASS",
+   "plan": "iter_01 c1 대비: approach_orient(수평·컵 쪽·엄지 위, 더하기) + hand_up(엄지 위) 을 grasp_contact·grasp_hold 에 곱함 — improvement.md 두 항뿐",
+   "deterministic_check": {
+    "script": "scripts/reward_gen/t2r_aglt.py ledger",
+    "status": "PASS",
+    "rows": {
+     "0_start": 0.171,
+     "1_halfway_open": 0.2252,
+     "2_pregrasp_open": 0.4073,
+     "3_grasped_on_table": 1.2425,
+     "4_lift_5cm": 4.3358,
+     "5_lift_goal_height": 12.0619,
+     "6_at_goal_held": 16.2425,
+     "2p_fist_at_pregrasp": 0.3853,
+     "2t_open_tipping_cup": 0.2632,
+     "3v_vertical_pinch_on_table": 0.6824,
+     "5d_dropped_after_lift": -0.6769,
+     "3r_thumb_on_rim": 1.0,
+     "3f_fingertips_only": 0.9925,
+     "3x_held_cup_tilted20": 1.0644,
+     "1u_halfway_palm_up": 0.1928,
+     "1f_halfway_flipped": 0.1852,
+     "2a_pregrasp_palm_away": 0.3438,
+     "3u_grasp_thumb_below": 0.3106,
+     "0j_start_cup_jitter": 0.171,
+     "0k_start_cup_jitter_x": 0.171
+    }
+   }
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "보상 변경 — fresh",
+ "sha256": "0e9c072f935b1bbc5ceaef8aebbf400abfcf4d47628e28b7482466b92e97ac92"
+}

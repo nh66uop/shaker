@@ -1,0 +1,9 @@
+{
+ "label": "t2r_i24",
+ "iter": 24,
+ "num_envs": 4096,
+ "warm_start": null,
+ "commit": "d66e4df5",
+ "gpu": 1,
+ "started": 1790089523.7137067
+}

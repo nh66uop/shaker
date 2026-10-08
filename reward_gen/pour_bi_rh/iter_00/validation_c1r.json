@@ -1,0 +1,144 @@
+{
+ "ok": true,
+ "errors": [],
+ "warnings": [],
+ "term_stats": {
+  "alive": {
+   "mean": 0.5,
+   "abs_max": 0.5
+  },
+  "approach_src": {
+   "mean": 0.602233091990153,
+   "abs_max": 2.3188490867614746
+  },
+  "approach_rcv": {
+   "mean": 0.6207204858462015,
+   "abs_max": 2.2009894847869873
+  },
+  "prewrap": {
+   "mean": 0.6205251614252726,
+   "abs_max": 1.5627262592315674
+  },
+  "grasp_src": {
+   "mean": 2.358371814092,
+   "abs_max": 4.499298095703125
+  },
+  "grasp_rcv": {
+   "mean": 2.5283453464508057,
+   "abs_max": 4.499497890472412
+  },
+  "envelope": {
+   "mean": -0.6790357232093811,
+   "abs_max": 3.0
+  },
+  "lift_src": {
+   "mean": 0.07379366209109624,
+   "abs_max": 1.5625559091567993
+  },
+  "lift_rcv": {
+   "mean": 0.08402339617411296,
+   "abs_max": 1.8514564037322998
+  },
+  "aim": {
+   "mean": 0.03979551171263059,
+   "abs_max": 2.554981231689453
+  },
+  "pour_rot": {
+   "mean": 0.2819640636444092,
+   "abs_max": 23.0
+  },
+  "pour_delta": {
+   "mean": -1.1377431551615398,
+   "abs_max": 59.874019622802734
+  },
+  "finish_upright": {
+   "mean": 4.190182456416854e-06,
+   "abs_max": 0.0007656697416678071
+  },
+  "success_bonus": {
+   "mean": 2.0833333333333335,
+   "abs_max": 20.0
+  },
+  "spill": {
+   "mean": -14.813837687174479,
+   "abs_max": 79.82868957519531
+  },
+  "premature": {
+   "mean": -2.2689694563547773,
+   "abs_max": 12.0
+  },
+  "collision": {
+   "mean": -1.590882738431295,
+   "abs_max": 5.383061408996582
+  },
+  "cup_disturb": {
+   "mean": -1.5456959803899128,
+   "abs_max": 3.0296976566314697
+  },
+  "rcv_keep": {
+   "mean": -0.019726098515093327,
+   "abs_max": 1.4249348640441895
+  },
+  "joint_margin": {
+   "mean": -0.3538777530193329,
+   "abs_max": 1.4654743671417236
+  },
+  "ctrl": {
+   "mean": -0.08620936671892802,
+   "abs_max": 0.10044728964567184
+  }
+ },
+ "total_stats": {
+  "mean": -12.702868938446043,
+  "abs_max": 132.30215454101562
+ },
+ "fields_used": [
+  "actions",
+  "bead_in_source_frac",
+  "bead_in_target_frac",
+  "cup_bottom_z",
+  "cup_cup_force",
+  "cup_mouth_z",
+  "cup_radius",
+  "cups_nested",
+  "d_in_target",
+  "d_spill",
+  "num_beads",
+  "prev_actions",
+  "rcv_arm_limit_margin",
+  "rcv_arm_qd",
+  "rcv_cup_ang_vel",
+  "rcv_cup_lin_vel",
+  "rcv_cup_mouth_pos",
+  "rcv_cup_pos",
+  "rcv_cup_spawn_pos",
+  "rcv_cup_tilt",
+  "rcv_cup_up",
+  "rcv_finger_force",
+  "rcv_grasped",
+  "rcv_hand_closure",
+  "rcv_hand_foreign_force",
+  "rcv_palm_axes",
+  "rcv_palm_force",
+  "rcv_palm_pos",
+  "rcv_tips_pos",
+  "src_arm_limit_margin",
+  "src_arm_qd",
+  "src_cup_ang_vel",
+  "src_cup_lin_vel",
+  "src_cup_mouth_pos",
+  "src_cup_pos",
+  "src_cup_spawn_pos",
+  "src_cup_tilt",
+  "src_cup_up",
+  "src_finger_force",
+  "src_grasped",
+  "src_hand_closure",
+  "src_hand_foreign_force",
+  "src_palm_axes",
+  "src_palm_force",
+  "src_palm_pos",
+  "src_tips_pos",
+  "success"
+ ]
+}

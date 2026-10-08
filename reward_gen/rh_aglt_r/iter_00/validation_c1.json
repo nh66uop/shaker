@@ -1,0 +1,24 @@
+{
+ "status": "PASS",
+ "errors": [],
+ "warnings": [],
+ "n_terms": 15,
+ "terms": [
+  "action_rate",
+  "approach",
+  "close_at_pose",
+  "drop_penalty",
+  "foreign_contact",
+  "goal_hold",
+  "grasp_contact",
+  "grasp_hold",
+  "lift",
+  "motion_penalty",
+  "open_hand",
+  "pre_pose",
+  "success_bonus",
+  "tip_penalty",
+  "transport"
+ ],
+ "total_mean": 1.8961280584335327
+}

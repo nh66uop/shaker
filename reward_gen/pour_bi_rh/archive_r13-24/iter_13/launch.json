@@ -1,0 +1,18 @@
+{
+ "label": "t2r_rh3_i13",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "started": 1790089673.8056507,
+ "started_local": "2026-09-23 00:07",
+ "commit": "5658344d",
+ "run_dir": "t2r_rh3_i13",
+ "server_pids": [
+  212289,
+  212298,
+  212305
+ ],
+ "checkpoint": "log/rl_games/open-rh/both/pour-fab-mimic/t2r_rh3_i12/nn/last_open-rh_b_pour_fab_mimic_ep_50_rew_14424.095.pth",
+ "checkpoint_note": "rh3_i12 ep50 — i12 정점 구간(e39~78 succ 0.477·흘림/유출 0.197) 직전. 가중치만 로드."
+}

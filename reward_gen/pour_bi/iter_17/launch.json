@@ -1,0 +1,14 @@
+{
+ "label": "t2r_i17",
+ "num_envs": 4096,
+ "started": 1789841293,
+ "commit": "a241a255",
+ "gpu": 1,
+ "server_pids": [
+  1284215,
+  1284222
+ ],
+ "warm_start": null,
+ "fresh": true,
+ "fresh_note": "09.20 user: behaviour definition changed (wrap grasp, pour direction, receiver side) -> FRESH; warm-start from t2r_i16 ep_5700 aborted before first epoch"
+}

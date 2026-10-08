@@ -1,0 +1,12 @@
+{
+ "selected": "hand_edit",
+ "source": "main session edit of iter_02 per user 09-29 ('벌점이 아니라 상점으로', '750으로 시작')",
+ "changes": [
+  "palm_lift_src / palm_lift_rcv: penalty -W*held*lift_shape*deficit -> bonus +W*held*lift_shape*clamp(palm_force/PALM_MIN, 0, 1), W = PALM_SLIP_W 1.5, PALM_MIN 3 N"
+ ],
+ "why": "iter_02 penalty = bonus - W*lift_shape, a lift tax on palm-less lifting. t2r3_i02b source lift fell 16 -> 6 cm, palm penalty -0.35 -> -0.64 while the receiver (palm 2-4 N) improved. iter_02 check reported worst-case net lift income 0 at 10 cm (flat), which was accepted by mistake",
+ "deterministic_check": "iter_03/check_iter03.py -> check_iter03.out: palm 0 N -> term 0 (same as iter_01); monotone in height and palm force, capped at 3 N; 0 on the table; i01b src 0.00 vs i24 src +1.38 per step",
+ "gate": "validator PASS (validation.json)",
+ "warm_start": "t2r3_i02b last_open-short_b_pour_fab-lstm_ep_750_rew_7307.364.pth (epoch reset to 0)",
+ "warm_start_why": "entropy 24 (exploration intact), grasp 0.87/0.84; the low-lift habit came from the iter_02 tax which iter_03 removes. i01b ep3900 rejected: entropy 7"
+}

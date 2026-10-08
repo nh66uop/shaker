@@ -1,0 +1,47 @@
+{
+ "label": "t2r2_i02l",
+ "track": "pour_bi2",
+ "iter": 2,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "task": "open-short_b_pour_fab-lstm",
+ "agent": "rl_games_ppo_lstm_cfg.yaml: LSTM 1024(after MLP [512,512], layer_norm, concat in/out), critic MLP [512,512,256,128]",
+ "overrides": {
+  "horizon_length": 16,
+  "seq_length": 16,
+  "minibatch_size": 16384,
+  "save_frequency": 50
+ },
+ "commit": "a2ce3fdb",
+ "server_pids": [
+  826464,
+  826501,
+  826508
+ ],
+ "python_pid": 826508,
+ "checkpoint": null,
+ "fresh": true,
+ "seed": 42,
+ "why": "사용자 결정 09-27: horizon 을 줄이고 LSTM 을 넣는다(요청량 단계에서 부은 양을 기억할 수단). LSTM 은 MLP 체크포인트를 못 이어받아 fresh. 같은 iter_02 보상.",
+ "replaced": "t2r2_i02(MLP, i01 ep250 웜) — SIGTERM 뒤 종료 훅 멈춤, 사용자 승인으로 SIGKILL",
+ "reward": "pour_bi2 iter_02 c1",
+ "launcher": "env T2R_TASK=open-short_b_pour_fab-lstm T2R_HORIZON=16 T2R_MINIBATCH=16384 T2R_SAVE_FREQ=50 bash ~/logs/t2r/launch_t2r_gpu.sh 0",
+ "log": "~/logs/t2r/t2r2_i02l.log",
+ "started_local": "2026-09-27T10:35:40+09:00",
+ "started": 1790472940.4363396,
+ "throughput_vs_mlp": {
+  "lstm_h16_early": {
+   "fps_step": 10346,
+   "fps_total": 9884,
+   "samples_per_epoch": 65536,
+   "sec_per_epoch": 6.6
+  },
+  "mlp_h64_early_i01": {
+   "fps_step": 10104,
+   "fps_total": 9970,
+   "samples_per_epoch": 262144,
+   "sec_per_epoch": 26.3
+  }
+ }
+}

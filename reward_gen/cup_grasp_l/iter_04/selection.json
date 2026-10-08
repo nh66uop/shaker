@@ -1,0 +1,16 @@
+{
+ "selected": "c1",
+ "rule": "k=1: gate PASS; AST plan = added WALL_* and link/mid/prox_wall, changed near_digit, r_close, seg_pull only; check_iter04 all PASS incl. L10 (table closing raises reward) and L11 (thumb/index above the rim: close credit 0.0013 vs wall 0.0261, segment pull 0.0012 vs 0.0240; iter_03 pull 0.0240 = wall)",
+ "decided_by": "cup_pick session 227884a1; launch awaits user permission",
+ "left_only": "right keeps cup_grasp_r iter_01",
+ "includes": "iter_03 changes (height-based fade, stall/palm-seat independent of digit count) — iter_03 itself was never trained",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, hypothesis A, verbatim",
+   "hypothesis": "A",
+   "md5": "ed467410e07d68ac14157a166c916aa3"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "fresh, seed 42"
+}

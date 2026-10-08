@@ -1,0 +1,25 @@
+{
+ "label": "t2r2_i02",
+ "track": "pour_bi2",
+ "iter": 2,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "commit": "15f139ab",
+ "server_pids": [
+  812170,
+  812208,
+  812215
+ ],
+ "python_pid": 812215,
+ "checkpoint": "log/rl_games/open-short/both/pour-fab/t2r2_i01/nn/last_open-short_b_pour_fab_ep_250_rew_2027.309.pth",
+ "fresh": false,
+ "seed": 42,
+ "warm_why": "사용자 지시 09-27: 양팔 리프트 이후 epoch 에서 시작(단계 커리큘럼). i01 ep250 = 파지 0.83/0.86·들기 0.13/0.11 m·기준 기록 0.87·리시버 감쌈 3.0, 그리고 접근 전(주둥이 0.275 m)·회전 전(24도)이라 옆 붓기 습관이 없다. flip 0.52·rcv qd 0.48 은 초기부터 있는 수준이라 새 상시 청구로 다룬다.",
+ "reward": "pour_bi2 iter_02 c1 — 조준 바닥 보너스 + 흘림 40 + 떨림 상시",
+ "launcher": "~/logs/t2r/launch_t2r_ckpt_gpu.sh 0",
+ "log": "~/logs/t2r/t2r2_i02.log",
+ "started_local": "2026-09-27T10:07:47+09:00",
+ "started": 1790471267.0615504
+}

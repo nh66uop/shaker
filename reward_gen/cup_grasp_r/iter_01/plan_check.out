@@ -1,0 +1,3 @@
+added ['PAD_SHARE', 'PULL_DEAD', 'PULL_SCALE', 'W_SEG_PULL', 'mid_near', 'n_any', 'prox_c', 'prox_near', 'prox_side', 'r_seg_pull', 'seg_c', 'seg_cw', 'seg_dist', 'seg_normals', 'seg_pull', 'seg_side', 'seg_side_w', 'seg_w', 'touch_any']
+removed ['link_cw', 'link_side_w', 'normals']
+changed ['any_digit', 'components', 'count_depth', 'digit_gap', 'digit_links', 'digit_touch', 'finger_n', 'grip', 'r_palm', 'reward', 'thumb_n']

@@ -1,0 +1,11 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획 준수(notes_iter04: 법선 수평 요구 강화·판정 뒤 파지 자세 유지 항·두 팔 같은 식, 그 밖 iter_03 c1r2 그대로) + check_iter04 PASS + 원장 골 0",
+ "decided_by": "session 146751a7 (사용자 'a로 진행 둘다 대칭' 09-29) — 기동은 사용자 허락 뒤",
+ "candidates": {"c1": {"source": "kuku-reward-generator, iter_04/prompt.md", "sha256_8": "edc2e5eb", "gate": "PASS",
+   "change": "_envelope_score: normal_level = exp(-(n·up/0.5)^2), − 0.3·(1−normal_level); grip_pose = 판정·pose_ok·(0.5 손바닥 K7 높이 + 0.5 손가락 수평), W 1.5 (항 24)",
+   "deterministic_check": "PASS — [38] 0.0000, [39] 받침 −4.38(이전 −1.25), [40] 높고 기운 파지 −5.87(이전 −4.52), [36] 5/4 2.01, 나머지 iter_03 값 유지",
+   "ledger": "iter_04/ledger_c1.txt — 0 1.25 → 5 20.84 → 6 28.31 → 10 67.44, 골 0"}},
+ "warm_start": null,
+ "warm_start_why": "fresh — 보상이 새 파지 자세(낮은 수평·법선 수평)를 요구한다"
+}

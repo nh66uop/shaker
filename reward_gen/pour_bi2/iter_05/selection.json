@@ -1,0 +1,25 @@
+{
+  "selected": "c1r",
+  "rule": "gate PASS + plan compliance (section N + review item 1 only) + deterministic checks; H absolute threshold failure left to the user",
+  "decided_by": "main session recommendation, user decides launch",
+  "candidates": {
+    "c1": {
+      "source": "kuku-reward-generator, prompt.md",
+      "hypothesis": "none (single change N)",
+      "gate": "PASS",
+      "plan": "PASS: rot_prog (1-cos)/2 uncapped, up scores from up-vector z, premature kept",
+      "deterministic_check": "check_iter05.py: N PASS; H FAIL (75deg/12.3cm 0.889 < 1.5, iter_04 1.745, aim ratio 32% unchanged); O FAIL (finish income 0 for tilt >= 90deg)",
+      "verdict": "dropped (O)"
+    },
+    "c1r": {
+      "source": "kuku-reward-generator retry, prompt_c1_repair.md (review items: O finding, H report-only)",
+      "hypothesis": "none (single change N)",
+      "gate": "PASS",
+      "plan": "PASS: vs c1 only finish up_score -> 0.4*up_full + 0.6*up_z^8 with up_full = 1 - acos(up_z)/pi, finish_small uses the same score",
+      "deterministic_check": "check_iter05.py: A-G, I, K, L, N, O PASS; H FAIL same as c1 (absolute rotation income at 75deg halved by the natural scale). lim only in premature.",
+      "verdict": "recommended"
+    }
+  },
+  "warm_start": "t2r2_i04 latest last_*_ep_4400 (or newer at launch)",
+  "warm_start_why": "i04 already grasps (wrap 3.35) and tilts to 98deg; only the rotation cap and upright shape change, and the halved low-angle drive (H) matters less when the policy already tilts"
+}

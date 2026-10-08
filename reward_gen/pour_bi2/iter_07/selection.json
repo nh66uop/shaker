@@ -1,0 +1,17 @@
+{
+  "selected": "c1r",
+  "rule": "gate PASS + plan compliance (section S + review item 1) + deterministic checks; H absolute-scale failure accepted as in iter_05/06",
+  "decided_by": "main session; user decision 09-28 '1,2번 진행' (reward posture info + lower incremental exploration noise)",
+  "candidates": {
+    "c1": {"source": "kuku-reward-generator, prompt.md", "gate": "PASS",
+           "plan": "PASS (approach progress per hand, lift per hand)",
+           "deterministic_check": "S1 PASS (side 0.252 > top 0 = still), S2 PASS (src-only lift 0.5), S3 FAIL (back-and-forth nets +0.126: RETREAT 0.5 rewards pre-grasp tremor)",
+           "verdict": "dropped (S3)"},
+    "c1r": {"source": "kuku-reward-generator retry, prompt_c1_repair.md (review item: symmetric progress)", "gate": "PASS",
+            "plan": "PASS: vs c1 only the approach progress (linear odd in velocity, clip 3 v_ref)",
+            "deterministic_check": "S1 side +0.296 / top 0 / still 0 / away -0.296, S3 back-and-forth 0, S2 src-only lift 0.5, P no motion penalties, N/O PASS, H FAIL as before",
+            "verdict": "selected"}
+  },
+  "warm_start": null,
+  "warm_start_why": "fresh (user 09-28); agent sigma_init lowered to log sigma -1.0 (sigma 0.37) so the incremental palm target random walk shrinks about 2.7x"
+}

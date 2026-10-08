@@ -1,0 +1,53 @@
+{
+ "selected": "c1r",
+ "candidates": {
+  "c1": {
+   "source": "claude kuku-reward-generator (full prompt.md)",
+   "gate": "PASS (t2r_ms ingest, cpu+cuda dry run)",
+   "plan": "both iter_17/improvement.md changes exact: curl = (inner share of the digit's RAW cup force / 0.5, sat 1) x tanh(digit force / 0.3 N), no fallback, mean of five, env_q = env_base x (0.5 + 0.5 hand_curl), depth summand back to the round-16 link count; floor charge smoothstep 2 cm -> 1 cm, cap 0.6, palm half kept",
+   "rejected": "out-of-plan interface rewrite: read the prompt's RewardContext stub (surface fields missing from the iter_17/18 prompt render) as 'no surface fields' and rebuilt palm/link surface distance and normals from a cup_radius/cup_half_height cylinder (end faces at the band ends) plus a 3x3 palm grid, and changed `face`; that moves reach, palm_in, close, link side-wall weights, opposition and the envelope on-ramp away from the measured 512-point surface the env (ObjectRewardContext) provides. Also trust tanh(digit force) lets extra fingertip force raise a light digit's curl (max +0.156 at inner 0.05 N)",
+   "deterministic_check": "check_curl.py: tip press 0.113 < curl 1.0; harder tip RAISES curl (max +0.156, light contact); near zero -> 0 smooth; bounded; env_mult [0.10, 1]"
+  },
+  "q1": {
+   "source": "local qwen3.6 (condensed prompt_qwen.md)",
+   "gate": "FAIL RuntimeError size 64 vs 5 (count_depth (N,5) added to (N,) scalars; depth mean dropped)",
+   "rejected": "gate FAIL; also env_mult = env_q x factor without ENV_FLOOR (0.10 floor removed, rule (f)/(b)); curl = share x trust (full only at share 1); floor 0.75; table band tanh((0.02-h)/0.01)"
+  },
+  "q2": {
+   "source": "local qwen3.6",
+   "gate": "PASS",
+   "plan": "only the two changes, rest identical, RAW link forces",
+   "rejected": "curl = share x tanh(F/0.3) is full only when ALL of a digit's force is inside (plan: full at about one half): five digits carrying half inside reach env_mult 0.854, not all of it; one more curled digit is worth +0.034 (plan ~6 %), below the palm buy-back; CURL_FLOOR 0.6; table band tanh reaches 0.76 at 1 cm (plan: full by 1 cm)",
+   "deterministic_check": "passes all properties (harder tip never raises curl, near zero -> 0, bounded); fails the plan sizing"
+  },
+  "q3": {
+   "source": "local qwen3.6",
+   "gate": "PASS",
+   "rejected": "keeps the round-17 tip floor inside curl: a tip-only digit earns curl 0.3 x tanh(F/0.3), so pressing harder with the tip raises curl (max +0.156) and tip press 0.379 vs curl 1.0; factor multiplies env_mult (ENV_FLOOR 0.10 -> 0.075); CURL_FLOOR 0.75 (+1 curled digit +0.032); stripped every comment incl. the structural-rule scars (next prompt loses them); table band tanh"
+  },
+  "c1r": {
+   "source": "c1 repaired by the kuku-ai-55 gate review (response_c1r.md)",
+   "gate": "PASS (t2r_ms ingest, cpu+cuda dry run)",
+   "changes": "iter_17 code + c1's two planned changes only (AST diff vs iter_17: env_q block and floor_pen only). (1) c1's cylinder surface rebuild, palm grid and face change NOT taken: measured ctx.palm_surface_* / link_surface_* as in iter_17. (2) curl trust on the INNER-link force, tanh((f0+f1)/0.3), instead of the digit total, so fingertip force only lowers the share",
+   "deterministic_check": {
+    "script": "check_curl.py (float64, CPU; layer A = own compute_reward via success_bonus/62, layer B = curl lines, cross-check err 8.7e-7)",
+    "result": "curl: tip press (0.3,0,5) 0.086, curl (2,2,1) 1.000, tip only 0, no contact 0; harder tip never raises curl (max rise 0 on a 0-3 N grid, env_mult rise <= 1.4e-12 at 2-30 N); near zero -> 0 smooth and monotone; bounded [0,1]; env_mult [0.10, 1.00] on random states with 1000 N spikes; finger permutation diff 2e-16; removing a digit never raises env_mult; env_mult tip press 0.586 / tip only 0.471 / curl 1.000",
+    "sizing": "at-success forces of e1000: env_mult 0.690 (iter_17 0.851, keeps 81 %); one more curled digit +0.083 of full; five digits half-inside 1.000",
+    "round17_trade": "index to tip + palm 0.825 -> 0.901 (B vs A): hold x1.085, lift x1.032 (iter_17 x1.118 / x1.064); at the same palm, index back to e1000 x1.045, index curled x1.128",
+    "table_band": "pen_table floor half 0 at 2 cm, 0.15 at 1.5 cm, 0.30 at <= 1 cm",
+    "rate_terms": "none added; closed loop 0.10 -> 0.15 -> 0.10 m, goal_progress + pen_drift: constant grip -13.66, recede tipped / return curled -5.30 (<= 0)"
+   },
+   "residual_risk": "palm contact is still paid inside held (0.3+0.7 palm) and hold_grip (0.4+0.6 palm), kept by the plan: if a fingertip press is what buys palm contact, that trade still earns +8.5 % hold; a full curl of that digit earns +12.8 %. Watch index inner share at the first fixed-tol eval"
+  }
+ },
+ "rule": "gate PASS AND plan conformance (iter_17 whole, only the two iter_17/improvement.md changes, curl on RAW link forces, symmetric, no per-finger term, no angle, no speed/control relaxation) AND deterministic property check (tip press < curl, harder tip never raises curl, near-zero -> 0 smooth, bounded, closed cycles <= 0)",
+ "decided_by": "kuku-ai-55 gate review subagent (recommendation; main confirms)",
+ "at": "2026-09-26T04:25",
+ "warm_start": "ckpt_in/cup_pick/cp_l_m16r_e1000.pth",
+ "warm_start_why": "best fixed-tol checkpoint (0.785 server / 0.811 vision-3090); m17 ep800 regressed (0.703, z -2.9) and moved the index to its fingertip, e1000 still carries 0.19-0.31 of the index force inside",
+ "notes": [
+  "prompt render: iter_17 and iter_18 prompt.md/prompt_qwen.md list RewardContext WITHOUT the six surface fields (iter_14-16 had them), while the code in the prompt uses them; likely reflect ran through t2r_fj.py instead of t2r_ms.py (meta context copied from the previous iter). Re-render iter_19 through t2r_ms.py",
+  "reward scale: the same behaviour earns about 19 % less downstream income than under iter_17 (env_mult 0.85 -> 0.69 at e1000 forces); the warm-started critic starts high",
+  "env: left-arm object_out_y bound (y <= 0.25 m) still pending a user decision; not a reward change"
+ ]
+}

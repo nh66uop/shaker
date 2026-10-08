@@ -1,0 +1,23 @@
+{
+ "label": "t2r3_i04",
+ "track": "pour_bi3",
+ "iter": 4,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-short_b_pour_fab-lstm",
+ "commit": "8977a5b9",
+ "python_pid": 2127324,
+ "checkpoint": "~/rl_ws/hdgp/log/rl_games/open-short/both/pour-fab/t2r3_i03g/nn/last_open-short_b_pour_fab-lstm_ep_400_rew_35456.848_sig05.pth (sigma clamped <= 0.5 per dim; before: thumb opposition 140/619, receiver rotation 1.4-2.2)",
+ "fresh": false,
+ "network": "LSTM 1024 (before_mlp, no concat) -> MLP [512,512], horizon 16, seq 16, minibatch 16384, sigma_init default",
+ "env": "env.preset=i24 + obs_fabric_state + fabric_velocity_ff_scale 0.0 + fabrics_damping_gain 20 + palm_cmd_max_step_rcv 0.005 + thumb_tip_close_floor [0.0,0.45] + wrench_force/torque_scale_max 0",
+ "reward": "pour_bi3 iter_04 (iter_03 + grip_slip both hands)",
+ "agent_extra": "bounds_loss_coef 0.05, entropy_coef 0.0005",
+ "log": "~/logs/t2r/t2r3_i04.log",
+ "started_local": "2026-10-01T00:13:51+09:00",
+ "why": "user: grip needs a reward; sigma runaway under entropy_coef 0.0015 (training samples 50-100 % clipped) -> entropy 0.0005 + sigma reset",
+ "launcher": "~/logs/t2r/launch_t2r_gpu_ckpt.sh",
+ "save_frequency": 200
+}

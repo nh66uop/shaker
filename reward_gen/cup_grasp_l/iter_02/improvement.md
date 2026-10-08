@@ -1,0 +1,5 @@
+Change only what Hypothesis A says. Keep the segment-based digit counting, the segment pull, the pre-hold palm-seat bonus and the shove relief. The reward must stay identical for the mirrored arm.
+
+## Hypothesis A
+- The incomes that pay for getting to the object and seating the hand (the long-range reach, the palm seating and the closing term) must not disappear when the grasp completes on the table. Fade them with how far the object has actually risen above its start height (or with the object being off the table), not with the hold gate, so that on the table closing one more digit onto the object always raises the per-step reward. Today closing a third digit costs -0.285 per step.
+- Neither the stall cost nor the pre-hold palm-seat bonus may turn a more complete grasp on the table into a loss: the stall cost must not grow with the number of digits holding the object, and the bonus must not shrink when more digits hold. Lifting must remain the only way to increase income clearly once the grasp is complete.

@@ -1,0 +1,61 @@
+{
+ "status": "PASS",
+ "fails": [],
+ "traces": {
+  "good_mirror": {
+   "steps": 1800,
+   "envs": 64,
+   "samples": 115200,
+   "mean_all": 1.461,
+   "mean_held": 1.7488,
+   "mean_lifted": 1.8317,
+   "frac_held": 0.8132,
+   "frac_lifted": 0.7617,
+   "steer_up_frac": 0.9826
+  },
+  "bad_i03_rim": {
+   "steps": 1800,
+   "envs": 64,
+   "samples": 115200,
+   "mean_all": 0.0859,
+   "mean_held": 0.065,
+   "mean_lifted": 0.0702,
+   "frac_held": 0.8126,
+   "frac_lifted": 0.7725,
+   "steer_up_frac": 1.0
+  },
+  "bad_i05_thumb_in": {
+   "steps": 1800,
+   "envs": 64,
+   "samples": 115200,
+   "mean_all": 0.0754,
+   "mean_held": 0.042,
+   "mean_lifted": 0.0473,
+   "frac_held": 0.7881,
+   "frac_lifted": 0.7552,
+   "steer_up_frac": 1.0
+  },
+  "bad_i06_hat": {
+   "steps": 1800,
+   "envs": 64,
+   "samples": 115200,
+   "mean_all": 0.106,
+   "mean_held": -0.0047,
+   "mean_lifted": NaN,
+   "frac_held": 0.4712,
+   "frac_lifted": 0.0,
+   "steer_up_frac": 1.0
+  },
+  "r_i10_ep4600_tol0.0229": {
+   "steps": 1800,
+   "envs": 64,
+   "samples": 115200,
+   "mean_all": 2.4082,
+   "mean_held": 3.0172,
+   "mean_lifted": 3.1402,
+   "frac_held": 0.7827,
+   "frac_lifted": 0.7359,
+   "steer_up_frac": 0.7892
+  }
+ }
+}

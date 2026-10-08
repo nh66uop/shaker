@@ -1,0 +1,22 @@
+{
+ "selected": "c1r",
+ "rule": "ingest PASS + 계획 준수(5-9 한 변경) + check_iter05 [1]~[64](은퇴 [25][31][57] 참고) + traj_ledger T1~T5·T4b",
+ "decided_by": "사용자 10-01 '진행'",
+ "tool_fix": "10-01 원장·픽스처를 실측에 맞춤: (1) D 구간 네 손끝 = f10 실측 굽힘 곡선 + 컵 벽(r+0.5 mm) 정지·닿은 손가락 1.5 N, 엄지는 원통 좌표로 말린 손끝 반대쪽 (2) 편 손 엄지 끝 = f04 실측 손바닥 좌표(가로 +4.6·f 4.0·n 7.5 cm) (3) T4·T4b 는 잡는 자리 밖(손바닥 축 거리 > 2.6 r)만 판정 (4) [64] 닫힘 0.15~0.6, 닿은 손가락 1 N(env 접촉 멈춤), 0.6 이후 네 손끝 모두 벽이라 판정 안 함",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, prompt.md",
+   "gate": "PASS",
+   "deterministic_check": "check_c1.txt FAIL: [64] 0.45>0.6 −0.027(approach_src −0.175 · prewrap +0.044 · grasp_src +0.121 · cup_disturb −0.018), 나머지 [1]~[63]·T1~T5·T4b 통과"
+  },
+  "c1r": {
+   "source": "재시도 1, prompt_c1_repair.md",
+   "gate": "PASS",
+   "plan": "5-9 범위 안: 해제·닫기용 엄지 대향 문턱을 네 손끝 벽 근접·바깥 접촉 정도 wall_f 만큼 0.45→최저 0.15 로 낮춤(닫기 전에는 그대로)",
+   "deterministic_check": "check_c1r.txt PASS: [64] 0.15 +7.71 → 0.3 +7.86 → 0.45 +8.49 → 0.6 +8.81 칸 최소 +0.153 · [62] 칸 최소 +0.058/+0.040 · [63] 0/90/180° 단조 · T1 최대 하락 −0.023 · T3 전부 손해 · T4 최소 +0.188 · T4b +0.110/+0.078/+0.069 · T5 0 · [36] 단조 · [1] 52 %"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "fresh (보상 바뀜)",
+ "sha256_prefix": "9b6494a9"
+}

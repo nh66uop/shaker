@@ -1,0 +1,25 @@
+{
+ "selected": "c1r",
+ "md5": "ede2e8729883b006a3eb55308449156a",
+ "rule": "gate PASS + plan (AST vs iter_06: closing x palm arrival, open-hand income rebuilt) + check_iter07",
+ "decided_by": "main session; user 09-28 '보상생성'",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator prompt.md, Hypothesis A",
+   "hypothesis": "A",
+   "gate": "PASS",
+   "plan": "PASS",
+   "deterministic_check": "check_iter07_c1.out: L16/L16b PASS; L15b FAIL (open approach drops up to -0.014/step at 3.1-1.9 cm: open-hand income faded by palm distance); L16c FAIL (-0.0066)"
+  },
+  "c1r": {
+   "source": "kuku-reward-generator prompt_c1_repair.md (review: hand-over dip), Hypothesis A",
+   "hypothesis": "A",
+   "gate": "PASS",
+   "plan": "PASS (open_keep = open_pose + close_seat x (1 - open_pose); no distance fade)",
+   "deterministic_check": "check_iter07_c1r.out: 25 PASS; L11 FAIL by design; L16 open 0.247 vs fist 0.199 at palm 6 cm; L16b fist closing 0.0047 vs 0.130 at 1 cm; L16c open approach then curl monotone (0.247 -> 0.348 at 1 cm -> 0.478 curled); L15/L15b PASS; L12/L13 PASS"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "reward requires new approach behaviour (open hand); fresh",
+ "at": "2026-09-28T07:45:49"
+}

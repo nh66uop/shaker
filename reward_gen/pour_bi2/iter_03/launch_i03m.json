@@ -1,0 +1,61 @@
+{
+ "label": "t2r2_i03m",
+ "track": "pour_bi2",
+ "iter": 3,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "task": "open-short_b_pour_fab-lstm",
+ "commit": "08e2164f (서버 HEAD, pour 코드는 ad03a2e2 와 동일)",
+ "python_pid": 981049,
+ "checkpoint": null,
+ "fresh": true,
+ "seed": 42,
+ "network": "관측 224 → LSTM 1024 → LayerNorm → MLP [512,512] → 명령 18 (before_mlp True, concat 끔)",
+ "overrides": {
+  "horizon_length": 16,
+  "seq_length": 16,
+  "minibatch_size": 16384,
+  "save_frequency": 50,
+  "lr_schedule": "linear",
+  "central_value_config.learning_rate": "3e-4",
+  "network.rnn.before_mlp": true,
+  "network.rnn.concat_input": false,
+  "network.rnn.concat_output": false,
+  "config.clip_actions": false
+ },
+ "why": "사용자 결정 09-27 '변경해서 재시작': i02l·i03l(MLP→LSTM, 관측 원본을 출력 헤드에 이어 붙임, clip 기본) 은 시작 bounds_loss 3.6~5.7 로 명령이 포화된 채 시작해 파지 0. 컵 집기와 같은 LSTM→MLP 배치로 바꾸고 clip 을 MLP 와 같게 끔",
+ "first_check": {
+  "bounds_loss_first10": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "src_closure_first12": [
+   0.0,
+   0.0,
+   0.008,
+   0.044,
+   0.045,
+   0.016,
+   0.012,
+   0.016,
+   0.037,
+   0.038,
+   0.023,
+   0.018
+  ],
+  "verdict": "포화 시작 해소 확인(MLP 와 같이 0)"
+ },
+ "reward": "pour_bi2 iter_03 c1",
+ "log": "~/logs/t2r/t2r2_i03m.log",
+ "started_local": "2026-09-27T15:12:11+09:00",
+ "started": 1790489531.645495
+}

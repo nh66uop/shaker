@@ -1,0 +1,60 @@
+{
+ "label": "t2r_rh5_f00",
+ "iter": 0,
+ "cycle": 5,
+ "host": "server",
+ "gpu": 1,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-rh_b_pour_fj-lstm",
+ "python_pid": 2008109,
+ "server_head": "ad9675c2",
+ "reward": "5사이클 iter_00 c1r2 (sha256 854a5eec)",
+ "checkpoint": null,
+ "started_local": "2026-09-30 22:36",
+ "overrides": {
+  "horizon_length": 16,
+  "minibatch_size": 16384,
+  "mini_epochs": 2,
+  "learning_rate": "1e-4",
+  "lr_schedule": "adaptive",
+  "kl_threshold": 0.016,
+  "e_clip": 0.1,
+  "central_value_config.learning_rate": "1e-4",
+  "network.rnn.before_mlp": true,
+  "network.rnn.concat_input": false,
+  "network.rnn.concat_output": false,
+  "config.clip_actions": false,
+  "save_frequency": 200
+ },
+ "env": "PourFJEnvCfg: 팔 joint · 손 direct 범위 grip + 1.0 N 힘 멈춤 · 관측 165/207 잡음·지연 0",
+ "log_dir": "~/rl_ws/hdgp/log/rl_games/open-rh/both/pour-fj/t2r_rh5_f00",
+ "why": "사용자 '학습 보상 다시 세팅' — 단계 합 사다리(곱 없음), f10 실측 실패([56] 쥐고 안 듦·[57] 편 손 왼손) 검사 통과. '실제 제어 로직으로 학습될 수 있게' — 실기 제어 응답 켬",
+ "launched_by": "session 146751a7, 사용자 '진행'·'c1r2'·'켬다' 09-30",
+ "ppo_changes": {
+  "gamma": "0.998→0.99",
+  "value_bootstrap": "False→True (actor·central)",
+  "mlp": "[512,512]→[1024,1024,512,512]",
+  "central_mlp": "[512,512,256,128]→[1024,1024,512,512]",
+  "entropy_coef": "0.0005→0",
+  "bounds_loss_coef": "0.0001→0.005"
+ },
+ "env_overrides": {
+  "arm_joint_mode": "absolute",
+  "phys_cup_speed_max": 3.0,
+  "phys_cup_angvel_max": 30.0,
+  "phys_contact_max_n": 200.0,
+  "phys_contact_steps": 2,
+  "cup_leash_m": 0.5,
+  "object_spawn_dx": -0.12,
+  "hand_cmd_delay_steps": 4,
+  "arm_cmd_delay_steps": [
+   9,
+   12
+  ],
+  "hand_vel_cap_rad_s": 2.1,
+  "hand_thumb_flex_vel_cap_rad_s": 0.56,
+  "hand_finger_open_floor_rad": 0.065
+ },
+ "kill_f10": "e2069 SIGTERM 90 s 무응답 → 재확인 뒤 SIGKILL"
+}

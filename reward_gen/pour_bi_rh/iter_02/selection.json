@@ -1,0 +1,18 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획 준수(5-6 한 변경: 쥐기 전 approach·low·wrap·close 에 j_pre) + check_iter02 [1]~[59](은퇴 [25][31][57] 참고) + traj_ledger T1~T5",
+ "decided_by": "사용자 10-01 '재진행 — 왼팔도 이상한 자세로 접근' (iter_02 로 간다)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, prompt.md",
+   "hypothesis": "단일(5-6 1)",
+   "gate": "PASS",
+   "plan": "diff = _margin_fac 신설, _hand_terms 인자 arm_limit_margin, approach·low·wrap·close 에 j_pre 곱. 그 밖 iter_01 c1r2 와 같음",
+   "deterministic_check": "check_c1.txt PASS: [59] src 머묾→수평 인벨롭 +1.58·여유만 +0.46, rcv +2.12·+0.90; T1 −0.032·T2·T3 전부 손해·T4 최소 +0.22·T5 0; [1] 54 %·[36] 단조",
+   "note": "생성기 표시: 5-0 '바닥 있는 곱 둘 넘게 잇지 않기'와 5-6 '곱하는 인자' 충돌 → 쥐기 전에만·바닥 0.5·여유 0.25 이상에서 1"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "fresh (iter_01 과 같은 이유; 보상 바뀜)",
+ "sha256_prefix": "ef63f70b"
+}

@@ -1,0 +1,61 @@
+{
+ "label": "t2r_rh5_f01",
+ "iter": 1,
+ "cycle": 5,
+ "host": "server",
+ "gpu": 1,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-rh_b_pour_fj-lstm",
+ "python_pid": 2164241,
+ "server_head": "f85d978d",
+ "reward": "5사이클 iter_01 c1r2 (sha256 c4d6e3d4)",
+ "checkpoint": null,
+ "started_local": "2026-10-01",
+ "overrides": {
+  "horizon_length": 16,
+  "minibatch_size": 16384,
+  "mini_epochs": 2,
+  "learning_rate": "1e-4",
+  "lr_schedule": "adaptive",
+  "kl_threshold": 0.016,
+  "e_clip": 0.1,
+  "central_value_config.learning_rate": "1e-4",
+  "network.rnn.before_mlp": true,
+  "network.rnn.concat_input": false,
+  "network.rnn.concat_output": false,
+  "config.clip_actions": false,
+  "save_frequency": 200
+ },
+ "env": "PourFJEnvCfg: 팔 joint 절대 · 손 direct grip + 1.0 N 힘 멈춤 · 실기 명령 지연 끔(사용자 10-01, 이송 성공 뒤 켬) · 손 속도 상한·편 한계 유지",
+ "log_dir": "~/rl_ws/hdgp/log/rl_games/open-rh/both/pour-fj/t2r_rh5_f01",
+ "why": "사용자 '1번'(편 손 접근) · 참 궤적 최적(traj_ledger T1~T5 통과) · '인벨롭처럼 되려면 컵 입구보다 낮게 잡는 게 맞아' → c1r2 선택, [25][31][57] 은퇴",
+ "launched_by": "session 146751a7, 사용자 10-01 '1번이 맞을듯'",
+ "ppo_changes": {
+  "gamma": "0.998→0.99",
+  "value_bootstrap": "False→True (actor·central)",
+  "mlp": "[512,512]→[1024,1024,512,512]",
+  "central_mlp": "[512,512,256,128]→[1024,1024,512,512]",
+  "entropy_coef": "0.0005→0",
+  "bounds_loss_coef": "0.0001→0.005"
+ },
+ "env_overrides": {
+  "arm_joint_mode": "absolute",
+  "phys_cup_speed_max": 3.0,
+  "phys_cup_angvel_max": 30.0,
+  "phys_contact_max_n": 200.0,
+  "phys_contact_steps": 2,
+  "cup_leash_m": 0.5,
+  "object_spawn_dx": -0.12,
+  "hand_cmd_delay_steps": 0,
+  "arm_cmd_delay_steps": [
+   0,
+   0
+  ],
+  "hand_vel_cap_rad_s": 2.1,
+  "hand_thumb_flex_vel_cap_rad_s": 0.56,
+  "hand_finger_open_floor_rad": 0.065
+ },
+ "server_sync": "서버 https 인증 없음 → git bundle(8977a5b9..main) fetch + ff-only merge, HEAD f85d978d·보상 sha 일치",
+ "kill_f00": "e753 SIGTERM PID 2008109, 종료·GPU1 반환 확인"
+}

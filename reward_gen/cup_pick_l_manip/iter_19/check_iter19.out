@@ -1,0 +1,116 @@
+== 1. identity vs iter_18/compute_reward.py
+  compute_reward.py          {'md5': '743ca5d1', 'bytes_equal': True, 'ast_equal': True, 'ast_equal_wo_annotations': True}
+  compute_reward_c1.py       {'md5': '743ca5d1', 'bytes_equal': True, 'ast_equal': True, 'ast_equal_wo_annotations': True}
+  compute_reward_q1.py       {'md5': '17836779', 'bytes_equal': False, 'syntax_error': 'line 248: invalid syntax'}
+  compute_reward_q2.py       {'md5': '743ca5d1', 'bytes_equal': True, 'ast_equal': True, 'ast_equal_wo_annotations': True}
+  compute_reward_q3.py       {'md5': 'a72c9dc4', 'bytes_equal': False, 'ast_equal': False, 'ast_equal_wo_annotations': True}
+== 2. iter_18 check_curl properties on iter_19/compute_reward.py
+  A env_mult tip press(0.3,0,5)                    0.5857211234265812
+  A env_mult curl(2,2,1)                           0.9999999999962227
+  A env_mult tip only(0,0,3)                       0.47124999999999995
+  A max rise of env_mult on harder tip (saturated) 1.414757200279837e-12
+  A layerB_vs_A max abs err                        8.745794349840352e-07
+  A env_mult range (random)                        [0.1, 1.0]
+  A finger permutation max diff                    2.220446049250313e-16
+  A digit removed: max rise                        0.0
+  sizing (at-success forces, e1000)            {'today': 0.69, '+1 digit curled': 0.0831, 'all curled': 1.0, '+1 digit / all curled': 0.0831, 'today / all curled': 0.69}
+  round-17 trade (index to tip + palm)          {'hold B/A': 1.085, 'lift B/A': 1.0324, 'hold C/B': 1.0449, 'hold D/B': 1.1275}
+  pen_table vs lowest link height               {'3.0cm': 0.0, '2.0cm': 0.0, '1.5cm': 0.15, '1.0cm': 0.3, '0.5cm': 0.3, '0.0cm': 0.3}
+  closed loop 0.1 m/s both ways (iter_18 test)  {'constant grip': -13.662, 'recede tipped, return curled': -5.2952}
+  max |iter_19 - iter_18| over reward and all terms, fake ctx 4x256: 0.0
+== 3a. radial closed loops (goal_progress + pen_drift), tol 0.0911, curled grip, 3 successes
+  0.03<->0.08  v_in 0.02  v_out 0.05  rate_sum  -30.403  whole-stay    -636.54  steps 210
+  0.03<->0.08  v_in 0.02  v_out 0.10  rate_sum  -19.320  whole-stay    -541.04  steps 180
+  0.03<->0.08  v_in 0.02  v_out 0.30  rate_sum   +4.979  whole-stay    -428.11  steps 160
+  0.03<->0.08  v_in 0.02  v_out 0.60  rate_sum  +13.402  whole-stay    -393.44  steps 155
+  0.03<->0.08  v_in 0.02  v_out 0.80  rate_sum  +15.095  whole-stay    -386.46  steps 154
+  0.03<->0.08  v_in 0.05  v_out 0.05  rate_sum  -31.791  whole-stay    -483.69  steps 120
+  0.03<->0.08  v_in 0.05  v_out 0.10  rate_sum  -20.708  whole-stay    -388.19  steps 90
+  0.03<->0.08  v_in 0.05  v_out 0.30  rate_sum   +3.590  whole-stay    -275.26  steps 70
+  0.03<->0.08  v_in 0.05  v_out 0.60  rate_sum  +12.013  whole-stay    -240.59  steps 65
+  0.03<->0.08  v_in 0.05  v_out 0.80  rate_sum  +13.707  whole-stay    -233.60  steps 64
+  0.03<->0.08  v_in 0.10  v_out 0.05  rate_sum  -35.396  whole-stay    -402.88  steps 90
+  0.03<->0.08  v_in 0.10  v_out 0.10  rate_sum  -24.313  whole-stay    -307.37  steps 60
+  0.03<->0.08  v_in 0.10  v_out 0.30  rate_sum   -0.015  whole-stay    -194.45  steps 40
+  0.03<->0.08  v_in 0.10  v_out 0.60  rate_sum   +8.408  whole-stay    -159.78  steps 35
+  0.03<->0.08  v_in 0.10  v_out 0.80  rate_sum  +10.102  whole-stay    -152.79  steps 34
+  0.03<->0.08  v_in 0.30  v_out 0.05  rate_sum  -44.924  whole-stay    -323.78  steps 70
+  0.03<->0.08  v_in 0.30  v_out 0.10  rate_sum  -33.841  whole-stay    -228.27  steps 40
+  0.03<->0.08  v_in 0.30  v_out 0.30  rate_sum   -9.543  whole-stay    -115.35  steps 20
+  0.03<->0.08  v_in 0.30  v_out 0.60  rate_sum   -1.120  whole-stay     -80.67  steps 15
+  0.03<->0.08  v_in 0.30  v_out 0.80  rate_sum   +0.574  whole-stay     -73.69  steps 14
+  0.10<->0.15  v_in 0.02  v_out 0.05  rate_sum  -16.079  whole-stay    -413.60  steps 210
+  0.10<->0.15  v_in 0.02  v_out 0.10  rate_sum   -7.590  whole-stay    -349.98  steps 180
+  0.10<->0.15  v_in 0.02  v_out 0.30  rate_sum  +12.058  whole-stay    -269.63  steps 160
+  0.10<->0.15  v_in 0.02  v_out 0.60  rate_sum  +19.096  whole-stay    -244.37  steps 155
+  0.10<->0.15  v_in 0.02  v_out 0.80  rate_sum  +20.514  whole-stay    -239.27  steps 154
+  0.10<->0.15  v_in 0.05  v_out 0.05  rate_sum  -17.741  whole-stay    -323.06  steps 120
+  0.10<->0.15  v_in 0.05  v_out 0.10  rate_sum   -9.252  whole-stay    -259.44  steps 90
+  0.10<->0.15  v_in 0.05  v_out 0.30  rate_sum  +10.396  whole-stay    -179.09  steps 70
+  0.10<->0.15  v_in 0.05  v_out 0.60  rate_sum  +17.434  whole-stay    -153.83  steps 65
+  0.10<->0.15  v_in 0.05  v_out 0.80  rate_sum  +18.852  whole-stay    -148.73  steps 64
+  0.10<->0.15  v_in 0.10  v_out 0.05  rate_sum  -22.056  whole-stay    -272.24  steps 90
+  0.10<->0.15  v_in 0.10  v_out 0.10  rate_sum  -13.567  whole-stay    -208.61  steps 60
+  0.10<->0.15  v_in 0.10  v_out 0.30  rate_sum   +6.081  whole-stay    -128.27  steps 40
+  0.10<->0.15  v_in 0.10  v_out 0.60  rate_sum  +13.119  whole-stay    -103.00  steps 35
+  0.10<->0.15  v_in 0.10  v_out 0.80  rate_sum  +14.537  whole-stay     -97.90  steps 34
+  0.10<->0.15  v_in 0.30  v_out 0.05  rate_sum  -33.462  whole-stay    -222.95  steps 70
+  0.10<->0.15  v_in 0.30  v_out 0.10  rate_sum  -24.973  whole-stay    -159.32  steps 40
+  0.10<->0.15  v_in 0.30  v_out 0.30  rate_sum   -5.325  whole-stay     -78.98  steps 20
+  0.10<->0.15  v_in 0.30  v_out 0.60  rate_sum   +1.713  whole-stay     -53.71  steps 15
+  0.10<->0.15  v_in 0.30  v_out 0.80  rate_sum   +3.131  whole-stay     -48.61  steps 14
+  0.13<->0.25  v_in 0.02  v_out 0.05  rate_sum  -21.584  whole-stay   -1197.99  steps 504
+  0.13<->0.25  v_in 0.02  v_out 0.10  rate_sum   -5.050  whole-stay   -1016.44  steps 432
+  0.13<->0.25  v_in 0.02  v_out 0.30  rate_sum  +34.626  whole-stay    -824.07  steps 384
+  0.13<->0.25  v_in 0.02  v_out 0.60  rate_sum  +49.128  whole-stay    -765.89  steps 372
+  0.13<->0.25  v_in 0.02  v_out 0.80  rate_sum  +52.783  whole-stay    -751.19  steps 369
+  0.13<->0.25  v_in 0.05  v_out 0.05  rate_sum  -25.630  whole-stay    -837.46  steps 288
+  0.13<->0.25  v_in 0.05  v_out 0.10  rate_sum   -9.096  whole-stay    -655.91  steps 216
+  0.13<->0.25  v_in 0.05  v_out 0.30  rate_sum  +30.580  whole-stay    -463.54  steps 168
+  0.13<->0.25  v_in 0.05  v_out 0.60  rate_sum  +45.082  whole-stay    -405.36  steps 156
+  0.13<->0.25  v_in 0.05  v_out 0.80  rate_sum  +48.737  whole-stay    -390.65  steps 153
+  0.13<->0.25  v_in 0.10  v_out 0.05  rate_sum  -36.135  whole-stay    -682.95  steps 216
+  0.13<->0.25  v_in 0.10  v_out 0.10  rate_sum  -19.601  whole-stay    -501.39  steps 144
+  0.13<->0.25  v_in 0.10  v_out 0.30  rate_sum  +20.075  whole-stay    -309.03  steps 96
+  0.13<->0.25  v_in 0.10  v_out 0.60  rate_sum  +34.577  whole-stay    -250.85  steps 84
+  0.13<->0.25  v_in 0.10  v_out 0.80  rate_sum  +38.231  whole-stay    -236.14  steps 81
+  0.13<->0.25  v_in 0.30  v_out 0.05  rate_sum  -63.903  whole-stay    -558.02  steps 168
+  0.13<->0.25  v_in 0.30  v_out 0.10  rate_sum  -47.369  whole-stay    -376.47  steps 96
+  0.13<->0.25  v_in 0.30  v_out 0.30  rate_sum   -7.693  whole-stay    -184.10  steps 48
+  0.13<->0.25  v_in 0.30  v_out 0.60  rate_sum   +6.809  whole-stay    -125.92  steps 36
+  0.13<->0.25  v_in 0.30  v_out 0.80  rate_sum  +10.463  whole-stay    -111.22  steps 33
+  rate_sum > 0 in 31/60 loops, max +52.783; whole reward beats staying at the inner point in 0/60
+== 3b. rate-term charge per metre of receding at goal_dist 0.13 m
+  0.05 m/s  {'rate/m': 830.42, 'rate+cup_vel/m': 842.38}
+  0.10 m/s  {'rate/m': 664.27, 'rate+cup_vel/m': 676.11}
+  0.20 m/s  {'rate/m': 407.14, 'rate+cup_vel/m': 418.54}
+  0.40 m/s  {'rate/m': 209.29, 'rate+cup_vel/m': 219.25}
+  0.60 m/s  {'rate/m': 139.59, 'rate+cup_vel/m': 147.92}
+  0.80 m/s  {'rate/m': 104.69, 'rate+cup_vel/m': 111.6}
+  1.20 m/s  {'rate/m': 69.79, 'rate+cup_vel/m': 74.71}
+== 3c. vertical closed loops below the latch (lift_rise + pen_descend + pen_setdown)
+  h 0.01<->0.05  v_up 0.02  v_dn 0.05  rate_sum  -14.886  whole-stay_top   -110.91  steps 168
+  h 0.01<->0.05  v_up 0.02  v_dn 0.10  rate_sum  -11.030  whole-stay_top    -90.87  steps 144
+  h 0.01<->0.05  v_up 0.02  v_dn 0.30  rate_sum   +1.346  whole-stay_top    -62.17  steps 128
+  h 0.01<->0.05  v_up 0.02  v_dn 0.60  rate_sum   +5.401  whole-stay_top    -53.05  steps 124
+  h 0.01<->0.05  v_up 0.05  v_dn 0.05  rate_sum  -15.487  whole-stay_top    -73.15  steps 96
+  h 0.01<->0.05  v_up 0.05  v_dn 0.10  rate_sum  -11.631  whole-stay_top    -53.10  steps 72
+  h 0.01<->0.05  v_up 0.05  v_dn 0.30  rate_sum   +0.745  whole-stay_top    -24.40  steps 56
+  h 0.01<->0.05  v_up 0.05  v_dn 0.60  rate_sum   +4.800  whole-stay_top    -15.29  steps 52
+  h 0.01<->0.05  v_up 0.10  v_dn 0.05  rate_sum  -17.048  whole-stay_top    -63.70  steps 72
+  h 0.01<->0.05  v_up 0.10  v_dn 0.10  rate_sum  -13.192  whole-stay_top    -43.66  steps 48
+  h 0.01<->0.05  v_up 0.10  v_dn 0.30  rate_sum   -0.816  whole-stay_top    -14.96  steps 32
+  h 0.01<->0.05  v_up 0.10  v_dn 0.60  rate_sum   +3.239  whole-stay_top     -5.84  steps 28
+  h 0.03<->0.08  v_up 0.02  v_dn 0.05  rate_sum   -9.822  whole-stay_top   -110.16  steps 210
+  h 0.03<->0.08  v_up 0.02  v_dn 0.10  rate_sum   -6.305  whole-stay_top    -87.75  steps 180
+  h 0.03<->0.08  v_up 0.02  v_dn 0.30  rate_sum   +4.491  whole-stay_top    -53.99  steps 160
+  h 0.03<->0.08  v_up 0.02  v_dn 0.60  rate_sum   +8.158  whole-stay_top    -42.82  steps 155
+  h 0.03<->0.08  v_up 0.05  v_dn 0.05  rate_sum  -10.573  whole-stay_top    -73.88  steps 120
+  h 0.03<->0.08  v_up 0.05  v_dn 0.10  rate_sum   -7.057  whole-stay_top    -51.48  steps 90
+  h 0.03<->0.08  v_up 0.05  v_dn 0.30  rate_sum   +3.740  whole-stay_top    -17.71  steps 70
+  h 0.03<->0.08  v_up 0.05  v_dn 0.60  rate_sum   +7.406  whole-stay_top     -6.55  steps 65
+  h 0.03<->0.08  v_up 0.10  v_dn 0.05  rate_sum  -12.525  whole-stay_top    -66.44  steps 90
+  h 0.03<->0.08  v_up 0.10  v_dn 0.10  rate_sum   -9.008  whole-stay_top    -44.04  steps 60
+  h 0.03<->0.08  v_up 0.10  v_dn 0.30  rate_sum   +1.788  whole-stay_top    -10.27  steps 40
+  h 0.03<->0.08  v_up 0.10  v_dn 0.60  rate_sum   +5.455  whole-stay_top     +0.90  steps 35
+  rate_sum > 0 in 11/24 loops, max +8.158; whole reward beats staying at the top in 1/24

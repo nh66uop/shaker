@@ -1,0 +1,15 @@
+{
+ "label": "t2r_rh3_i10",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "started": 1790058900.0,
+ "started_local": "2026-09-22 15:45",
+ "commit": "9d5a6022",
+ "run_dir": "t2r_rh3_i10",
+ "server_pids": [3770056, 3770063],
+ "checkpoint": "log/rl_games/open-rh/both/pour-fab-mimic/t2r_rh3_i09/nn/last_open-rh_b_pour_fab_mimic_ep_650_rew_15642.802.pth",
+ "checkpoint_note": "rh3_i09 ep650 — 결정론 재생 16env 성공 81.2 %·도달 70.0 %·흘림 28.4 % 로 검증된 체크포인트. 가중치만 로드(epoch 0 리셋). 로컬 사본: log/pour_fabric_mimic/mirror/t2r_rh3_i09/nn/ep650_verified_success081.pth",
+ "launch_note": "conda proj-hdgp-py311 activate 후 CUDA_VISIBLE_DEVICES=0."
+}

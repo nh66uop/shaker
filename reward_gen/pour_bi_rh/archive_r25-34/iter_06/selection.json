@@ -1,0 +1,14 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획(notes_iter06 1·2) 준수 + check_iter06 [1]~[17]·[20]~[24] PASS ([18]·[19] 참고용)",
+ "decided_by": "session 146751a7 결정론 검사. 기동은 사용자 사전 지시('2번으로 진행, 종료 후 바로 기동')",
+ "candidates": {"c1": {
+   "source": "kuku-reward-generator, 응답 원문 그대로 response_c1.md",
+   "gate": "ingest ok, errors 0, warnings 0, 항 38",
+   "plan": "iter_05 대비 reach_raw 만 변경: 0.6 x 원거리(손바닥-컵 origin 3D 거리, 옆 파지 3D 거리에서 포화, 척도 7r) + 0.4 x 근거리(iter_05 수평 간격+2x높이 오차, 척도 2r)",
+   "deterministic_check": {"script": "iter_06/check_iter06.py", "result": "PASS (iter_05 는 [24] FAIL: 수평 6cm +0.019)",
+     "key": {"24_start_closer_lower_both": [0.076, 0.061, 0.172], "21_top_vs_side_low": [1.245, 1.834], "22_ep850_top_vs_lowered": [1.176, 2.167], "22b_lower_only": 1.824,
+             "23_diag_lowfirst_topdown": [75.85, 76.24, 73.42], "15_approach": [0.196, 0.272]}},
+   "sha256_8": "6a8c1cee"}},
+ "warm_start": null, "warm_start_why": "보상 변경 — fresh"
+}

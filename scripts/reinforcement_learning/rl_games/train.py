@@ -1,0 +1,555 @@
+# Copyright 2025 Enactic, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Script to train RL agent with RL-Games."""
+
+"""Launch Isaac Sim Simulator first."""
+
+import argparse
+import sys
+from distutils.util import strtobool
+
+from isaaclab.app import AppLauncher
+
+# add argparse arguments
+parser = argparse.ArgumentParser(description="Train an RL agent with RL-Games.")
+parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
+parser.add_argument("--video_length", type=int, default=200, help="Length of the recorded video (in steps).")
+parser.add_argument("--video_interval", type=int, default=2000, help="Interval between video recordings (in steps).")
+parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
+parser.add_argument("--task", type=str, default=None, help="Name of the task.")
+parser.add_argument(
+    "--agent", type=str, default="rl_games_cfg_entry_point", help="Name of the RL agent configuration entry point."
+)
+parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
+parser.add_argument(
+    "--distributed", action="store_true", default=False, help="Run training with multiple GPUs or nodes."
+)
+parser.add_argument("--checkpoint", type=str, default=None, help="Path to model checkpoint.")
+parser.add_argument(
+    "--reset_epoch",
+    action=argparse.BooleanOptionalAction,
+    default=True,
+    help="On --checkpoint resume, load weights only and reset epoch/frame to 0 (default). "
+    "Use --no-reset_epoch to continue the checkpoint's epoch count.",
+)
+parser.add_argument("--sigma", type=str, default=None, help="The policy's initial standard deviation.")
+parser.add_argument("--max_iterations", type=int, default=None, help="RL Policy training iterations.")
+parser.add_argument("--wandb-project-name", type=str, default=None, help="the wandb's project name")
+parser.add_argument("--wandb-entity", type=str, default=None, help="the entity (team) of wandb's project")
+parser.add_argument("--wandb-name", type=str, default=None, help="the name of wandb's run")
+parser.add_argument(
+    "--track",
+    type=lambda x: bool(strtobool(x)),
+    default=False,
+    nargs="?",
+    const=True,
+    help="if toggled, this experiment will be tracked with Weights and Biases",
+)
+parser.add_argument("--export_io_descriptors", action="store_true", default=False, help="Export IO descriptors.")
+# append AppLauncher cli args
+AppLauncher.add_app_launcher_args(parser)
+# parse the arguments
+args_cli, hydra_args = parser.parse_known_args()
+# always enable cameras to record video
+if args_cli.video:
+    args_cli.enable_cameras = True
+
+# clear out sys.argv for Hydra
+sys.argv = [sys.argv[0]] + hydra_args
+
+# launch omniverse app
+app_launcher = AppLauncher(args_cli)
+simulation_app = app_launcher.app
+
+"""Rest everything follows."""
+
+import gymnasium as gym
+import math
+import os
+import random
+import re
+
+import omni
+from rl_games.common import env_configurations, vecenv
+from rl_games.common import a2c_common
+from rl_games.common.algo_observer import IsaacAlgoObserver
+from rl_games.torch_runner import Runner
+
+from isaaclab.envs import (
+    DirectMARLEnv,
+    DirectMARLEnvCfg,
+    DirectRLEnvCfg,
+    ManagerBasedRLEnvCfg,
+    multi_agent_to_single_agent,
+)
+from isaaclab.utils.assets import retrieve_file_path
+from isaaclab.utils.dict import print_dict
+from isaaclab.utils.io import dump_yaml
+
+from isaaclab_rl.rl_games import MultiObserver, PbtAlgoObserver, RlGamesGpuEnv, RlGamesVecEnvWrapper
+
+import isaaclab_tasks  # noqa: F401
+from isaaclab_tasks.utils.hydra import hydra_task_config
+
+
+class _TagRegroupWriter:
+    """TB 태그를 `task/` · `Rewards/` 로 재배치하는 writer 프록시.
+
+    rl_games 코어가 `Episode/` 접두사를 **하드코딩**하고(`algo_observer.py`), IsaacLab
+    매니저가 그 뒤에 `Episode_Reward/` · `Episode_Termination/` 등을 붙인다. 결과가
+    `Episode/Episode_Reward/lifting_object` 라 TB 에서 전부 한 폴더에 뭉친다.
+
+    양쪽 다 프레임워크 코드라 이름을 못 바꾸므로, 쓰기 직전에 가로채 바꾼다.
+    **잎 이름은 보존**한다 — 기존 파싱 도구가 접미사로 찾기 때문이다.
+
+    ⚠ `train.py` 는 여러 트랙이 공유한다. 남의 대시보드를 말없이 바꾸지 않도록
+      `HDGP_TB_GROUPS=1` 일 때만 켠다.
+    """
+
+    _MAP = (
+        ("Episode/Episode_Reward/diag_", "task/diag/diag_"),
+        ("Episode/Episode_Reward/", "Rewards/"),
+        ("Episode/Episode_Termination/", "task/termination/"),
+        ("Episode/Metrics/", "task/metrics/"),
+        ("Episode/Curriculum/", "task/curriculum/"),
+        ("Episode/", "task/"),
+    )
+
+    def __init__(self, writer):
+        self._w = writer
+
+    @classmethod
+    def remap(cls, tag: str) -> str:
+        for src, dst in cls._MAP:
+            if tag.startswith(src):
+                return dst + tag[len(src):]
+        return tag
+
+    def add_scalar(self, tag, *a, **kw):
+        return self._w.add_scalar(self.remap(tag), *a, **kw)
+
+    def __getattr__(self, name):
+        return getattr(self._w, name)
+
+
+class SingleAxisIsaacObserver(IsaacAlgoObserver):
+    """env의 log/* 진단 지표를 frame/iter/time 3중 대신 iter(epoch) 1개만 기록.
+
+    IsaacAlgoObserver는 direct_info를 3개 x축(frame/iter/time)에 모두 쓴다.
+    여기서는 super()가 direct_info를 건너뛰게 한 뒤 iter 축에만 한 번 기록한다.
+    (Episode/* 는 원래 1축, scores/episode_lengths/rewards 3중은 rl_games 코어 소관.)
+    """
+
+    def __init__(self, scalar_groups: dict[str, tuple[str, str]] | None = None):
+        super().__init__()
+        self.scalar_groups = scalar_groups or {}
+        self.custom_scalar_layout = self._build_custom_scalar_layout(self.scalar_groups)
+        self._custom_scalar_layout_written = False
+
+    @staticmethod
+    def _build_custom_scalar_layout(
+        scalar_groups: dict[str, tuple[str, str]]
+    ) -> dict[str, dict[str, list]] | None:
+        if not scalar_groups:
+            return None
+
+        grouped_tags: dict[str, list[str]] = {}
+        for tag, (chart_tag, _) in scalar_groups.items():
+            grouped_tags.setdefault(chart_tag, []).append(f"{tag}/iter")
+
+        layout: dict[str, dict[str, list]] = {}
+        for chart_tag, tags in grouped_tags.items():
+            category, _, chart_name = chart_tag.partition("/")
+            if not chart_name:
+                category, chart_name = "custom", category
+            layout.setdefault(category, {})[chart_name] = ["Multiline", sorted(tags)]
+        return layout
+
+    def after_init(self, algo):  # noqa: D102
+        # ★`writer` 는 여기서 만들어진다 — `before_init` 에서 감싸면
+        #   AttributeError: 'SingleAxisIsaacObserver' object has no attribute 'writer'.
+        # ★태그 재배치는 opt-in — 이 스크립트를 다른 트랙도 쓴다.
+        super().after_init(algo)
+        if os.environ.get("HDGP_TB_GROUPS") == "1" and not isinstance(
+            self.writer, _TagRegroupWriter
+        ):
+            self.writer = _TagRegroupWriter(self.writer)
+
+    def after_print_stats(self, frame, epoch_num, total_time):
+        saved = self.direct_info
+        self.direct_info = {}
+        super().after_print_stats(frame, epoch_num, total_time)
+        if self.custom_scalar_layout and not self._custom_scalar_layout_written:
+            self.writer.add_custom_scalars(self.custom_scalar_layout)
+            self._custom_scalar_layout_written = True
+        for k, v in saved.items():
+            self.writer.add_scalar(f"{k}/iter", v, epoch_num)
+
+
+def _force_local_openarm_path() -> str:
+    """Force import path to hdgp/source/openarm so openarm resolves to local source only."""
+    hdgp_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    openarm_src = os.path.join(hdgp_root, "source", "openarm")
+    openarm_pkg = os.path.join(openarm_src, "openarm")
+    if not os.path.isdir(openarm_pkg):
+        raise RuntimeError(f"Local openarm package not found: {openarm_pkg}")
+    if openarm_src in sys.path:
+        sys.path.remove(openarm_src)
+    sys.path.insert(0, openarm_src)
+    return os.path.abspath(openarm_pkg)
+
+
+_EXPECTED_OPENARM_DIR = _force_local_openarm_path()
+import openarm  # noqa: E402
+if not os.path.abspath(getattr(openarm, "__file__", "")).startswith(_EXPECTED_OPENARM_DIR + os.sep):
+    raise RuntimeError(
+        f"openarm resolved to unexpected location: {getattr(openarm, '__file__', None)} "
+        f"(expected under {_EXPECTED_OPENARM_DIR})"
+    )
+import openarm.tasks  # noqa: F401,E402
+from openarm.tasks.discovery import REGISTRATION_ERRORS, require_registered  # noqa: E402
+
+# pull 뒤 지워진 모듈 때문에 태스크가 등록되지 않았으면 원인과 함께 여기서 멈춘다.
+require_registered(args_cli.task, gym.spec, REGISTRATION_ERRORS)
+
+# PLACEHOLDER: Extension template (do not remove this comment)
+
+
+def _resolve_pipeline_log_components(task_name: str) -> tuple[str, str]:
+    """Resolve <robot>/<side>/<task-ver> or <side>/<folder> from task name.
+
+    신규 형식 open-<robot>_<side>_<task>_<ver>  →  (robot, side, task-ver)
+      예: open-tesol_r_pour_v3  →  log/rl_games/open-tesol/right/pour-v3/
+    레거시 형식은 env_cfg_entry_point 경로에서 파싱.
+    """
+    SIDE_MAP = {"r": "right", "l": "left", "b": "both"}
+    task_key = task_name.split(":")[-1]
+
+    # 신규 형식 감지: open-<robot>_<side>_<task>_... 패턴
+    # ★09.07 `-sapg` 추가 + 접미를 **반복** 허용(`*`). 전에는 하나만 벗겨서
+    #   `grasp_fj-lstm-sapg` 가 통째로 태스크명이 되어 로그가 `grasp-fj` 와 갈렸다.
+    new_fmt = re.match(r"^(open-[A-Za-z0-9]+)_([rbl])_(.+?)(?:-play|-lstm|-sapg|-bc|-il.*|-diffusion)*$", task_key, re.IGNORECASE)
+    if new_fmt:
+        robot = new_fmt.group(1)          # open-tesol
+        side = SIDE_MAP.get(new_fmt.group(2), new_fmt.group(2))   # right
+        task_ver = new_fmt.group(3).replace("_", "-")             # pour-v3
+        # log path: <robot>/<side>/<task-ver>  — 반환값 재사용을 위해 (side_dir, task_dir_name) 형태 유지
+        # side_dir에 robot/side를 담고 task_dir_name에 task-ver를 담는다
+        return f"{robot}/{side}", task_ver
+
+    # 레거시 형식: env_cfg_entry_point 경로 파싱
+    task_key_legacy = task_key.replace("-Play", "")
+    fallback_folder = task_key_legacy.replace("-", "_")
+    try:
+        spec = gym.spec(task_key_legacy)
+        env_cfg_entry = spec.kwargs.get("env_cfg_entry_point", "")
+        if isinstance(env_cfg_entry, str):
+            match = re.search(r"\.pipeline\.(?:gripper|hand)\.([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)\.", env_cfg_entry)
+            if match:
+                return match.group(1), match.group(2)
+    except Exception:
+        pass
+    if "_right" in fallback_folder.lower():
+        return "right", fallback_folder
+    if "_both" in fallback_folder.lower():
+        return "both", fallback_folder
+    return "left", fallback_folder
+
+
+def _resolve_checkpoint_name(task_name: str) -> str:
+    """Use the Gym task id as the rl-games checkpoint basename."""
+    task_key = task_name.split(":")[-1]
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", task_key)
+
+
+def _resolve_run_dir_prefix(task_name: str) -> str:
+    task_key = task_name.split(":")[-1]
+    return "lstm_test" if task_key.endswith("-lstm") else "test"
+
+
+def _patch_optimizer_restore() -> None:
+    """Make rl_games checkpoint restore tolerate optimizer-state shape drift.
+
+    For BC-pretrained checkpoints we want to reuse actor / critic weights but do
+    not require the exact optimizer slot layout from the offline pretraining run.
+    """
+    if getattr(a2c_common.A2CBase, "_hdgp_optimizer_restore_patched", False):
+        return
+
+    original = a2c_common.A2CBase.set_full_state_weights
+
+    def _set_full_state_weights(self, weights, set_epoch=True):
+        self.set_weights(weights)
+        # --reset_epoch(기본 on): 가중치만 받고 epoch/frame은 0 유지 → max_epochs를 처음부터.
+        if set_epoch and not getattr(args_cli, "reset_epoch", False):
+            self.epoch_num = weights["epoch"]
+            self.frame = weights["frame"]
+
+        if self.has_central_value:
+            self.central_value_net.load_state_dict(weights["assymetric_vf_nets"])
+
+        try:
+            self.optimizer.load_state_dict(weights["optimizer"])
+        except ValueError as exc:
+            print(f"[WARN] Skipping optimizer state restore: {exc}")
+
+        self.last_mean_rewards = weights.get("last_mean_rewards", -1000000000)
+
+        if self.vec_env is not None:
+            env_state = weights.get("env_state", None)
+            self.vec_env.set_env_state(env_state)
+
+    a2c_common.A2CBase.set_full_state_weights = _set_full_state_weights
+    a2c_common.A2CBase._hdgp_optimizer_restore_patched = True
+
+
+@hydra_task_config(args_cli.task, args_cli.agent)
+def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: dict):
+    """Train with RL-Games agent."""
+    _patch_optimizer_restore()
+    # override configurations with non-hydra CLI arguments
+    env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
+    env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
+
+    # randomly sample a seed if seed = -1
+    if args_cli.seed == -1:
+        args_cli.seed = random.randint(0, 10000)
+
+    agent_cfg["params"]["seed"] = args_cli.seed if args_cli.seed is not None else agent_cfg["params"]["seed"]
+    agent_cfg["params"]["config"]["max_epochs"] = (
+        args_cli.max_iterations if args_cli.max_iterations is not None else agent_cfg["params"]["config"]["max_epochs"]
+    )
+    if args_cli.checkpoint is not None:
+        resume_path = retrieve_file_path(args_cli.checkpoint)
+        agent_cfg["params"]["load_checkpoint"] = True
+        agent_cfg["params"]["load_path"] = resume_path
+        print(f"[INFO]: Loading model checkpoint from: {agent_cfg['params']['load_path']}")
+    train_sigma = float(args_cli.sigma) if args_cli.sigma is not None else None
+
+    # multi-gpu training config
+    if args_cli.distributed:
+        agent_cfg["params"]["seed"] += app_launcher.global_rank
+        agent_cfg["params"]["config"]["device"] = f"cuda:{app_launcher.local_rank}"
+        agent_cfg["params"]["config"]["device_name"] = f"cuda:{app_launcher.local_rank}"
+        agent_cfg["params"]["config"]["multi_gpu"] = True
+        # update env config device
+        env_cfg.sim.device = f"cuda:{app_launcher.local_rank}"
+
+    # set the environment seed (after multi-gpu config for updated rank from agent seed)
+    # note: certain randomizations occur in the environment initialization so we set the seed here
+    env_cfg.seed = agent_cfg["params"]["seed"]
+
+    # LOG PATH RULE:
+    #   신규 형식: log/rl_games/<robot>/<side>/<task-ver>/testN
+    #     예: open-tesol_r_pour_v3 → log/rl_games/open-tesol/right/pour-v3/
+    #   레거시 side(left|right|both): log/rl_games/pipeline/<side>/<task_dir_name>/testN
+    #   레거시 명명형(inspire_r 등): log/rl_games/<variant>/<task_dir_name>/testN
+    task_name = args_cli.task
+    # pour 태스크 한정: pour_point(빨강) 마커 표시 (렌더링 확인용, --headless 아닐 때만 보임).
+    if "pour" in task_name.lower() and hasattr(env_cfg, "enable_visual_markers"):
+        env_cfg.enable_visual_markers = True
+        print("[INFO] pour training: visual marker (pour_point=red) enabled.")
+    side_dir, task_dir_name = _resolve_pipeline_log_components(task_name)
+    sbm_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    if "/" in side_dir:
+        # 신규 형식: side_dir = "<robot>/<side>"
+        log_root_path = os.path.join(sbm_root, "log", "rl_games", side_dir, task_dir_name)
+    elif side_dir in ("left", "right", "both"):
+        log_root_path = os.path.join(sbm_root, "log", "rl_games", "pipeline", side_dir, task_dir_name)
+    else:
+        # 레거시 명명형: inspire_r 등
+        log_root_path = os.path.join(sbm_root, "log", "rl_games", side_dir, task_dir_name)
+    if "pbt" in agent_cfg:
+        if agent_cfg["pbt"]["directory"] == ".":
+            log_root_path = os.path.abspath(log_root_path)
+        else:
+            log_root_path = os.path.join(agent_cfg["pbt"]["directory"], log_root_path)
+
+    os.makedirs(log_root_path, exist_ok=True)
+    print(f"[INFO] Logging experiment in directory: {log_root_path}")
+    # LOG RUN-NAME RULE
+    # ★2026-08-17 변경: RUN_LABEL 이 있으면 **그것을 폴더명으로 쓴다.**
+    #   기존에는 폴더가 항상 `lstm_test<N>` 자동증가였고 의미 라벨은 test_history.md 에만
+    #   들어가, 폴더 `NS_demo_s42` 의 기록 헤더가 `# lstm_test1` 인 불일치가 남았다
+    #   (사후 개명까지 겹쳐 어떤 런이 어떤 조건인지 추적이 끊겼다).
+    #   RUN_LABEL 이 없으면 종전 자동증가를 유지한다(하위호환).
+    #
+    #   라벨이 규약 `<논문>-<실험>-<조건>-a<자산>-s<시드>` 형식이면 **자산 게이트**가 돈다:
+    #   라벨의 자산 태그와 실제 로봇 USD 가 다르면 학습을 거부한다. 로봇 자산이
+    #   DG-5F→DG-5FS 로 바뀌었는데 런 이름에 자산이 없어 구/신 수치가 뒤섞였던 사고의
+    #   재발 방지 장치다. 규약 밖 라벨은 검사하지 않는다.
+    _run_label = os.environ.get("RUN_LABEL", "").strip()
+    if _run_label:
+        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "tools")))
+        from run_naming import assert_asset_matches, sanitize_for_dir  # noqa: E402
+
+        _usd = None
+        try:
+            _usd = str(env_cfg.robot_cfg.spawn.usd_path)
+        except AttributeError:
+            pass                      # 로봇 cfg 구조가 다른 태스크 — 게이트 생략
+        if _usd:
+            assert_asset_matches(_run_label, _usd)   # 불일치면 RuntimeError 로 중단
+            print(f"[INFO] 자산 게이트 통과: label={_run_label} usd={os.path.basename(_usd)}")
+
+        log_dir = sanitize_for_dir(_run_label)
+        # 같은 라벨이 이미 있으면 덮어쓰지 않고 -r2, -r3 … 로 분기한다(재현 런).
+        if os.path.isdir(os.path.join(log_root_path, log_dir)):
+            _k = 2
+            while os.path.isdir(os.path.join(log_root_path, f"{log_dir}-r{_k}")):
+                _k += 1
+            log_dir = f"{log_dir}-r{_k}"
+            print(f"[INFO] 동일 라벨 존재 → 런 폴더를 '{log_dir}' 로 분기")
+    else:
+        run_prefix = _resolve_run_dir_prefix(task_name)
+        existing = []
+        for name in os.listdir(log_root_path):
+            if name.startswith(run_prefix):
+                suffix = name[len(run_prefix):]
+                if suffix.isdigit():
+                    existing.append(int(suffix))
+        next_idx = (max(existing) + 1) if existing else 1
+        log_dir = f"{run_prefix}{next_idx}"
+    # set directory into agent config
+    # logging directory path: <train_dir>/<full_experiment_name>
+    agent_cfg["params"]["config"]["train_dir"] = log_root_path
+    agent_cfg["params"]["config"]["full_experiment_name"] = log_dir
+    agent_cfg["params"]["config"]["name"] = _resolve_checkpoint_name(task_name)
+    config_name = agent_cfg["params"]["config"]["name"]
+    wandb_project = config_name if args_cli.wandb_project_name is None else args_cli.wandb_project_name
+    experiment_name = log_dir if args_cli.wandb_name is None else args_cli.wandb_name
+
+    # dump the configuration into log-directory
+    dump_yaml(os.path.join(log_root_path, log_dir, "params", "env.yaml"), env_cfg)
+    dump_yaml(os.path.join(log_root_path, log_dir, "params", "agent.yaml"), agent_cfg)
+
+    # run 폴더 안에 코드 스냅샷(test_history.md) 1개 생성 — 폴더 통째 이동 시 함께 따라감.
+    # 라벨/노트는 train.sh가 RUN_LABEL/NOTE env로 전달(직접 실행 시 라벨=폴더명으로 fallback).
+    # 스냅샷 실패가 학습을 막지 않도록 격리.
+    import subprocess
+
+    _snap = os.path.join(os.path.dirname(__file__), "..", "..", "tools", "record_test_snapshot.py")
+    try:
+        subprocess.run(
+            [
+                sys.executable,
+                os.path.abspath(_snap),
+                "--task", task_name,
+                "--test", os.environ.get("RUN_LABEL", "") or log_dir,
+                "--note", os.environ.get("NOTE", ""),
+                "--run-dir", os.path.join(log_root_path, log_dir),
+            ],
+            check=False,
+        )
+    except Exception as exc:  # noqa: BLE001 — 스냅샷은 부가 기능, 학습 차단 금지
+        print(f"[WARN] 코드 스냅샷 기록 실패(학습은 계속): {exc}")
+
+    # read configurations about the agent-training
+    rl_device = agent_cfg["params"]["config"]["device"]
+    clip_obs = agent_cfg["params"]["env"].get("clip_observations", math.inf)
+    clip_actions = agent_cfg["params"]["env"].get("clip_actions", math.inf)
+    obs_groups = agent_cfg["params"]["env"].get("obs_groups")
+    concate_obs_groups = agent_cfg["params"]["env"].get("concate_obs_groups", True)
+
+    # set the IO descriptors export flag if requested
+    if isinstance(env_cfg, ManagerBasedRLEnvCfg):
+        env_cfg.export_io_descriptors = args_cli.export_io_descriptors
+    else:
+        print(
+            "[WARN] IO descriptors are only supported for manager based RL environments. No IO descriptors will be exported."
+        )
+
+    # Keep env log_dir as absolute run path so play/tools can reuse this folder.
+    env_cfg.log_dir = os.path.join(log_root_path, log_dir)
+
+    # create isaac environment
+    env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
+    tb_scalar_groups = getattr(env.unwrapped, "tb_scalar_groups", {})
+
+    # convert to single-agent instance if required by the RL algorithm
+    if isinstance(env.unwrapped, DirectMARLEnv):
+        env = multi_agent_to_single_agent(env)
+
+    # wrap for video recording
+    if args_cli.video:
+        video_kwargs = {
+            "video_folder": os.path.join(log_root_path, log_dir, "videos", "train"),
+            "step_trigger": lambda step: step % args_cli.video_interval == 0,
+            "video_length": args_cli.video_length,
+            "disable_logger": True,
+        }
+        print("[INFO] Recording videos during training.")
+        print_dict(video_kwargs, nesting=4)
+        env = gym.wrappers.RecordVideo(env, **video_kwargs)
+
+    # wrap around environment for rl-games
+    env = RlGamesVecEnvWrapper(env, rl_device, clip_obs, clip_actions, obs_groups, concate_obs_groups)
+
+    # register the environment to rl-games registry
+    # note: in agents configuration: environment name must be "rlgpu"
+    vecenv.register(
+        "IsaacRlgWrapper", lambda config_name, num_actors, **kwargs: RlGamesGpuEnv(config_name, num_actors, **kwargs)
+    )
+    env_configurations.register("rlgpu", {"vecenv_type": "IsaacRlgWrapper", "env_creator": lambda **kwargs: env})
+
+    # set number of actors into agent config
+    agent_cfg["params"]["config"]["num_actors"] = env.unwrapped.num_envs
+    # create runner from rl-games
+
+    isaac_observer = SingleAxisIsaacObserver(tb_scalar_groups)
+    if "pbt" in agent_cfg and agent_cfg["pbt"]["enabled"]:
+        observers = MultiObserver([isaac_observer, PbtAlgoObserver(agent_cfg, args_cli)])
+        runner = Runner(observers)
+    else:
+        runner = Runner(isaac_observer)
+
+    runner.load(agent_cfg)
+
+    # reset the agent and env
+    runner.reset()
+    # train the agent
+
+    global_rank = int(os.getenv("RANK", "0"))
+    if args_cli.track and global_rank == 0:
+        if args_cli.wandb_entity is None:
+            raise ValueError("Weights and Biases entity must be specified for tracking.")
+        import wandb
+
+        wandb.init(
+            project=wandb_project,
+            entity=args_cli.wandb_entity,
+            name=experiment_name,
+            sync_tensorboard=True,
+            monitor_gym=True,
+            save_code=True,
+        )
+        if not wandb.run.resumed:
+            wandb.config.update({"env_cfg": env_cfg.to_dict()})
+            wandb.config.update({"agent_cfg": agent_cfg})
+
+    if args_cli.checkpoint is not None:
+        runner.run({"train": True, "play": False, "sigma": train_sigma, "checkpoint": resume_path})
+    else:
+        runner.run({"train": True, "play": False, "sigma": train_sigma})
+
+    # close the simulator
+    env.close()
+
+
+if __name__ == "__main__":
+    # run the main function
+    main()
+    # close sim app
+    simulation_app.close()

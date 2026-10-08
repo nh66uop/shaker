@@ -1,0 +1,18 @@
+{
+ "label": "aglt_r_i08c",
+ "host": "local-5090",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-rh_r_aglt-lstm",
+ "python_pid": 317958,
+ "reward": "iter_08 c1r (sha256 37e58f7f90fc)",
+ "overrides": [
+  "env.arm_cmd_delay_steps=[0,0]",
+  "env.hand_cmd_delay_steps=[0,0]"
+ ],
+ "stage": "1_no_delay",
+ "plan": "사용자 10.01 결정 2단계: ① 지연 0(env.arm_cmd_delay_steps=[0,0]·hand_cmd_delay_steps=[0,0] 기동 인자, 편 손 하한·엄지 리셋 유지)으로 파지·들기까지 fresh → ② ① 체크포인트에서 이어 실측 지연 DR(9~12·3~5 스텝, cfg 기본값) 적응. ② 기동은 사용자 허락 뒤.",
+ "fresh": true,
+ "replaces": "aglt_r_i08b"
+}

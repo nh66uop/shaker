@@ -1,0 +1,53 @@
+{
+ "selected": "c1",
+ "rule": "게이트 PASS + 계획 준수(AST 변경이 converge_cups·aim_lip xy 커널에만) + 결정론 성질 검사 PASS. 경쟁 가설 없음 → 후보 1개.",
+ "decided_by": "pour_bi session (사용자 승인 09.26: 08:00 까지 자동)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator (iter_01/prompt.md, 가설 id 없음)",
+   "hypothesis": null,
+   "gate": "ingest PASS (validation_c1.json), 항 23개",
+   "plan": "AST diff 식별자 = converge_cups, xy_far, xy_fine, xy_score, wide, lip_d 뿐. notes_iter01 F절의 단일 변경과 일치",
+   "deterministic_check": {
+    "script": "check_iter01.py",
+    "result": "PASS",
+    "converge_slope_per_m_at_visited_range": 2.91,
+    "approach_income": {
+     "45cm": 0.46,
+     "37cm": 0.61,
+     "25cm": 0.91,
+     "14cm": 1.28,
+     "8.1cm": 1.53
+    },
+    "rot_income_55deg": {
+     "6cm": 4.27,
+     "10cm": 3.29,
+     "14cm": 1.61
+    },
+    "profit_from_55deg_inside_latch": {
+     "+10deg": 0.76,
+     "+20deg": 1.53,
+     "+39deg": 3.0
+    },
+    "premature_charge_inside_latch": 0.0,
+    "state_income_per_step": 6.13,
+    "one_bead_pay": 30.0
+   }
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "보상에 새 항이 들어가 상태 수입 지형이 바뀌었다. iter_00 체크포인트는 두 컵을 벌리는 습관(간격 0.40 m)을 갖고 있어 웜하지 않는다(DESIGN_BRIEF L5).",
+ "compute_reward_sha256_16": "cadb290045dc5e9f",
+ "prev_run": {
+  "label": "t2r2_i00",
+  "last_epoch": 1051,
+  "hours": 7.75,
+  "why_ended": "verdict advance(ROUND_EPOCHS 600·ROUND_HOURS 4 초과). 병목은 접근 — pour_lip_dist 0.371 m 에서 거리 커널이 죽어 pour_rot 0.020/스텝"
+ },
+ "watch_first": [
+  "task/pour_lip_dist 와 task/cups_center_dist 가 내려가는가(0.40 m → 2r). 이번 변경의 직접 지표다.",
+  "reward/converge_cups 가 0.4 이상에서 시작해 올라가는가.",
+  "그 뒤 reward/pour_rot 이 살아나는가(0.02 → 1 이상), task/src_tilt_deg 60도 돌파.",
+  "diag/grip_src_ref_valid 가 0.8 이상을 유지하는가(iter_00 은 0.873)."
+ ]
+}

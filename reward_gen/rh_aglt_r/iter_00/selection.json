@@ -1,0 +1,61 @@
+{
+ "selected": "c1r",
+ "rule": "ingest PASS + 단계 원장 PASS(단조 7 · 주차 4 · 떨림 2). c1 은 떨림 행(09.29 추가) FAIL",
+ "decided_by": "결정론 게이트(메인 세션 확인). 기동 승인은 사용자",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator(prompt.md 경로만, 가설 id 없음)",
+   "hypothesis": null,
+   "gate": "PASS",
+   "gate_note": "첫 ingest FAIL 은 검사기 거짓 양성(접근 가중치 0.35 를 소환 좌표 리터럴로 오인) — 검사기에서 장면 좌표 0.35·-0.16 을 빼고 같은 응답으로 재검사",
+   "plan": "iter_00 — 이전 iter 없음(AST 계획 대조 해당 없음)",
+   "deterministic_check": {
+    "script": "scripts/reward_gen/t2r_aglt.py ledger",
+    "status": "PASS",
+    "rows": {
+     "0_start": 0.031,
+     "1_halfway_open": 0.0852,
+     "2_pregrasp_open": 0.2673,
+     "3_grasped_on_table": 1.1955,
+     "4_lift_5cm": 4.2888,
+     "5_lift_goal_height": 12.0149,
+     "6_at_goal_held": 16.1955,
+     "2p_fist_at_pregrasp": 0.2454,
+     "2t_open_tipping_cup": -0.1607,
+     "3v_vertical_pinch_on_table": 0.8173,
+     "5d_dropped_after_lift": -0.8168
+    }
+   },
+   "deterministic_check_after_jitter_rows": "FAIL — 떨림 행 −0.060 vs 출발 0.031(tip_penalty 가 각속도 노름을 벌함)"
+  },
+  "c1r": {
+   "source": "kuku-reward-generator 재시도(prompt_c1_repair.md: 원 prompt + c1 코드 + 리뷰 항목 3개 — 실측 떨림·액션 공간 변경·나머지 유지)",
+   "hypothesis": null,
+   "gate": "PASS",
+   "plan": "c1 대비 바뀐 문장은 tip_penalty 블록뿐(diff 확인) — 리뷰 항목 1 만 반영",
+   "deterministic_check": {
+    "script": "scripts/reward_gen/t2r_aglt.py ledger",
+    "status": "PASS",
+    "rows": {
+     "0_start": 0.031,
+     "1_halfway_open": 0.0852,
+     "2_pregrasp_open": 0.2673,
+     "3_grasped_on_table": 1.1955,
+     "4_lift_5cm": 4.2888,
+     "5_lift_goal_height": 12.0149,
+     "6_at_goal_held": 16.1955,
+     "2p_fist_at_pregrasp": 0.2454,
+     "2t_open_tipping_cup": 0.1233,
+     "3v_vertical_pinch_on_table": 0.8173,
+     "5d_dropped_after_lift": -0.8168,
+     "0j_start_cup_jitter": 0.031,
+     "0k_start_cup_jitter_x": 0.031
+    }
+   }
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "새 트랙·새 obs/action — fresh",
+ "sha256": "3b1b2f4e819457f3aeeae4f4a030f610095f8f696ee34963b4a452a31a3f3be2",
+ "env_changes_before_launch": "09.29 2차 사용자 결정: 컵 x 0.10–0.40·y −0.30–−0.10, 팔 관절 증분, 손 pour_bi_rh 사상, 마찰 U(1.5,2.5), 컵 질량 ×0.8–1.25(ADR ×0.5–2.5), 컵 회전 잡음 0, 재질 반발 1.0→0.0(버그)"
+}

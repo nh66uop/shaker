@@ -1,0 +1,51 @@
+{
+ "label": "t2r_rh4_f07",
+ "iter": 6,
+ "cycle": 4,
+ "host": "server",
+ "gpu": 1,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-rh_b_pour_fj-lstm",
+ "python_pid": 3982237,
+ "server_head": "d0c913f1",
+ "reward": "iter_06 c1 (sha256 3e8857cf)",
+ "checkpoint": "server t2r_rh4_f05/nn/last_open-rh_b_pour_fj-lstm_ep_500_rew_4385.3623.pth (가중치만, epoch 0)",
+ "started_local": "2026-09-29 17:37",
+ "overrides": {
+  "horizon_length": 16,
+  "minibatch_size": 16384,
+  "mini_epochs": 2,
+  "learning_rate": "1e-4",
+  "lr_schedule": "adaptive",
+  "kl_threshold": 0.016,
+  "e_clip": 0.1,
+  "central_value_config.learning_rate": "1e-4",
+  "network.rnn.before_mlp": true,
+  "network.rnn.concat_input": false,
+  "network.rnn.concat_output": false,
+  "config.clip_actions": false,
+  "save_frequency": 200
+ },
+ "env": "PourFJEnvCfg: 팔 joint · 손 direct 범위 grip + 1.0 N 힘 멈춤 · 관측 165/207 잡음·지연 0",
+ "log_dir": "~/rl_ws/hdgp/log/rl_games/open-rh/both/pour-fj/t2r_rh4_f07",
+ "why": "iter_05 다섯 손가락 인자가 평균(선형)이라 마지막 손가락을 건너뛰기 쉽다(사용자 지적) → 볼록 인자·손가락별 감싸기(iter_06). f05 ep500 이어받음",
+ "launched_by": "session 146751a7, 사용자 'b로 진행' 09-29",
+ "ppo_changes": {
+  "gamma": "0.998→0.99",
+  "value_bootstrap": "False→True (actor·central)",
+  "mlp": "[512,512]→[1024,1024,512,512]",
+  "central_mlp": "[512,512,256,128]→[1024,1024,512,512]",
+  "entropy_coef": "0.0005→0",
+  "bounds_loss_coef": "0.0001→0.005"
+ },
+ "env_overrides": {
+  "arm_joint_mode": "absolute",
+  "phys_cup_speed_max": 3.0,
+  "phys_cup_angvel_max": 30.0,
+  "phys_contact_max_n": 200.0,
+  "phys_contact_steps": 2,
+  "cup_leash_m": 0.5
+ },
+ "kill_f06": "TERM 90 s 무응답 → RUN_LABEL 재확인 후 KILL (e277)"
+}

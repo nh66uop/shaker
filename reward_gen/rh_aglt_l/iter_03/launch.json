@@ -1,0 +1,12 @@
+{
+ "label": "aglt_l_i03",
+ "host": "vision-3090",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-rh_l_aglt-lstm",
+ "python_pid": 3227531,
+ "commit": "177884e2",
+ "reward": "iter_03 c1r (sha256 2cd733d632a4)",
+ "checkpoint": null
+}

@@ -1,0 +1,25 @@
+{
+ "track": "cup_pick_r_manip",
+ "iter": 10,
+ "task": "Pick an object up with a five-fingered hand, carry it to the goal, and hold it there against disturbances, repeatedly. The policy starts from RANDOM WEIGHTS this round: it does not yet know how to reach, grasp or lift. The reward has to teach the whole chain - travel to the object, close the hand on it, lift it upright, carry it to the goal and settle there - and then keep paying only at the goal.\n\nWrite the reward so that it works for any object shape and for either arm: use only the object's actual surface as the environment reports it (palm_surface_dist, link_surface_dist, link_surface_dir, link_surface_normal, palm_surface_dir, palm_surface_normal), the contact forces between the hand and the object (palm_cup_force, link_cup_force), the object pose and velocity, and the goal. Do NOT use ctx.approach_done or ctx.envelope_done, do not use cup_radius, cup_axis or cup_half_height, and do not use any world-frame direction constant (no fixed +y or -y, no fixed palm orientation): the same file is used unchanged by the left arm and by the mirrored right arm, so every directional quantity must come from a dot product of vectors the context provides.\n\nBudget. The previous round proved that concentrating the income at the goal works (tolerance 0.1125 to 0.047, success 0.77-0.87), but it started from a policy that already grasped. From random weights the early terms must be large enough to discover contact, while still being small against the goal income. Per-step ceilings:\n\n- reaching the object (palm towards the surface, facing it): about 0.6, fading to near zero once the object is held.\n- closing the hand and keeping the grasp (per-digit contact, a steep ladder in the number of digits in contact, palm contact, opposition between the thumb and the fingers): about 1.2 in total. Contact on every digit must pay alike, and two digits must be worth far less than four.\n- lifting: about 1.0, capped at the height the goal needs (ctx.goal_pos[:, 2] - ctx.cup_spawn_pos[:, 2]) and multiplied by how close the object is to the goal in the horizontal plane, so hovering at the right height in the wrong place earns almost nothing.\n- moving towards the goal: about 2.5, shaped over the whole 0 to 0.30 m range and also paying for the reduction of ctx.goal_dist between steps.\n- at rest at the goal, upright, really held: about 10, the dominant income. It must pay a large fraction already when the object is within about two tolerances of the goal, and grow the longer the object stays there, so that settling beats arriving.\n- success: a large bonus for the FIRST success of an episode only. Later successes in the same episode must be worth little on their own, because the environment counts up to five successes per episode; the income for staying must come from the hold term, not from repeating the arrival. In the last round episodes ended after about four cheap successes.\n\nKeep the object upright by multiplying the lift, transport and hold income by uprightness computed from ctx.cup_tilt; do not use an additive tilt penalty as the main mechanism.\n\nThe environment applies an external force and torque to the object once it is lifted and near the goal, growing as the policy succeeds, and it moves the goal to a new place after each success. So the object must be held firmly enough to survive a push while it is at the goal, and the policy must be willing to carry it somewhere new afterwards. Do not add a term for the disturbance itself; make losing the object, or drifting from the goal, cost much more than the hold income it replaces, and gate the hold income on a real hold (palm plus several opposing digits) so that a fingertip touch cannot collect it.\n\nAlso: a closed grasp parked on the table must not be worth staying for; putting the object down after lifting must not let the lift income be earned again; lowering a held object towards the table must be worth less than keeping it still. Do not push the hand or the palm into the table. Penalise fast arm motion and fast object motion while holding, but keep those small enough that carrying to the goal is always better than standing still.",
+ "task_file": "/tmp/claude-1000/-home-user-rl-ws/227884a1-6374-45ed-b991-5715273403ab/scratchpad/iter10_task.txt",
+ "variant": "rand",
+ "created": "2026-09-23T20:13:27.601773",
+ "context": "openarm.agnostic.tasks.manip_stages.object_context.ObjectRewardContext",
+ "prev_iter": "reward_gen/cup_pick_l_manip/iter_09",
+ "history_iters": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9
+ ],
+ "description": "reward_gen/cup_pick_l_manip/iter_09/observation.md",
+ "feedback": "reward_gen/cup_pick_l_manip/iter_09/improvement.md",
+ "events": null,
+ "note": "좌팔 iter_10 과 바이트 동일한 보상(프레임 무관) — 09.23 좌우 병렬 fresh 학습."
+}

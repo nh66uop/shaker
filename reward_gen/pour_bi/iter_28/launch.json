@@ -1,0 +1,25 @@
+{
+ "label": "t2r_i28f",
+ "iter": 28,
+ "host": "server",
+ "gpu": 1,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "commit": "149c2f51",
+ "started": 1790396998.3695428,
+ "started_local": "2026-09-26 13:29",
+ "server_pids": [
+  54837,
+  54877,
+  54884
+ ],
+ "python_pid": 54884,
+ "checkpoint": null,
+ "fresh": true,
+ "reward": "iter_28 c1 (selection.json)",
+ "launcher": "~/logs/t2r/launch_t2r.sh",
+ "log": "~/logs/t2r/t2r_i28f.log",
+ "launched_by": "pour_bi session (user decision FRESH)",
+ "prior": "t2r_i28 warm i27 ep800 12:56-13:31, stopped e56 (grip_src_ref_valid 0.04: tilted-lift dodge carried over; notes_iter28 had recommended ep300)",
+ "gate_300": "notes_iter28: grip_src_ref_valid>=0.8, src tilt at 3 cm lift p50<20, out-of-plane lean at peak p50<15, spout offset at peak p50<2r, peak tilt toward receiver p50>50 or first bead, rcv fingers at lift>=4.5/5 and rcv 5-finger carry>=0.5 (fresh: judge vs expected epochs, grasp-lift ~e300)"
+}

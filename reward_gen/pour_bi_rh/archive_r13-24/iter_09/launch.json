@@ -1,0 +1,12 @@
+{
+ "label": "t2r_rh2_i09",
+ "num_envs": 1024,
+ "started": 1789972500.0,
+ "started_local": "2026-09-21 15:15",
+ "commit": "f0326a2e",
+ "host": "vision-3090",
+ "run_dir": "t2r_rh2_i09",
+ "server_pids": [1635027, 1635034, 1635039],
+ "checkpoint": "log/rl_games/open-rh/both/pour-fab-mimic/t2r_rh2_i08/nn/last_open-rh_b_pour_fab_mimic_ep_350_rew_11286.104.pth",
+ "checkpoint_note": "가중치만 로드(epoch 0 리셋). 파지·들기·converge·align 은 iter_08 그대로라 살린다."
+}

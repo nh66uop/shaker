@@ -1,0 +1,18 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획(notes_iter05 1~5) 준수 + check_iter05 [1]~[17]·[20]~[23] PASS ([18]·[19] 참고용)",
+ "decided_by": "session 146751a7 결정론 검사. 기동은 사용자 사전 지시('보상 생성하면서 학습 종료, 이후 바로 기동')",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, 응답 원문 그대로 response_c1.md, 가설 분할 없음",
+   "gate": "ingest ok, errors 0, warnings 0, 항 38",
+   "plan": "iter_04 대비: reach 거리 = sqrt(수평 간격(축 수평거리-2.5r, 0 아래 0)^2 + (2 x |손바닥 높이-0.25 mouth_z|)^2), 깔때기 ARRIVE_RISE 제거(d_funnel=d_grip), mouth_hover_src/rcv 추가(-0.3 x (1-held) x 축 2.5r 안 x 입구 위), finger_dir 에 수평도 곱. 가중·붓기 부분 그대로",
+   "deterministic_check": {"script": "iter_05/check_iter05.py", "result": "PASS (iter_04 보상은 [21]·[22 높이만]·[23] FAIL)",
+     "key": {"21_top_vs_side_low_total": [0.992, 1.833], "22_ep850_top_vs_lowered": [0.768, 1.967], "22b_lower_only": 1.624,
+             "23_path_diag_lowfirst_topdown": [69.43, 73.90, 63.87], "16_src_table_3cm_8cm": [8.81, 9.32, 9.58], "15_approach": [0.166, 0.159]}},
+   "sha256_8": "b9b9f40f"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "보상이 바뀌어 접근 경로 자체를 새로 배워야 한다 — fresh"
+}

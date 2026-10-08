@@ -1,0 +1,18 @@
+{
+ "label": "aglt_l_i09",
+ "host": "vision-3090",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-rh_l_aglt-lstm",
+ "python_pid": 4168223,
+ "commit": "615b80b0",
+ "reward": "iter_09 c1 (sha256 0afe307e5661)",
+ "overrides": [
+  "env.arm_cmd_delay_steps=[0,0]",
+  "env.hand_cmd_delay_steps=[0,0]"
+ ],
+ "stage": "1_no_delay",
+ "fresh": true,
+ "save_frequency": 200
+}

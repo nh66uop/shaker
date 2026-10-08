@@ -1,0 +1,1 @@
+Mirror of reward_gen/cup_grasp_l/iter_04 (same reward both arms; user 09-27 '오른팔도 종료후 영상 뽑고 재시작 · Iter04로'). Right history: iter_00 (hyp B) -> iter_01 (= left iter_02, segment digits; e5000 grasp 0.95 lift 0.92, index/middle off at the goal) -> iter_02 (= left iter_04).

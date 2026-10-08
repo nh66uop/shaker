@@ -1,0 +1,1 @@
+Mirror of reward_gen/cup_grasp_l/iter_09 = iter_02 code with only the envelope quality changed (per-digit wrap, equal weights) against tip press. Right iter_01 (= L iter_02) is the last success (grasp 0.94, lift 0.94).

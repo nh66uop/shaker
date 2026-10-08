@@ -1,0 +1,31 @@
+== c1
+  PASS  L1 return: approach-and-touch beats standing (curl 0.35): stand +1.138 approach +6.258 | one-step stand +0.0180 closer-moving -0.0133
+  PASS  L2 flat open hand on wall < one digit contact: flat +0.3047 one-digit +0.6705
+  PASS  L3 4-digit grasp: table < 3 cm < 8 cm: table +1.6153 3cm +3.4381 8cm +4.2954
+  PASS  L4 at goal: fingertip press < rolled: press +6.5326 roll +9.7786 ratio 0.668
+  PASS  L6 pinch < pinch+palm seated (object nudged): pinch +0.3322 seated +1.0395 margin +0.7073
+  PASS  L6b pinch+third digit < pinch+palm seated: third digit +0.3950 seated +1.0395
+  PASS  L7 at goal: segment wrap > fingertip press: press +6.5061 wrap +10.0383 ratio 0.648 (need < 0.87)
+  PASS  L8 tip-only -> segments near -> segments touching rises: far +1.3709 near +1.4197 touching +1.7161
+  PASS  L9 segments touching: table < 3 cm up: table +1.7161 3cm +3.4348
+  PASS  L10 table: +ring and +ring+index raise reward: 2+thumb +1.2340 +ring +1.3486 +index +1.4503
+  PASS  L10b completed grasp: lift 3 cm >> stay (gain > 0.5): table +1.4503 lifted +3.2239 gain +1.7736
+  PASS  L11 above rim: close credit <= 30 % of side wall: close wall 0.0261 rim 0.0013
+  PASS  L11b above rim: segment pull <= 30 % of side wall: pull wall 0.0240 rim 0.0012 | total wall +0.7512 rim +0.6857
+  PASS  L5 finite on fake contexts: range -1.981..+30.843
+== ref03
+  PASS  L1 return: approach-and-touch beats standing (curl 0.35): stand +1.138 approach +7.245 | one-step stand +0.0180 closer-moving -0.0133
+  PASS  L2 flat open hand on wall < one digit contact: flat +0.3047 one-digit +0.6994
+  PASS  L3 4-digit grasp: table < 3 cm < 8 cm: table +1.6263 3cm +3.4423 8cm +4.2958
+  PASS  L4 at goal: fingertip press < rolled: press +6.5326 roll +9.7786 ratio 0.668
+  PASS  L6 pinch < pinch+palm seated (object nudged): pinch +0.3431 seated +1.0691 margin +0.7260
+  PASS  L6b pinch+third digit < pinch+palm seated: third digit +0.4023 seated +1.0691
+  PASS  L7 at goal: segment wrap > fingertip press: press +6.5061 wrap +10.0383 ratio 0.648 (need < 0.87)
+  PASS  L8 tip-only -> segments near -> segments touching rises: far +1.3818 near +1.4307 touching +1.7270
+  PASS  L9 segments touching: table < 3 cm up: table +1.7270 3cm +3.4390
+  PASS  L10 table: +ring and +ring+index raise reward: 2+thumb +1.2537 +ring +1.3584 +index +1.4503
+  PASS  L10b completed grasp: lift 3 cm >> stay (gain > 0.5): table +1.4503 lifted +3.2239 gain +1.7736
+  PASS  L11 above rim: close credit <= 30 % of side wall: close wall 0.0540 rim 0.0149
+  FAIL  L11b above rim: segment pull <= 30 % of side wall: pull wall 0.0240 rim 0.0240 | total wall +0.7791 rim +0.7222
+  PASS  L5 finite on fake contexts: range -1.982..+30.864
+SUMMARY {'c1': True, 'ref03': False}

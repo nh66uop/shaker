@@ -1,0 +1,64 @@
+{
+ "selected": "c1r",
+ "candidates": {
+  "c1": {
+   "source": "claude kuku-reward-generator",
+   "gate": "PASS",
+   "terms_kept": "22/22",
+   "plan": "conforms: only the three notes_iter27 changes. Component diff vs iter_26 on 20 x 256 fake contexts changes only posture_src, posture_rcv, tilt_rate, home_rcv; _grip_keep body identical (iter_24 coupling kept); no angle constant; TILT_W 5, TILT_PAY_CAP 1 and the first-bead switch-off kept",
+   "deterministic_check": {
+    "script": "check_tilt_rate.py compute_reward_c1.py -> check_tilt_rate_c1.out",
+    "dphi_vs_exact_float64": "rel err p50 3.6e-2, p99 2.7, max 6.5 (one-sided difference, tau 1/120 s)",
+    "closed_cycles": "FAIL A10: jiggle of the lip around the concave spout peak with all pay gates 1 sums to +1.40 per cycle (+0.070/step, 2 mm at 3 Hz, 90 deg lean; +0.036/step at 60 deg, 5 mm vertical, 2-3 Hz); all other cycles <= 0 (A1 -24.7, A6 -140.8, A8 -72.3, A9 -301.7)",
+    "spout_zero_tilt": "0 per step (3.8e-163)",
+    "away_sideways_hold": "0 / 0 / 0"
+   },
+   "review": "HIGH one-sided rate (G(now) - G(back)) / tau has error -(tau/2) v'Hv, positive where the spout is concave (mouth centre, rim height): a closed jiggle there is paid (A10); LOW TILT_TAU comment wrong (policy step is 1/60 s = sim.dt 1/120 x decimation 2; a back-shift along the velocity does not telescope; self-reported pump 0.034/step understated)",
+   "status": "repaired as c1r"
+  },
+  "q1": {
+   "source": "local qwen3.6",
+   "gate": "PASS",
+   "terms_kept": "22/22",
+   "rejected": "CRITICAL Phi_back uses d = source - receiver mouth (reversed), so lean_back ~ 0 while leaning toward the receiver and dPhi = Phi_now / tau: holding a lean over the mouth pays the cap +1/step (check C hold 1.0, closed cycles up to +422); lip_back ignores rotation, receiver not moved back. HIGH home anchor built with rcv_cup_spawn_pos[:, 1:1] (empty slice), so anchor[:, :2] = (spawn x, spawn z): the anchor y is the spawn height. LOW ref_on share > 0 instead of 0.02; F hard-coded 5; tau 0.02 called the sim step",
+   "deterministic_check": "FAIL (check_tilt_rate_q1.out)"
+  },
+  "q2": {
+   "source": "local qwen3.6",
+   "gate": "PASS",
+   "terms_kept": "22/22",
+   "rejected": "plan: pour_flow changed outside the three changes (d_in clamped >= 0 removes the FLOW_FLOOR charge for beads leaving the receiver); pre-lift posture = wrap/F only (palm and thumb quality dropped). Rate not the full rate of Phi (lean_back = lean_now, lip only translated, d fixed): pumps A6 +58.0, A8 +86.5, A10 +3.6. fingers-kept counts all five fingers with a hard threshold",
+   "deterministic_check": "FAIL (check_tilt_rate_q2.out)"
+  },
+  "q3": {
+   "source": "local qwen3.6",
+   "gate": "PASS",
+   "terms_kept": "22/22",
+   "rejected": "spout measured at the source cup ORIGIN, not the lip (Phi ~ 0 at a pour pose, no help); d fixed to ctx.pour_dir_xy in both states; charge multiplied by carry_both (a gate inside the charge: A8 +11.6) and latches only on the pay (charge survives the first bead); plan: POSTURE_W_RCV 1.2 -> 1.5 and pre-lift palm/thumb dropped; fingers-kept averages all five fingers including those absent at lift. A6 +52.8",
+   "deterministic_check": "FAIL (check_tilt_rate_q3.out)"
+  },
+  "c1r": {
+   "source": "kuku-ai repair of c1 (review HIGH, check A10)",
+   "gate": "PASS",
+   "terms_kept": "22/22",
+   "changes": "exactly two edits to c1: (1) _lean_spout_rate is the central difference (G(both cups moved ahead by tau) - G(both cups moved back by tau)) / (2 tau), mouth, d, theta and lip rebuilt at both states (was (G(now) - G(back)) / tau); (2) TILT_TAU comment corrected, value 1/120 s unchanged. Everything else is c1 byte for byte",
+   "deterministic_check": {
+    "script": "check_tilt_rate.py compute_reward_c1r.py -> check_tilt_rate_c1r.out (= check_tilt_rate.out)",
+    "dphi_vs_exact_float64": "rel err p50 1.8e-3, p99 6.9e-2, max 0.15 (fast random motions, tau 1/120 s); float32 vs float64 abs diff 2.5e-4",
+    "closed_cycles": "PASS: A1 tilt at the mouth -24.4, A2 -9.6, A3 spout in/out along d -403.2, A4 sideways -179.7, A5 up/down -62.2, A6 random both-cup -141.3, A7 fast jiggle 0.2-0.5 s -8.3, A10 jiggle at the spout peak with gates 1 0.000000, A8 pay-gate toggles from the rate sign -71.9, A9 settled ramp -304.0",
+    "spout_zero_tilt": "tilt 0->120->0 with the lip 40 cm away: 3.6e-163 per step (pays 0, costs 0); lean made far away, carried in and out again: -528 (<= 0)",
+    "away_sideways_hold": "lean away / sideways at the mouth 0; holding 80 deg over the mouth 0",
+    "known_limit": "A7n (info): a 0.1 s cycle with 10-30 Hz harmonics aliases at the 60 Hz reward Nyquist (+6 per cycle, cap 1/step); inherent to any memoryless sampled rate (iter_26 too); palm command is EMA 0.25 + slew 0.03/step filtered",
+    "sensitivity": "ctx lin_vel is the COM velocity (IsaacLab root_lin_vel_w = root_com_lin_vel_w) taken as the origin's: COM +-2 cm on the axis, tilt cycles max -71.5"
+   },
+   "magnitudes": "pour tilt 0->92 deg about the lip (lip 1 cm over the mouth centre): +28 in 1 s, +52 in 2 s, +93 in 4 s, +150 in 8 s (pay capped 1/step, one-shot until the first bead); at the i26r ep800 states spout <= 1e-17 so tilt_rate ~ 0 (removes the -0.16/step charge); home_rcv at side margin 0.16 / 0.12 / 0.08 / 0.05 m = 0.73 / 0.85 / 1.00 / 0.31; losing 1 of 5 lift fingers -0.19/step at keep 0.64 (iter_26 source -0.04); pre-lift posture at 3 wrapped fingers -0.6 (src) / -0.24 (rcv) per step vs iter_26",
+   "budget": "no new state income: holding any pose gives tilt_rate 0; home_rcv max HOME_W unchanged; posture <= iter_26 (wrap/F <= min(wrap/3, 1), kept <= 1). At success outcome ~20/step (finish + success) vs state ~12/step (estimate)",
+   "review": "no CRITICAL/HIGH. LOW L1 a finger counts at lift only if its share > 0.02, so a pinky wrapped but unloaded at lift escapes kept (pre-lift wrap/F asks for link contact, not load); LOW L2 A7n Nyquist aliasing; LOW L3 COM velocity used as origin velocity (hypothesis, S <= 0); LOW L4 d recomputed without the env 4 cm hold (differs only near nesting, where not_nested closes the pay; only charges can spike there)",
+   "status": "recommended; compute_reward.py and validation.json hold c1r. Not launched"
+  }
+ },
+ "rule": "gate PASS AND plan conformance (iter_26 terms kept, only the three notes_iter27 changes, KEEP rules, component diff) AND user principles AND kuku-code-reviewer style review AND deterministic check of the new rate term (derivative, closed cycles incl. gate changes, spout = 0, away/sideways)",
+ "warm_start": "t2r_i26r ep800, not fresh (notes_iter27). Gate after 300 epochs (deterministic trace): peak tilt toward the receiver p50 > 20 deg, spout to mouth at the end p50 < 0.12 m, receiver side margin p50 < 0.12 m, source 5-finger carry >= 0.8, receiver >= 0.5. If the gate fails, restart fresh with iter_27",
+ "decided_by": "kuku-ai-55 sub-session: ingest gate + plan conformance (component diff, AST) + review + check_tilt_rate.py; c1r repair. Launch, warm start and stop decisions stay with the main session",
+ "at": "2026-09-26T05:35"
+}

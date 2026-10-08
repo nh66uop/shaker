@@ -1,0 +1,322 @@
+== 1. identity against iter_19/compute_reward.py and c1
+  c1: md5 25341075, ast_equal_c1 True, ast_equal_c1_wo_ann True, signature_equal_iter19 True, stmts_removed_vs_iter19 8, stmts_added_vs_iter19 6, added_reads_ctx ['ctx.link_surface_dist'], added_names ['FOLLOW_DEAD', 'FOLLOW_SCALE', 'ctx', 'digit_curl', 'digit_touch', 'follow', 'lift_off', 'link_dist', 'torch'], added_const_index []
+      + FOLLOW_DEAD = 0.01
+      + FOLLOW_SCALE = 0.006
+      + link_dist = ctx.link_surface_dist
+      + lift_off = link_dist.amax(dim=-1) - link_dist.amin(dim=-1)
+      + follow = torch.exp(-(lift_off - FOLLOW_DEAD).clamp(min=0.0) / FOLLOW_SCALE)
+      + digit_curl = digit_touch * follow
+  q1: md5 f21f6e5e, ast_equal_c1 True, ast_equal_c1_wo_ann True, signature_equal_iter19 True, stmts_removed_vs_iter19 8, stmts_added_vs_iter19 6, added_reads_ctx ['ctx.link_surface_dist'], added_names ['FOLLOW_DEAD', 'FOLLOW_SCALE', 'ctx', 'digit_curl', 'digit_touch', 'follow', 'lift_off', 'link_dist', 'torch'], added_const_index []
+      + FOLLOW_DEAD = 0.01
+      + FOLLOW_SCALE = 0.006
+      + link_dist = ctx.link_surface_dist
+      + lift_off = link_dist.amax(dim=-1) - link_dist.amin(dim=-1)
+      + follow = torch.exp(-(lift_off - FOLLOW_DEAD).clamp(min=0.0) / FOLLOW_SCALE)
+      + digit_curl = digit_touch * follow
+  q2: md5 98a961e4, ast_equal_c1 False, ast_equal_c1_wo_ann False, signature_equal_iter19 False, stmts_removed_vs_iter19 11, stmts_added_vs_iter19 8, added_reads_ctx ['ctx.link_surface_dist'], added_names ['FOLLOW_DEAD', 'FOLLOW_SCALE', 'ctx', 'curl_factor', 'digit_curl', 'digit_touch', 'env_mult', 'env_q', 'follow', 'hand_curl', 'lift_off', 'link_dists', 'torch'], added_const_index []
+      + FOLLOW_DEAD = 0.01
+      + FOLLOW_SCALE = 0.006
+      + link_dists = ctx.link_surface_dist
+      + lift_off = link_dists.amax(dim=-1) - link_dists.amin(dim=-1)
+      + follow = torch.exp(-(lift_off - FOLLOW_DEAD).clamp(min=0.0) / FOLLOW_SCALE)
+      + digit_curl = digit_touch * follow
+      + curl_factor = 0.5 + 0.5 * hand_curl
+      + env_mult = 0.1 + 0.9 * env_q
+  q3: md5 15c1bb76, ast_equal_c1 False, ast_equal_c1_wo_ann False, signature_equal_iter19 True, stmts_removed_vs_iter19 8, stmts_added_vs_iter19 5, added_reads_ctx ['ctx.link_surface_dist'], added_names ['FOLLOW_DEAD', 'FOLLOW_SCALE', 'ctx', 'digit_curl', 'digit_touch', 'follow', 'lift_off', 'torch'], added_const_index []
+      + FOLLOW_DEAD = 0.01
+      + FOLLOW_SCALE = 0.006
+      + lift_off = ctx.link_surface_dist.amax(dim=-1) - ctx.link_surface_dist.amin(dim=-1)
+      + follow = torch.exp(-(lift_off - FOLLOW_DEAD).clamp(min=0.0) / FOLLOW_SCALE)
+      + digit_curl = digit_touch * follow
+  c1 vs iter_19, fake ctx 4x256: terms exactly equal ['close', 'grasp_count', 'grasp_digit', 'grasp_oppose', 'grasp_palm', 'palm_in', 'pen_action', 'pen_arm_fast', 'pen_arm_vel', 'pen_cup_vel', 'pen_descend', 'pen_drift', 'pen_drop', 'pen_setdown', 'pen_shove', 'pen_squeeze', 'pen_stall', 'pen_table', 'pen_tilt', 'reach']
+  c1 vs iter_19, fake ctx 4x256: terms that differ (max abs) {'reward': 26.539354, 'lift_height': 0.597031, 'lift_rise': 0.117777, 'goal_reach': 0.267472, 'goal_progress': 0.221452, 'goal_hold': 0.549091, 'success_bonus': 26.537143}; all downstream x env_mult: True
+  q1 vs c1, fake ctx 4x256: max abs over reward and all terms 0.0
+  q2 vs c1, fake ctx 4x256: max abs over reward and all terms 0.0
+  q3 vs c1, fake ctx 4x256: max abs over reward and all terms 0.0
+===== c1
+  -- shapes (five digits alike): hand_curl, curl_factor, env_mult end-to-end, env_mult instrumented
+    roll (ring)          tip press (0.3,0,5)  1.0000  1.0000  0.9943  0.9943
+    roll (ring)          inner (2,2,1)        1.0000  1.0000  1.0000  1.0000
+    roll (ring)          tip only (0,0,3)     1.0000  1.0000  0.8425  0.8425
+    roll (index, rare)   tip press (0.3,0,5)  1.0000  1.0000  0.9943  0.9943
+    roll (index, rare)   inner (2,2,1)        1.0000  1.0000  1.0000  1.0000
+    roll (index, rare)   tip only (0,0,3)     1.0000  1.0000  0.8425  0.8425
+    pip_hook (index)     tip press (0.3,0,5)  0.2636  0.6318  0.6650  0.6650
+    pip_hook (index)     inner (2,2,1)        0.2636  0.6318  0.6686  0.6686
+    pip_hook (index)     tip only (0,0,3)     0.2636  0.6318  0.5691  0.5691
+    tip_hook (middle)    tip press (0.3,0,5)  0.0970  0.5485  0.5905  0.5905
+    tip_hook (middle)    inner (2,2,1)        0.0970  0.5485  0.5936  0.5936
+    tip_hook (middle)    tip only (0,0,3)     0.0970  0.5485  0.5073  0.5073
+    tip_hook (thumb)     tip press (0.3,0,5)  0.1353  0.5677  0.6077  0.6077
+    tip_hook (thumb)     inner (2,2,1)        0.1353  0.5677  0.6109  0.6109
+    tip_hook (thumb)     tip only (0,0,3)     0.1353  0.5677  0.5215  0.5215
+  tip 0.0->30 N: max rise hand_curl / env_mult                 (0.5842534157618517, 0.290619357889968)
+  tip 0.5->30 N: max rise hand_curl / env_mult                 (0.0018592656131038998, 0.0016249570022585091)
+  tip 2.0->30 N: max rise hand_curl / env_mult                 (3.7410075037769275e-12, 3.2720492981752614e-12)
+  coupled, tip 2->30 N and 1 mm deeper per 10 N: max rise hand_curl 3.7410075037769275e-12
+  bounded digit_curl [min,max], finite                         [0.0, 1.0, True]
+  bounded curl_factor                                          [0.5, 1.0]
+  bounded env_mult (end-to-end)                                [0.10529266800417643, 0.9999999999999999, True]
+  instrumented env_mult == end-to-end (max abs)                1.1102230246251565e-16
+  digit removed: max rise hand_curl / env_mult                 [0.0, 0.0]
+  5-digit permutation: max |d hand_curl|                       2.220446049250313e-16
+  4-finger permutation: max |d env_mult|                       2.220446049250313e-16
+  offset +2 cm on all three points: max |d digit_curl|         1.2212453270876722e-15
+  farthest point 1 cm further: max rise digit_curl             0.0
+  middle point out to the farthest: max rise digit_curl        0.0
+  force x3 on touching digits: max |d digit_curl|              0.002398954191610181
+  force->0 (roll geometry): hand_curl at F<=1e-3 N max         0.0023720315440420785
+  force->0: monotone, 0 at 1e-9 N                              [True, 2.6666666666666674e-09]
+  lift_off 0->5 cm, 0.1 mm grid: max |step| of hand_curl       0.01652854617838284
+  lift_off <= FOLLOW_DEAD: hand_curl min (flat at touch)       1.0
+  X open hand, fingers along the wall but not touching: hand_curl                    0.0
+  X straight distal chain R 3.45 cm, tangent at k1: lift_off 1.74 cm -> curl         0.29
+  X straight distal chain R 3.45 cm, best tangent (mid-chain): lift_off 1.20 cm -> curl 0.714
+  X straight distal chain R 3.45 cm, tangent at the tip: lift_off 3.85 cm -> curl    0.009
+  X straight distal chain R 3.98 cm, tangent at k1: lift_off 1.58 cm -> curl         0.381
+  X straight distal chain R 3.98 cm, best tangent (mid-chain): lift_off 1.08 cm -> curl 0.874
+  X straight distal chain R 3.98 cm, tangent at the tip: lift_off 3.58 cm -> curl    0.014
+  X straight distal chain R 4.58 cm, tangent at k1: lift_off 1.42 cm -> curl         0.494
+  X straight distal chain R 4.58 cm, best tangent (mid-chain): lift_off 0.97 cm -> curl 1.0
+  X straight distal chain R 4.58 cm, tangent at the tip: lift_off 3.31 cm -> curl    0.021
+  X straight distal chain R 5.18 cm, tangent at k1: lift_off 1.29 cm -> curl         0.615
+  X straight distal chain R 5.18 cm, best tangent (mid-chain): lift_off 0.87 cm -> curl 1.0
+  X straight distal chain R 5.18 cm, tangent at the tip: lift_off 3.08 cm -> curl    0.031
+  X fingers parallel to the axis + thumb opposite: hand_curl, env_mult               (1.0, 1.0)
+  X reference: five rolled digits (ring roll geometry): hand_curl, env_mult          (1.0, 1.0)
+  iter_18 table band / closed loop (link points 0.5 m off: curl 1 both ways): table {'3.0cm': 0.0, '2.0cm': 0.0, '1.5cm': 0.15, '1.0cm': 0.3, '0.5cm': 0.3, '0.0cm': 0.3}, cycle {'constant grip': -13.662, 'recede tipped, return curled': -13.5475}
+  closed loop with the curl modulated by geometry: {'constant roll: rate, whole': [-13.662, 250.06], 'recede hooked, return rolled: rate, whole': [-5.455, 218.569], 'stay rolled at 0.10 m for 60 steps: whole': 361.985}
+  -- offline replay, held steps (lifted and dz >= 3 cm), m18_curl traces
+  [e1000_s42]
+    held steps                                              23059
+    hand_curl iter_19 -> iter_20 (mean)                     (0.259, 0.159)
+    hand_curl iter_20 median / p90                          (0.148, 0.243)
+    share of held steps hand_curl >= 0.5                    0.0
+    same states, every touching digit follows: hand_curl    0.975
+    iter_20 hand_curl / that                                0.163
+    digit_curl mean thumb..pinky                            [0.356, 0.101, 0.076, 0.137, 0.122]
+    share of digit-steps digit_curl >= 0.5 thumb..pinky     [0.24, 0.021, 0.0, 0.05, 0.004]
+    env_mult iter_19 -> iter_20                             (0.558, 0.523, '-6.3%')
+    instrumented vs end-to-end env_mult (max abs)           1.1102230246251565e-16
+    step-to-step |d digit_curl| mean over envs              [0.004, 0.003, 0.003, 0.003, 0.006]
+    s130: hand_curl iter_19 -> iter_20                      (0.363, 0.142)
+    shaker: hand_curl iter_19 -> iter_20                    (0.195, 0.147)
+  [m18_e800_s42]
+    held steps                                              20173
+    hand_curl iter_19 -> iter_20 (mean)                     (0.254, 0.21)
+    hand_curl iter_20 median / p90                          (0.187, 0.35)
+    share of held steps hand_curl >= 0.5                    0.0007
+    same states, every touching digit follows: hand_curl    0.994
+    iter_20 hand_curl / that                                0.211
+    digit_curl mean thumb..pinky                            [0.219, 0.167, 0.082, 0.389, 0.192]
+    share of digit-steps digit_curl >= 0.5 thumb..pinky     [0.053, 0.023, 0.003, 0.307, 0.066]
+    env_mult iter_19 -> iter_20                             (0.565, 0.549, '-2.8%')
+    instrumented vs end-to-end env_mult (max abs)           1.1102230246251565e-16
+    step-to-step |d digit_curl| mean over envs              [0.002, 0.003, 0.002, 0.005, 0.008]
+    s130: hand_curl iter_19 -> iter_20                      (0.196, 0.183)
+    shaker: hand_curl iter_19 -> iter_20                    (0.394, 0.256)
+  [vid_e1000]
+    held steps                                              8816
+    hand_curl iter_19 -> iter_20 (mean)                     (0.294, 0.166)
+    hand_curl iter_20 median / p90                          (0.17, 0.274)
+    share of held steps hand_curl >= 0.5                    0.0
+    same states, every touching digit follows: hand_curl    0.981
+    iter_20 hand_curl / that                                0.169
+    digit_curl mean thumb..pinky                            [0.216, 0.13, 0.082, 0.263, 0.138]
+    share of digit-steps digit_curl >= 0.5 thumb..pinky     [0.114, 0.0, 0.0, 0.241, 0.0]
+    env_mult iter_19 -> iter_20                             (0.579, 0.531, '-8.2%')
+    instrumented vs end-to-end env_mult (max abs)           1.1102230246251565e-16
+    step-to-step |d digit_curl| mean over envs              [0.002, 0.001, 0.0, 0.001, 0.001]
+    s130: hand_curl iter_19 -> iter_20                      (0.192, 0.134)
+    shaker: hand_curl iter_19 -> iter_20                    (0.199, 0.063)
+  [vid_m18_e800]
+    held steps                                              7033
+    hand_curl iter_19 -> iter_20 (mean)                     (0.325, 0.303)
+    hand_curl iter_20 median / p90                          (0.334, 0.374)
+    share of held steps hand_curl >= 0.5                    0.001
+    same states, every touching digit follows: hand_curl    0.997
+    iter_20 hand_curl / that                                0.304
+    digit_curl mean thumb..pinky                            [0.137, 0.229, 0.085, 0.785, 0.279]
+    share of digit-steps digit_curl >= 0.5 thumb..pinky     [0.0, 0.037, 0.0, 0.777, 0.009]
+    env_mult iter_19 -> iter_20                             (0.612, 0.603, '-1.5%')
+    instrumented vs end-to-end env_mult (max abs)           1.1102230246251565e-16
+    step-to-step |d digit_curl| mean over envs              [0.001, 0.003, 0.001, 0.004, 0.001]
+    s130: hand_curl iter_19 -> iter_20                      (0.215, 0.205)
+    shaker: hand_curl iter_19 -> iter_20                    (0.373, 0.331)
+  [vid_e1000 env 11 cup_big_s130, the operator's frames]
+    t    1 s held 0: lift_off cm [3.4, 1.7, 1.6, 2.0, 3.3] digit_curl [0.0, 0.0, 0.0, 0.0, 0.0] hand_curl iter_20 0.000 (iter_19 0.000)
+    t    3 s held 0: lift_off cm [2.1, 2.6, 2.3, 1.7, 1.5] digit_curl [0.0, 0.0, 0.0, 0.0, 0.0] hand_curl iter_20 0.000 (iter_19 0.000)
+    t    5 s held 1: lift_off cm [2.5, 3.0, 2.8, 2.3, 2.9] digit_curl [0.08, 0.04, 0.05, 0.12, 0.04] hand_curl iter_20 0.065 (iter_19 0.200)
+    t    7 s held 1: lift_off cm [2.1, 2.4, 2.6, 2.3, 2.2] digit_curl [0.15, 0.09, 0.07, 0.12, 0.14] hand_curl iter_20 0.116 (iter_19 0.200)
+    t    9 s held 1: lift_off cm [2.2, 2.4, 2.4, 2.2, 2.2] digit_curl [0.14, 0.11, 0.1, 0.13, 0.14] hand_curl iter_20 0.123 (iter_19 0.200)
+    t   11 s held 1: lift_off cm [2.2, 2.4, 2.4, 2.2, 2.2] digit_curl [0.14, 0.1, 0.1, 0.13, 0.14] hand_curl iter_20 0.120 (iter_19 0.200)
+    t   13 s held 1: lift_off cm [2.2, 2.4, 2.3, 2.2, 2.3] digit_curl [0.14, 0.1, 0.11, 0.13, 0.12] hand_curl iter_20 0.119 (iter_19 0.200)
+    t 14.9 s held 1: lift_off cm [2.2, 2.3, 2.3, 2.2, 2.3] digit_curl [0.14, 0.11, 0.11, 0.13, 0.12] hand_curl iter_20 0.120 (iter_19 0.200)
+  [vid_m18_e800 env 11 cup_big_s130, the operator's frames]
+    t    1 s held 0: lift_off cm [3.9, 1.7, 5.2, 1.8, 3.1] digit_curl [0.0, 0.0, 0.0, 0.0, 0.0] hand_curl iter_20 0.000 (iter_19 0.000)
+    t    3 s held 0: lift_off cm [1.8, 2.1, 1.4, 1.2, 1.5] digit_curl [0.0, 0.0, 0.0, 0.0, 0.0] hand_curl iter_20 0.000 (iter_19 0.000)
+    t    5 s held 1: lift_off cm [2.0, 2.0, 2.4, 1.9, 1.6] digit_curl [0.18, 0.17, 0.1, 0.22, 0.35] hand_curl iter_20 0.205 (iter_19 0.118)
+    t    7 s held 1: lift_off cm [2.0, 2.1, 2.3, 2.1, 1.6] digit_curl [0.17, 0.17, 0.11, 0.17, 0.34] hand_curl iter_20 0.192 (iter_19 0.169)
+    t    9 s: past the traced first episode (449 steps)
+    t   11 s: past the traced first episode (449 steps)
+    t   13 s: past the traced first episode (449 steps)
+    t 14.9 s: past the traced first episode (449 steps)
+===== q1
+  -- shapes (five digits alike): hand_curl, curl_factor, env_mult end-to-end, env_mult instrumented
+    roll (ring)          tip press (0.3,0,5)  1.0000  1.0000  0.9943  0.9943
+    roll (ring)          inner (2,2,1)        1.0000  1.0000  1.0000  1.0000
+    roll (ring)          tip only (0,0,3)     1.0000  1.0000  0.8425  0.8425
+    roll (index, rare)   tip press (0.3,0,5)  1.0000  1.0000  0.9943  0.9943
+    roll (index, rare)   inner (2,2,1)        1.0000  1.0000  1.0000  1.0000
+    roll (index, rare)   tip only (0,0,3)     1.0000  1.0000  0.8425  0.8425
+    pip_hook (index)     tip press (0.3,0,5)  0.2636  0.6318  0.6650  0.6650
+    pip_hook (index)     inner (2,2,1)        0.2636  0.6318  0.6686  0.6686
+    pip_hook (index)     tip only (0,0,3)     0.2636  0.6318  0.5691  0.5691
+    tip_hook (middle)    tip press (0.3,0,5)  0.0970  0.5485  0.5905  0.5905
+    tip_hook (middle)    inner (2,2,1)        0.0970  0.5485  0.5936  0.5936
+    tip_hook (middle)    tip only (0,0,3)     0.0970  0.5485  0.5073  0.5073
+    tip_hook (thumb)     tip press (0.3,0,5)  0.1353  0.5677  0.6077  0.6077
+    tip_hook (thumb)     inner (2,2,1)        0.1353  0.5677  0.6109  0.6109
+    tip_hook (thumb)     tip only (0,0,3)     0.1353  0.5677  0.5215  0.5215
+  tip 0.0->30 N: max rise hand_curl / env_mult                 (0.5842534157618517, 0.290619357889968)
+  tip 0.5->30 N: max rise hand_curl / env_mult                 (0.0018592656131038998, 0.0016249570022585091)
+  tip 2.0->30 N: max rise hand_curl / env_mult                 (3.7410075037769275e-12, 3.2720492981752614e-12)
+  coupled, tip 2->30 N and 1 mm deeper per 10 N: max rise hand_curl 3.7410075037769275e-12
+  bounded digit_curl [min,max], finite                         [0.0, 1.0, True]
+  bounded curl_factor                                          [0.5, 1.0]
+  bounded env_mult (end-to-end)                                [0.10529266800417643, 0.9999999999999999, True]
+  instrumented env_mult == end-to-end (max abs)                1.1102230246251565e-16
+  digit removed: max rise hand_curl / env_mult                 [0.0, 0.0]
+  5-digit permutation: max |d hand_curl|                       2.220446049250313e-16
+  4-finger permutation: max |d env_mult|                       2.220446049250313e-16
+  offset +2 cm on all three points: max |d digit_curl|         1.2212453270876722e-15
+  farthest point 1 cm further: max rise digit_curl             0.0
+  middle point out to the farthest: max rise digit_curl        0.0
+  force x3 on touching digits: max |d digit_curl|              0.002398954191610181
+  force->0 (roll geometry): hand_curl at F<=1e-3 N max         0.0023720315440420785
+  force->0: monotone, 0 at 1e-9 N                              [True, 2.6666666666666674e-09]
+  lift_off 0->5 cm, 0.1 mm grid: max |step| of hand_curl       0.01652854617838284
+  lift_off <= FOLLOW_DEAD: hand_curl min (flat at touch)       1.0
+  X open hand, fingers along the wall but not touching: hand_curl                    0.0
+  X straight distal chain R 3.45 cm, tangent at k1: lift_off 1.74 cm -> curl         0.29
+  X straight distal chain R 3.45 cm, best tangent (mid-chain): lift_off 1.20 cm -> curl 0.714
+  X straight distal chain R 3.45 cm, tangent at the tip: lift_off 3.85 cm -> curl    0.009
+  X straight distal chain R 3.98 cm, tangent at k1: lift_off 1.58 cm -> curl         0.381
+  X straight distal chain R 3.98 cm, best tangent (mid-chain): lift_off 1.08 cm -> curl 0.874
+  X straight distal chain R 3.98 cm, tangent at the tip: lift_off 3.58 cm -> curl    0.014
+  X straight distal chain R 4.58 cm, tangent at k1: lift_off 1.42 cm -> curl         0.494
+  X straight distal chain R 4.58 cm, best tangent (mid-chain): lift_off 0.97 cm -> curl 1.0
+  X straight distal chain R 4.58 cm, tangent at the tip: lift_off 3.31 cm -> curl    0.021
+  X straight distal chain R 5.18 cm, tangent at k1: lift_off 1.29 cm -> curl         0.615
+  X straight distal chain R 5.18 cm, best tangent (mid-chain): lift_off 0.87 cm -> curl 1.0
+  X straight distal chain R 5.18 cm, tangent at the tip: lift_off 3.08 cm -> curl    0.031
+  X fingers parallel to the axis + thumb opposite: hand_curl, env_mult               (1.0, 1.0)
+  X reference: five rolled digits (ring roll geometry): hand_curl, env_mult          (1.0, 1.0)
+  iter_18 table band / closed loop (link points 0.5 m off: curl 1 both ways): table {'3.0cm': 0.0, '2.0cm': 0.0, '1.5cm': 0.15, '1.0cm': 0.3, '0.5cm': 0.3, '0.0cm': 0.3}, cycle {'constant grip': -13.662, 'recede tipped, return curled': -13.5475}
+  closed loop with the curl modulated by geometry: {'constant roll: rate, whole': [-13.662, 250.06], 'recede hooked, return rolled: rate, whole': [-5.455, 218.569], 'stay rolled at 0.10 m for 60 steps: whole': 361.985}
+===== q2
+  -- shapes (five digits alike): hand_curl, curl_factor, env_mult end-to-end, env_mult instrumented
+    roll (ring)          tip press (0.3,0,5)  1.0000  1.0000  0.9943  0.9943
+    roll (ring)          inner (2,2,1)        1.0000  1.0000  1.0000  1.0000
+    roll (ring)          tip only (0,0,3)     1.0000  1.0000  0.8425  0.8425
+    roll (index, rare)   tip press (0.3,0,5)  1.0000  1.0000  0.9943  0.9943
+    roll (index, rare)   inner (2,2,1)        1.0000  1.0000  1.0000  1.0000
+    roll (index, rare)   tip only (0,0,3)     1.0000  1.0000  0.8425  0.8425
+    pip_hook (index)     tip press (0.3,0,5)  0.2636  0.6318  0.6650  0.6650
+    pip_hook (index)     inner (2,2,1)        0.2636  0.6318  0.6686  0.6686
+    pip_hook (index)     tip only (0,0,3)     0.2636  0.6318  0.5691  0.5691
+    tip_hook (middle)    tip press (0.3,0,5)  0.0970  0.5485  0.5905  0.5905
+    tip_hook (middle)    inner (2,2,1)        0.0970  0.5485  0.5936  0.5936
+    tip_hook (middle)    tip only (0,0,3)     0.0970  0.5485  0.5073  0.5073
+    tip_hook (thumb)     tip press (0.3,0,5)  0.1353  0.5677  0.6077  0.6077
+    tip_hook (thumb)     inner (2,2,1)        0.1353  0.5677  0.6109  0.6109
+    tip_hook (thumb)     tip only (0,0,3)     0.1353  0.5677  0.5215  0.5215
+  tip 0.0->30 N: max rise hand_curl / env_mult                 (0.5842534157618517, 0.290619357889968)
+  tip 0.5->30 N: max rise hand_curl / env_mult                 (0.0018592656131038998, 0.0016249570022585091)
+  tip 2.0->30 N: max rise hand_curl / env_mult                 (3.7410075037769275e-12, 3.2720492981752614e-12)
+  coupled, tip 2->30 N and 1 mm deeper per 10 N: max rise hand_curl 3.7410075037769275e-12
+  bounded digit_curl [min,max], finite                         [0.0, 1.0, True]
+  bounded curl_factor                                          [0.5, 1.0]
+  bounded env_mult (end-to-end)                                [0.10529266800417643, 0.9999999999999999, True]
+  instrumented env_mult == end-to-end (max abs)                1.1102230246251565e-16
+  digit removed: max rise hand_curl / env_mult                 [0.0, 0.0]
+  5-digit permutation: max |d hand_curl|                       2.220446049250313e-16
+  4-finger permutation: max |d env_mult|                       2.220446049250313e-16
+  offset +2 cm on all three points: max |d digit_curl|         1.2212453270876722e-15
+  farthest point 1 cm further: max rise digit_curl             0.0
+  middle point out to the farthest: max rise digit_curl        0.0
+  force x3 on touching digits: max |d digit_curl|              0.002398954191610181
+  force->0 (roll geometry): hand_curl at F<=1e-3 N max         0.0023720315440420785
+  force->0: monotone, 0 at 1e-9 N                              [True, 2.6666666666666674e-09]
+  lift_off 0->5 cm, 0.1 mm grid: max |step| of hand_curl       0.01652854617838284
+  lift_off <= FOLLOW_DEAD: hand_curl min (flat at touch)       1.0
+  X open hand, fingers along the wall but not touching: hand_curl                    0.0
+  X straight distal chain R 3.45 cm, tangent at k1: lift_off 1.74 cm -> curl         0.29
+  X straight distal chain R 3.45 cm, best tangent (mid-chain): lift_off 1.20 cm -> curl 0.714
+  X straight distal chain R 3.45 cm, tangent at the tip: lift_off 3.85 cm -> curl    0.009
+  X straight distal chain R 3.98 cm, tangent at k1: lift_off 1.58 cm -> curl         0.381
+  X straight distal chain R 3.98 cm, best tangent (mid-chain): lift_off 1.08 cm -> curl 0.874
+  X straight distal chain R 3.98 cm, tangent at the tip: lift_off 3.58 cm -> curl    0.014
+  X straight distal chain R 4.58 cm, tangent at k1: lift_off 1.42 cm -> curl         0.494
+  X straight distal chain R 4.58 cm, best tangent (mid-chain): lift_off 0.97 cm -> curl 1.0
+  X straight distal chain R 4.58 cm, tangent at the tip: lift_off 3.31 cm -> curl    0.021
+  X straight distal chain R 5.18 cm, tangent at k1: lift_off 1.29 cm -> curl         0.615
+  X straight distal chain R 5.18 cm, best tangent (mid-chain): lift_off 0.87 cm -> curl 1.0
+  X straight distal chain R 5.18 cm, tangent at the tip: lift_off 3.08 cm -> curl    0.031
+  X fingers parallel to the axis + thumb opposite: hand_curl, env_mult               (1.0, 1.0)
+  X reference: five rolled digits (ring roll geometry): hand_curl, env_mult          (1.0, 1.0)
+  iter_18 table band / closed loop (link points 0.5 m off: curl 1 both ways): table {'3.0cm': 0.0, '2.0cm': 0.0, '1.5cm': 0.15, '1.0cm': 0.3, '0.5cm': 0.3, '0.0cm': 0.3}, cycle {'constant grip': -13.662, 'recede tipped, return curled': -13.5475}
+  closed loop with the curl modulated by geometry: {'constant roll: rate, whole': [-13.662, 250.06], 'recede hooked, return rolled: rate, whole': [-5.455, 218.569], 'stay rolled at 0.10 m for 60 steps: whole': 361.985}
+===== q3
+  -- shapes (five digits alike): hand_curl, curl_factor, env_mult end-to-end, env_mult instrumented
+    roll (ring)          tip press (0.3,0,5)  1.0000  1.0000  0.9943  0.9943
+    roll (ring)          inner (2,2,1)        1.0000  1.0000  1.0000  1.0000
+    roll (ring)          tip only (0,0,3)     1.0000  1.0000  0.8425  0.8425
+    roll (index, rare)   tip press (0.3,0,5)  1.0000  1.0000  0.9943  0.9943
+    roll (index, rare)   inner (2,2,1)        1.0000  1.0000  1.0000  1.0000
+    roll (index, rare)   tip only (0,0,3)     1.0000  1.0000  0.8425  0.8425
+    pip_hook (index)     tip press (0.3,0,5)  0.2636  0.6318  0.6650  0.6650
+    pip_hook (index)     inner (2,2,1)        0.2636  0.6318  0.6686  0.6686
+    pip_hook (index)     tip only (0,0,3)     0.2636  0.6318  0.5691  0.5691
+    tip_hook (middle)    tip press (0.3,0,5)  0.0970  0.5485  0.5905  0.5905
+    tip_hook (middle)    inner (2,2,1)        0.0970  0.5485  0.5936  0.5936
+    tip_hook (middle)    tip only (0,0,3)     0.0970  0.5485  0.5073  0.5073
+    tip_hook (thumb)     tip press (0.3,0,5)  0.1353  0.5677  0.6077  0.6077
+    tip_hook (thumb)     inner (2,2,1)        0.1353  0.5677  0.6109  0.6109
+    tip_hook (thumb)     tip only (0,0,3)     0.1353  0.5677  0.5215  0.5215
+  tip 0.0->30 N: max rise hand_curl / env_mult                 (0.5842534157618517, 0.290619357889968)
+  tip 0.5->30 N: max rise hand_curl / env_mult                 (0.0018592656131038998, 0.0016249570022585091)
+  tip 2.0->30 N: max rise hand_curl / env_mult                 (3.7410075037769275e-12, 3.2720492981752614e-12)
+  coupled, tip 2->30 N and 1 mm deeper per 10 N: max rise hand_curl 3.7410075037769275e-12
+  bounded digit_curl [min,max], finite                         [0.0, 1.0, True]
+  bounded curl_factor                                          [0.5, 1.0]
+  bounded env_mult (end-to-end)                                [0.10529266800417643, 0.9999999999999999, True]
+  instrumented env_mult == end-to-end (max abs)                1.1102230246251565e-16
+  digit removed: max rise hand_curl / env_mult                 [0.0, 0.0]
+  5-digit permutation: max |d hand_curl|                       2.220446049250313e-16
+  4-finger permutation: max |d env_mult|                       2.220446049250313e-16
+  offset +2 cm on all three points: max |d digit_curl|         1.2212453270876722e-15
+  farthest point 1 cm further: max rise digit_curl             0.0
+  middle point out to the farthest: max rise digit_curl        0.0
+  force x3 on touching digits: max |d digit_curl|              0.002398954191610181
+  force->0 (roll geometry): hand_curl at F<=1e-3 N max         0.0023720315440420785
+  force->0: monotone, 0 at 1e-9 N                              [True, 2.6666666666666674e-09]
+  lift_off 0->5 cm, 0.1 mm grid: max |step| of hand_curl       0.01652854617838284
+  lift_off <= FOLLOW_DEAD: hand_curl min (flat at touch)       1.0
+  X open hand, fingers along the wall but not touching: hand_curl                    0.0
+  X straight distal chain R 3.45 cm, tangent at k1: lift_off 1.74 cm -> curl         0.29
+  X straight distal chain R 3.45 cm, best tangent (mid-chain): lift_off 1.20 cm -> curl 0.714
+  X straight distal chain R 3.45 cm, tangent at the tip: lift_off 3.85 cm -> curl    0.009
+  X straight distal chain R 3.98 cm, tangent at k1: lift_off 1.58 cm -> curl         0.381
+  X straight distal chain R 3.98 cm, best tangent (mid-chain): lift_off 1.08 cm -> curl 0.874
+  X straight distal chain R 3.98 cm, tangent at the tip: lift_off 3.58 cm -> curl    0.014
+  X straight distal chain R 4.58 cm, tangent at k1: lift_off 1.42 cm -> curl         0.494
+  X straight distal chain R 4.58 cm, best tangent (mid-chain): lift_off 0.97 cm -> curl 1.0
+  X straight distal chain R 4.58 cm, tangent at the tip: lift_off 3.31 cm -> curl    0.021
+  X straight distal chain R 5.18 cm, tangent at k1: lift_off 1.29 cm -> curl         0.615
+  X straight distal chain R 5.18 cm, best tangent (mid-chain): lift_off 0.87 cm -> curl 1.0
+  X straight distal chain R 5.18 cm, tangent at the tip: lift_off 3.08 cm -> curl    0.031
+  X fingers parallel to the axis + thumb opposite: hand_curl, env_mult               (1.0, 1.0)
+  X reference: five rolled digits (ring roll geometry): hand_curl, env_mult          (1.0, 1.0)
+  iter_18 table band / closed loop (link points 0.5 m off: curl 1 both ways): table {'3.0cm': 0.0, '2.0cm': 0.0, '1.5cm': 0.15, '1.0cm': 0.3, '0.5cm': 0.3, '0.0cm': 0.3}, cycle {'constant grip': -13.662, 'recede tipped, return curled': -13.5475}
+  closed loop with the curl modulated by geometry: {'constant roll: rate, whole': [-13.662, 250.06], 'recede hooked, return rolled: rate, whole': [-5.455, 218.569], 'stay rolled at 0.10 m for 60 steps: whole': 361.985}

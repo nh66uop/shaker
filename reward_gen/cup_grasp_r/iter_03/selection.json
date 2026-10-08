@@ -1,0 +1,28 @@
+{
+ "selected": "c1r",
+ "md5": "f1ab3fbfae042f6ab368d916b8d1c9b7",
+ "rule": "gate PASS + plan (AST: only Hypothesis A changes) + deterministic check_iter05",
+ "decided_by": "main session; user 09-27 '생성진행' then '생성하면 바로 재기동 진행'",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, prompt.md, Hypothesis A",
+   "hypothesis": "A",
+   "gate": "PASS",
+   "plan": "PASS (stall gate, pre-contact close, palm_in touch_flex, per-segment contact rim guard)",
+   "deterministic_check": "check_iter05.py: L12/L13/L14 PASS; L11c FAIL (touching digit on rim keeps 53 % of wall pull: non-touching proximal link unguarded)"
+  },
+  "c1r": {
+   "source": "kuku-reward-generator, prompt_c1_repair.md (review items: L11c leak), Hypothesis A",
+   "hypothesis": "A",
+   "gate": "PASS",
+   "plan": "PASS (vs c1 only the rim guard moved to digit level with touch_any)",
+   "deterministic_check": "check_iter05_c1r.out: 19 PASS; L11 FAIL by design (thumb NOT touching above rim keeps pre-contact close credit: improvement requires the approach to stay unguarded and smooth); L11b, L11c PASS; L12 park<closer<1touch<2touch<+palm at progress 0.3 and 0.8; L13 force/approach sweeps monotone, max step 0.0024/0.0034; L14 air flexion no palm_in gain"
+  }
+ },
+ "superseded_checks": {
+  "L11": "replaced by L11c (rim guard on contact only, operator smoothness requirement)"
+ },
+ "warm_start": null,
+ "warm_start_why": "reward changes required behaviour; fresh (warm-start-carries-collapsed-exploration)",
+ "at": "2026-09-27T23:09:48"
+}

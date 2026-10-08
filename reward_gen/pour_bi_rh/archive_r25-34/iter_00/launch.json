@@ -1,0 +1,25 @@
+{
+ "label": "t2r_rh4_i00",
+ "iter": 0,
+ "cycle": 3,
+ "host": "server",
+ "gpu": 1,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "commit": "341caad2",
+ "started": 1790402752.7966366,
+ "started_local": "2026-09-26 15:05",
+ "checkpoint": "~/rl_ws/ckpt_in/pour_bi_rh/grasp_stage_i07r3_ep400.pth (rh2_i07-r3 ep400, 파지 단계)",
+ "reward": "iter_00 c1 (selection.json)",
+ "launched_by": "session 146751a7 (사용자 지시 09-26: server GPU1, 내일 08:00 까지)",
+ "log": "server ~/rl_ws/hdgp/log/pour_fabric_mimic/t2r_rh4_i00.log",
+ "launcher": "scripts/experiments/pour_t2r_rh_train.sh (conda proj-hdgp-py311, CUDA_VISIBLE_DEVICES=1, setsid)",
+ "python_pid": 168009,
+ "watch": [
+  "pour_open 이 지불되는 스텝 비율(창·방향 게이트)",
+  "j7 하한 접촉 비율(posture_margin 효과)",
+  "state_decay 로 파지가 흔들리지 않는지",
+  "deliver 15 대 spill 6 단가에서 흘림 추세",
+  "결정론 평가 ep300 부터 100 epoch 마다"
+ ]
+}

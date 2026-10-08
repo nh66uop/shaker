@@ -1,0 +1,22 @@
+{
+ "label": "t2r3_i02c",
+ "track": "pour_bi3",
+ "iter": 3,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-short_b_pour_fab-lstm",
+ "commit": "7efe8454",
+ "python_pid": 3702248,
+ "checkpoint": "~/rl_ws/hdgp/log/rl_games/open-short/both/pour-fab/t2r3_i02b/nn/last_open-short_b_pour_fab-lstm_ep_750_rew_7307.364.pth (weights only, epoch reset 0)",
+ "fresh": false,
+ "network": "LSTM 1024 (before_mlp, no concat) -> MLP [512,512], horizon 16, seq 16, minibatch 16384, sigma_init default",
+ "env": "env.preset=i24 + obs_fabric_state (237/307) + fabric_velocity_ff_scale 0.0 + fabrics_damping_gain 20",
+ "reward": "pour_bi3 iter_03 (iter_01 + palm_lift bonus both hands)",
+ "agent_extra": "bounds_loss_coef 0.05, entropy_coef 0.0015",
+ "log": "~/logs/t2r/t2r3_i02c.log",
+ "started_local": "2026-09-29T12:44:37+09:00",
+ "why": "iter_02 penalty form taxed palm-less lifting (i02b source lift 16 -> 6 cm); iter_03 bonus form, warm from i02b ep750 (entropy 24)",
+ "launcher": "~/logs/t2r/launch_t2r_gpu_ckpt.sh"
+}

@@ -1,0 +1,17 @@
+## I can see from the robot that
+iter_05 was launched on both arms and stopped by the operator after about 170 epochs for a design correction, before any grasp could form; it gives no training evidence. The evidence below is from iter_04 (3292 / 3549 epochs), whose approach terms iter_05 kept unchanged.
+
+- The approach terms (long-range reach and palm seating) are functions of the palm's distance to the NEAREST SURFACE point of the object. That distance does not tell the object's side from its top: with the hand above the object the nearest point is the rim, and a palm 3.8 cm above the rim scores almost the same as a palm 3.8 cm beside the side wall (deterministic check on the iter_05 code: 0.124 vs 0.154 per step; the side-wall preference of palm seating only acts inside 3 cm).
+- The environment logs whether the palm is within the graspable height band around the object origin. In iter_04 this was 0.00 on both arms for the whole run; in the right-arm run of iter_02 code, which lifted, it was 0.43. The operator's video verdict on iter_04: the hand approaches the object's mouth and closes on air above the rim.
+- ctx.cup_pos is the object origin (the rigid-body frame). For the objects in the bank it lies inside the body, 7.7-9.2 cm above the base, i.e. near the middle of the body.
+
+Operator decision (sim-to-real): on the real robot the object is known only through a camera pose estimate, which gives the object's origin, not its shape. So the approach must be defined relative to the object origin: bring the palm to the side of the origin, level with it, facing it, and then grasp. The surface fields stay the input for closing, wrapping and contact, where they are used now.
+
+## Feedback for improvement
+Keep everything else in the previous code (iter_05: the gradual stall gate, closing credit before contact, touch-only flexion in palm seating, the rim guard per touching digit, the height-based fade, segment-based digit counting, the lift, transport and hold incomes). Change only what Hypothesis A says, and keep it identical for the mirrored arm.
+
+Operator requirement for the whole reward (unchanged): every income must connect smoothly to the next one, so the gradient carries the policy from travelling, to touching, to closing, to holding, to lifting, to carrying, without a flat stretch or a step at any boundary. No term may switch from zero to full at a single contact or at a threshold; gates must be continuous in the measured quantities, and the state reached at the end of one stage must earn strictly more by moving a little towards the next stage than by staying.
+
+## Hypothesis A
+- Define the approach relative to the object ORIGIN (ctx.cup_pos, with ctx.cup_axis as the object's up direction), not relative to the nearest surface point: the long-range reach and the palm-seating income must be earned by bringing the palm to the SIDE of the origin, level with it along the object axis, with the palm facing the origin. A palm above the object (or below it) must earn clearly less than a palm at the same distance beside the origin, and the approach income must keep rising all the way from the start pose to the side of the object, so it never makes the arm back away. Use no object dimension (no radius, no height): the palm cannot enter the object, so the side of the origin is where the approach naturally ends.
+- Leave the surface fields as the input for everything that concerns the fingers and contact (closing, segment pull, digit counting, palm contact, the rim guard).

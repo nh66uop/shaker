@@ -1,0 +1,19 @@
+{
+ "selected": "c1",
+ "md5": "1d73cf0f0cc16526253a2f0a26c6deb7",
+ "base": "iter_10 (iter_02 + wrap envelope + origin approach)",
+ "rule": "gate PASS + plan (AST vs iter_10: palm_in engage uses touch-only flexion, 2 lines) + check_iter11",
+ "decided_by": "main session; user 09-28 '1번만 진행'",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator prompt.md, Hypothesis A",
+   "hypothesis": "A",
+   "gate": "PASS",
+   "plan": "PASS",
+   "deterministic_check": "check_iter11_c1.out: L14 PASS (air flexion palm_in open 0.0329 = curled 0.0329; iter_10 0.0573); L12/L13/L15/L18 PASS; fails L10/L11b/L11c as iter_02. Open vs fist: 8 cm open 0.187 fist 0.152 (iter_10 0.169), 6 cm 0.194 vs 0.178 (iter_10 fist 0.199 > open); <=4 cm fist still higher via pre-contact closing (intended at arrival)"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "fresh, seed 42",
+ "at": "2026-09-28T17:57:10"
+}

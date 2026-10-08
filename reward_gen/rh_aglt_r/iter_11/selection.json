@@ -1,0 +1,13 @@
+{
+ "selected": "c1r",
+ "rule": "ingest PASS + 계획 준수(improvement.md 두 항목: 다섯 손가락 연속 점수·낮은 파지) + 원장 PASS(새 약지·한 손가락 빠짐·낮은 파지 행 포함) + 궤적 원장 PASS",
+ "decided_by": "session (사용자 10.01 'vision-3090 에 한 팔만 iter11 로 5지 모두 참여' + '붓기 이후를 생각하면 입구보다 더 낮게' + '약지만 따로 더하면 다른 손가락이 빠질 수 있다')",
+ "candidates": {
+  "c1": {"source": "kuku-reward-generator (prompt.md)", "gate": "validation_c1.json PASS", "ledger": "FAIL — 3n 첫 파지(엄지 바깥 벽 0.9 × 입구) 0.290 < 2 × 머묾 0.375: not_above 램프(0.85 × 입구에서 0)가 thumb_f 를 0.25 로"},
+  "c1r": {"source": "kuku-reward-generator 수정(c1 원장 실패 전달)", "change_vs_c1": "not_above 를 iter_10 형태로 되돌림",
+          "plan": "iter_10 대비: (1) 손가락별 점수 max(tanh(F/0.7)·바깥, 0.55·wall_close), 높이 창 [-1.0, 0.6] × 입구, 네 손가락 0.4 평균 + 0.6 최솟값, finger_f = 0.75 + 0.25 g² (2) height_f(손바닥 축 높이 0.15 × 입구 ±0.1 에서 1, 위로 하한 0.5, 아래 최대 15 %)를 post_f 에, 엄지 목표 상자 0.25~0.6 × 입구. 진단 height_factor",
+          "deterministic_check": "원장 PASS: 약지만 빠짐 6Q 0.730·3Q 0.715 · 검지/중지/새끼만 빠짐 0.705/0.709/0.738 · 약지 끝 0.5 N 6Qt 1.13× · 쥔 채 약지 끝 1.8→1.25 r 1.042× · 높은 파지 6H 0.805·3H 0.801 · 첫 파지 2.52× 머묾 · 관절 한계 6L 0.886. 궤적 원장 PASS: good_mirror 1.461 · bad 0.075~0.106 · 우 i10 ep4600 2.408 · 엄지 0.40 유도 기울기 0.98~1.0"}
+ },
+ "warm_start": null,
+ "warm_start_why": "새 행동(약지 닫기·낮은 파지) 요구 → fresh(seed 42), 2단계 ①(지연 0). i10 의 약지 출력은 −1.37(클립 밖)에 고정돼 웜스타트가 탐색을 못 한다"
+}

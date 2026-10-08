@@ -1,0 +1,6 @@
+Keep the previous code (iter_11) exactly as it is, and change only what Hypothesis A says, identically for the mirrored arm. Do NOT bring back any other change from iters 03-08, and do NOT change the finger action mapping.
+
+Operator requirement for the whole reward (unchanged): every income must connect smoothly to the next one, without a flat stretch or a step at any boundary; moving a little towards the next stage must always earn more than staying. Operator: "if the hand is already gathered while approaching, it can never learn the next stage."
+
+## Hypothesis A
+- Teach the open hand during the approach as strongly as the earlier approach stage did: the open-hand income must be clearly larger than now (the earlier approach stage used 0.4) and must NOT switch off with the palm distance; add a small cost for commanding the finger targets (ctx.hand_target_norm) away from the open default pose. Both must fade smoothly with contact (the digits and the palm touching the object), not with distance, so that before any contact an open hand always beats a curled one by a clear margin at every distance, and once the digits touch the object the closing and grasp incomes take over without a dip.

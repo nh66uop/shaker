@@ -1,0 +1,24 @@
+{
+ "selected": "c1r",
+ "rule": "ingest PASS + 계획 준수(notes_iter09 1·2: 파지 품질 인자 shape·방향 인자 들린 뒤 풀기 제거, 재시도 W_ROT 8→13) + check_iter09 PASS + 원장 골 0",
+ "decided_by": "session 146751a7 (사용자 09-30 '지금도 자세가 이상하고 컵도 제대로 파지를 못하고 있음'·'fresh 진행'·'A로 진행')",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, iter_09/prompt.md",
+   "gate": "PASS",
+   "plan": "준수 — 단 방향 인자 '들린 뒤 1 로 풀기' 제거는 생성기가 [54] 원인으로 추가(할 것 2 의 구현)",
+   "deterministic_check": "check_c1.txt FAIL [1] 회전·배달 몫 49 % (iter_08 c1 도 같은 틀에서 49 %)"
+  },
+  "c1r": {
+   "source": "kuku-reward-generator, prompt_c1_repair.md (Review items = check_c1 [1] 줄 원문). 변경: W_ROT 8→13 한 줄",
+   "sha256_8": "5903dcd0",
+   "gate": "PASS",
+   "plan": "준수",
+   "deterministic_check": "check_c1r.txt PASS — [1] 51 % · [50] +2.33 · [53] 3 cm +22.5·8 cm +24.5 · [54] 비 0.24 · [55] +14.5; ledger_c1r.txt 골 0"
+  }
+ },
+ "check_fixture_change": "check_iter09 make_ctx 기본 손 = 컵과 함께 도는 K7 인벨롭(붓기 상태 검사). 접근·파지 경로 검사는 hand='neutral'(이전 기본 손). 이전 기본 손(손가락 아래)은 파지 모양을 보는 보상에서 붓기 검사가 모양 비용까지 쟀다",
+ "env_change": "object_spawn_dx = -0.12 (사용자 A, d59df119)",
+ "warm_start": null,
+ "warm_start_why": "사용자 'fresh 진행' — 잡는 모양 자체를 새로 배워야 한다"
+}

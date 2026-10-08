@@ -1,0 +1,230 @@
+"""pour_fabric 태스크 계약 (09.13 재작성 — 잡기부터 시작 · 보상은 t2r 생성 코드).
+
+Isaac 없이 도는 소스 계약 + Isaac 있을 때만 도는 차원 대조.
+"""
+import ast
+import re
+from pathlib import Path
+
+import pytest
+
+_PKG = Path(__file__).resolve().parents[1]
+_ENV = (_PKG / "pour_fabric_env.py").read_text()
+_RIG = (_PKG / "side_rig.py").read_text()
+_CFG = (_PKG / "pour_fabric_env_cfg.py").read_text()
+_ALL = {"env": _ENV, "rig": _RIG, "cfg": _CFG}
+
+
+# =============================================================================
+# robot-agnostic 계약
+# =============================================================================
+@pytest.mark.parametrize("name", sorted(_ALL))
+def test_no_robot_specific_literals(name):
+    # fabrics_sim 모듈 이름(openarm_tesollo_pose_fabric)은 클래스 탐색용 import 라 제외.
+    src = "\n".join(l for l in _ALL[name].splitlines() if not l.startswith("import fabrics_sim"))
+    for lit in ("r_aj_", "l_aj_", "r_hj_", "l_hj_", "r_hl_", "l_hl_", "tesollo", "dg5f"):
+        assert lit not in src, f"{name}: 로봇 리터럴 '{lit}' — 프로필로 옮길 것"
+
+
+def test_env_does_not_import_specific_profiles():
+    assert "TESOLLO_" not in _ENV and "TESOLLO_" not in _RIG
+    assert "from . import bimanual" in _ENV
+
+
+def test_actor_has_no_hand_joint_velocity():
+    """실기 손 드라이버 velocity 는 관절속도가 아니다(09.07) — actor 관측에 넣지 않는다."""
+    side = _ENV.split("def _side_obs")[1].split("def _mouth_from")[0]
+    assert "qd[:, rig.hand_t]" not in side and "hand_qd =" not in side
+
+
+def test_actor_cup_pose_is_perceived_not_ground_truth():
+    """actor 의 컵 파생 관측은 지연+노이즈를 거친 지각 pose 에서만 나온다."""
+    fn_src = _ENV.split("def _side_obs")[1].split("def _get_observations")[0]
+    assert "cup.data.root_pos_w" not in fn_src
+    assert "perceived" in fn_src
+
+
+def test_fabric_state_is_not_in_observation():
+    """actor obs 에 fabric_q / 비드 ground truth 금지(실기에 없다)."""
+    fn = next(n for n in ast.parse(_ENV).body[-1].body
+              if isinstance(n, ast.FunctionDef) and n.name == "_get_observations")
+    src = ast.get_source_segment(_ENV, fn)
+    obs_part = src.split("obs = torch.cat")[0]
+    assert "fabric_q" not in obs_part
+    assert "beads." not in obs_part and "_prev_in_" not in obs_part
+
+
+# =============================================================================
+# 보상은 생성 코드 — env 에는 보상 항이 없다
+# =============================================================================
+def test_env_has_no_reward_terms_of_its_own():
+    assert "load_reward_fn" in _ENV and "call_reward_fn" in _ENV
+    assert "RewardContext(" in _ENV
+    assert not re.search(r"_weight\b", _ENV), "env 에 보상 가중치가 있다 — 생성 코드로 옮길 것"
+    assert not re.search(r"_weight\b", _CFG)
+
+
+def test_success_is_env_judged_not_reward():
+    """성공은 env 가 판정해 ctx.success 로 넘긴다 — 보상이 못 바꾼다.
+
+    ★09.23 사용자: 과제가 "전량 붓기"에서 "정해진 개수(±허용)만 붓고 소스 컵을 다시 세우기"로 바뀌었다
+    (s2r 에서 한 컵에 붓고 다음 컵으로 이어간다) — 판정도 목표량 오차·복귀 각도·파지 유지로 바뀐다.
+    """
+    assert "pour_target_tol_beads" in _ENV and "pour_done_tilt_max_deg" in _ENV
+    assert "self._pour_err_n.abs() <=" in _ENV and "success_spill_max" in _ENV
+    assert "success=self._success_now" in _ENV
+    # 끼워 넣기(nesting) 는 성공이 아니다 — 09.13 hacking 재발 방지
+    assert "& (~self._cups_nested)" in _ENV
+    assert "in_target = in_target & (~in_source)" in (_PKG / "bead_flags.py").read_text()
+
+
+def test_reward_is_zero_during_hold():
+    assert "(~self._hold_mask()).float()" in _ENV
+
+
+def test_no_sim_mutation_during_reward():
+    fn = next(n for n in ast.parse(_ENV).body[-1].body
+              if isinstance(n, ast.FunctionDef) and n.name == "_get_rewards")
+    src = ast.get_source_segment(_ENV, fn)
+    for bad in ("write_root_state_to_sim", "write_joint_state_to_sim", "set_joint_position_target"):
+        assert bad not in src, f"_get_rewards 가 sim 을 변경한다: {bad}"
+
+
+def test_success_does_not_terminate():
+    fn = next(n for n in ast.parse(_ENV).body[-1].body
+              if isinstance(n, ast.FunctionDef) and n.name == "_get_dones")
+    src = ast.get_source_segment(_ENV, fn)
+    assert "_success" not in src
+
+
+def test_drop_terminates():
+    assert "terminated = runaway | self._dropped" in _ENV
+
+
+# =============================================================================
+# 제어 규약 (grasp_s2r 이식분)
+# =============================================================================
+def test_palm_action_is_anchor_plus_delta():
+    assert "raw = self.anchor + delta" in _RIG
+    # a=0 = 앵커 (비대칭 박스라 선형 매핑 금지)
+    assert "torch.where(a6 >= 0.0, a6 * self.delta_hi, -a6 * self.delta_lo)" in _RIG
+
+
+def test_synergy_release_is_never_gated_or_frozen():
+    """닫는 방향만 게이트·동결 — 푸는 방향은 항상 허용."""
+    assert "torch.where(delta > 0.0, delta * g, delta)" in _RIG
+    assert "hold & (delta > 0.0)" in _RIG
+
+
+def test_fabric_hand_state_is_synced_from_synergy():
+    assert "rig.sync_fabric_hand()" in _ENV
+    assert "self.fabric_q[:, n_arm:] = self.syn_target[:, self.syn_to_fab_idx]" in _RIG
+
+
+def test_close_gate_releases_after_grasp():
+    assert "torch.where(grasped, torch.ones_like(g), g)" in _ENV
+
+
+def test_oppose_delta_is_mirrored_per_side():
+    assert "oppose_sign=1.0" in _ENV and "oppose_sign=-1.0" in _ENV
+    assert "float(cfg.oppose_grip_delta_rad) * float(oppose_sign)" in _RIG
+
+
+def test_contact_sensors_one_per_body_own_cup_only():
+    assert 'filter_prim_paths_expr=flt' in _ENV
+    assert "cfg.source_contact_filter = (SOURCE_CUP_PRIM,)" in _CFG
+    assert "cfg.receiver_contact_filter = (RECEIVER_CUP_PRIM,)" in _CFG
+
+
+def test_beads_use_verified_layout():
+    # 09.16 지름별 일반화(pour_rules.bead_layout_in_cup) — 새 배치를 손으로 만들지 말 것(08.17 겹침 사고)
+    assert "bead_layout_in_cup" in _ENV
+
+
+def test_cfg_has_no_warm_bank():
+    assert "warm_bank" not in _CFG and "warm_bank" not in _ENV
+
+
+# =============================================================================
+# 차원 (Isaac 필요 — resolve_cfg 결과와 대조. 공식 재구현 금지)
+# =============================================================================
+def _cfg_module():
+    pytest.importorskip("pxr")
+    pytest.importorskip("isaaclab")
+    from openarm.agnostic.tasks.pour_fabric import pour_fabric_env_cfg as C
+    return C
+
+
+def test_dims_from_resolve_cfg():
+    C = _cfg_module()
+    cfg = C.PourFabricEnvCfg()
+    pair = __import__("openarm.agnostic.tasks.pour_fabric.bimanual",
+                      fromlist=["get_pair"]).get_pair(cfg.pair_name)
+    per, hqd = 0, 0
+    for p in (pair.source, pair.receiver):
+        a, h, f = p.num_arm_joints, p.num_hand_joints, len(p.finger_sensor_bodies)
+        per += 2 * a + h + 3 + 6 + 3 * f + 3 + 3 * f + h + 3     # hand_qd 는 actor 에 없다(09.14)
+        hqd += h
+    assert cfg.hand_action_mode == "grip3"
+    assert cfg.action_space == 2 * (6 + 3)
+    # 09.16 채움 정도 1칸(actor·critic 공통) — 실기에서는 사람이 어림잡아 넣는 명령 입력
+    assert cfg.observation_space == per + 6 + 1 + cfg.action_space
+    assert cfg.state_space == cfg.observation_space + hqd + 4 + 3 + 12 + 1 + 10
+
+
+def test_short_reference_dimensions():
+    C = _cfg_module()
+    cfg = C.PourFabricEnvCfg()
+    assert (cfg.action_space, cfg.observation_space, cfg.state_space) == (18, 223, 293)
+    legacy = C.PourFabricEnvCfg(hand_action_mode="synergy15")      # t2r_i05 보관 체크포인트 재생(obs +1 은 불가피)
+    assert (legacy.action_space, legacy.observation_space, legacy.state_space) == (42, 247, 317)
+
+
+# =============================================================================
+# 09.16 비드 부피 DR · 조준 전 틸트 래치 (사용자 결정: 권장안 A)
+# =============================================================================
+def test_bead_volume_dr_cfg_defaults():
+    C = _cfg_module()
+    cfg = C.PourFabricEnvCfg()
+    lo, hi = cfg.bead_active_range
+    assert 1 <= lo < hi <= cfg.bead_count                   # 활성 개수는 스폰 개수 안
+    assert lo <= cfg.adr_bead_active_hi_initial <= hi       # ADR 시작 상한
+    assert cfg.bead_diameter_m > 0.012                      # 12 mm 는 컵의 3 % 라 부피 DR 이 안 된다
+    assert cfg.cup_inside_z_min == pytest.approx(
+        cfg.cup_bottom_z + cfg.bead_diameter_m / 2 - cfg.bead_floor_tol_m, abs=1e-6)
+    assert 0.0 < cfg.bead_floor_tol_m < cfg.bead_diameter_m / 2  # 바닥 경계 흔들림 여유(프로브 09.16)
+    # 09.18: 고정 30°/10 cm 폐기 → 채움별 상한(유출각 − 여유) + 붓는 쪽 림 점 허용 반경
+    assert not hasattr(cfg, "premature_tilt_max_deg") and not hasattr(cfg, "premature_lip_xy_m")
+    assert cfg.premature_release_full_deg - cfg.premature_margin_deg == pytest.approx(52.0)
+    assert 0.0 < cfg.premature_lip_tol_m < 0.10 and cfg.pour_dir_min_sep_m > 0.0
+
+
+def test_success_requires_no_premature_tilt():
+    blk = _ENV.split("self._success_now = (")[1].split("self._success_streak")[0]
+    assert "(~self._premature)" in blk
+    assert "self._premature[env_ids] = False" in _ENV            # 리셋에서 래치 해제
+    # 09.17: 래치는 그 스텝의 소스 파지(접촉 기반)가 성립할 때만 — 잡지 않은 채 넘어진 컵은 걸지 않는다(i08 회피 원인)
+    call = _ENV.split("self._premature |= premature_tilt_now(")[1].split(")")[0]
+    assert "grasped" in call
+
+
+def test_actor_observes_fill_level_and_flags_use_active_mask():
+    obs_part = _ENV.split("def _get_observations")[1].split("def ")[0]
+    assert "_fill_level" in obs_part
+    assert "active_mask=self._active" in _ENV
+    assert "sample_active_mask" in _ENV and "park_offsets" in _ENV
+
+
+
+def test_registered_cfg_classes_keep_own_pair_name():
+    _cfg_module()
+    from openarm.agnostic.tasks.pour_fabric import config as reg
+
+    assert reg.REGISTERED, "등록된 쌍이 없다"
+    for short in reg.REGISTERED:
+        for suffix in ("", "_PLAY"):
+            cls = getattr(reg, f"PourFabric_{short}{suffix}_Cfg")
+            cfg = cls()
+            assert cfg.pair_name == short
+    play = getattr(reg, f"PourFabric_{sorted(reg.REGISTERED)[0]}_PLAY_Cfg")()
+    assert play.scene.num_envs == 50

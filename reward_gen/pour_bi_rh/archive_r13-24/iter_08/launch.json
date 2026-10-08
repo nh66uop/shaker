@@ -1,0 +1,11 @@
+{
+ "label": "t2r_rh2_i08",
+ "num_envs": 1024,
+ "started": 1789952700.0,
+ "commit": "9cb5d595",
+ "host": "vision-3090",
+ "run_dir": "t2r_rh2_i08",
+ "checkpoint": "log/rl_games/open-rh/both/pour-fab-mimic/t2r_rh2_i07-r3/nn/last_open-rh_b_pour_fab_mimic_ep_1950_rew_14618.451.pth",
+ "checkpoint_note": "가중치만 로드(epoch 0 리셋). 파지·들기·모으기 항은 iter_07 과 동일해서 그대로 살린다.",
+ "started_local": "2026-09-21T12:05:00+09:00"
+}

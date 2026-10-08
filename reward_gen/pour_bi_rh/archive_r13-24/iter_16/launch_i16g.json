@@ -1,0 +1,18 @@
+{
+ "label": "t2r_rh3_i16g",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "started": 1790159506.3214133,
+ "started_local": "2026-09-23 19:31",
+ "commit": "58c287cc",
+ "run_dir": "t2r_rh3_i16g",
+ "server_pids": [
+  1591365,
+  1591375
+ ],
+ "checkpoint": "/tmp/grasp_stage_i07r3_ep400.pth (원본 vision-3090 t2r_rh2_i07-r3/nn/last_..._ep_400_rew_7384.125.pth)",
+ "checkpoint_note": "★파지 단계만 물려받기(사용자 결정). rh2_i07-r3 e400 = 양손 파지 0.71/0.75·들기 0.15 m·기울기 17.4°·in_target 0 — 잡고 드는 것까지만 되고 붓는 자세는 형성 전. rh2_i03 ep2000~2500 은 받는 팔 파지 0.00 이라 탈락.",
+ "env_note": "iter_16 보상·성공 기준 0.80/0.25/20·두꺼운 바닥 컵. fresh 계보(i16f/i16f2)는 e913 까지 파지 0 으로 종료."
+}

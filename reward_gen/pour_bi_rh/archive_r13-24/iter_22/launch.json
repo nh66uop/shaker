@@ -1,0 +1,18 @@
+{
+ "label": "t2r_rh3_i22",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "started_local": "2026-09-25 21:11",
+ "commit": "b677df87",
+ "run_dir": "t2r_rh3_i22",
+ "server_pids": [
+  3546062,
+  3546069
+ ],
+ "checkpoint": "/tmp/grasp_stage_i07r3_ep400.pth (rh2_i07-r3 ep400)",
+ "reward": "iter_22 c1r (selection.json)",
+ "launched_by": "kuku-ai-55 main",
+ "deteval": "틸팅 신호 기준 도달 시에만(사용자 지시)"
+}

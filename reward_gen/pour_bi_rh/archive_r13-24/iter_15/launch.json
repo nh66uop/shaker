@@ -1,0 +1,18 @@
+{
+ "label": "t2r_rh3_i15",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "started": 1790123265.7749443,
+ "started_local": "2026-09-23 09:27",
+ "commit": "e4d23b60",
+ "run_dir": "t2r_rh3_i15",
+ "server_pids": [
+  909887,
+  909894
+ ],
+ "checkpoint": "log/rl_games/open-rh/both/pour-fab-mimic/t2r_rh3_i13/nn/last_open-rh_b_pour_fab_mimic_ep_550_rew_13132.567.pth",
+ "checkpoint_note": "i13 ep550(결정론 in_target 0.906·in_source 0.000). i14 는 e31 에서 종료돼 체크포인트가 없다.",
+ "env_note": "성공 기준 0.80/0.25/20 유지 + ctx 에 arm_limit_margin·arm_qdd 추가(96297818). 관측·액션 불변."
+}

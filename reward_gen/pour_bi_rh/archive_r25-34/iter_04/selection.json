@@ -1,0 +1,98 @@
+{
+ "selected": "c2r",
+ "rule": "ingest PASS + 계획(notes_iter04 v2 공통 1·2 + 가설) 준수 + check_iter04 공통 검사 [1]~[17]·[20]·[21] PASS. [18]·[19]는 가설 B 의 두 벌점 전용 검사라 A 에는 적용하지 않는다",
+ "decided_by": "session 146751a7 결정론 검사(추천). 가설 A/B 선택과 기동은 사용자 결정 대기",
+ "naming": "c1 = v1 계획(폐기, prompt_v1.md). v2 prompt 의 가설 A = c2, 가설 B = c3 (c1 이 이미 있어 skill 의 c1=A 규약에서 한 칸 밀림). 재시도 = c2r, c3r",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, 응답 원문 그대로 response_c1.md. 가설 분할 없음(단일)",
+   "hypothesis": null,
+   "gate": "ingest ok, errors 0, warnings 0, 항 36",
+   "plan": "iter_03 대비 compute_reward 본문 변경은 far_cross(파지 전 손바닥이 자기 컵보다 +x 로 0.5r 넘으면 1.5r 에서 포화, 가중 0.5, 두 손)와 palm_sat(팔별 palm 6 채널 |a| 0.9→1 램프 평균, 가중 0.5)와 도우미 _palm_cmd_sat 뿐. 나머지 항·이름 동일",
+   "deterministic_check": {
+    "script": "iter_04/check_iter04.py",
+    "result": "PASS 19/19 (iter_03 보상은 [18]·[19] FAIL)",
+    "key": {
+     "18_far_vs_robot_side_6cm": [
+      1.198,
+      1.692
+     ],
+     "19_palm_all_sat_cost": 0.525,
+     "19_hand_channel_sat_cost": 0.025
+    },
+    "trace_replay_ep5900_i03": "i03 오른손 주차 상태에서 far_cross -0.20, palm_sat -0.30 (주차 수입 0.85 → 약 0.35). 왼손 palm_sat -0.16(명령 z 가 손바닥 상자 바닥), far_cross 0"
+   },
+   "sha256_8": "5c2c6602",
+   "status": "폐기 — 사용자 검토('오른손 j7 쪽이 컵에 붙음', 'origin 기준')로 v2 로 다시 짬"
+  },
+  "c2": {
+   "source": "kuku-reward-generator, 가설 A, 원문 그대로",
+   "gate": "ingest ok",
+   "plan": "공통 1·2 만",
+   "deterministic_check": "FAIL [11] src 파지→5cm 들기 4.98→4.89, [16] 들기 사다리 평탄(src 9.12→9.01→9.11)",
+   "sha256_8": "bf0c5d4d"
+  },
+  "c2r": {
+   "source": "kuku-reward-generator 재시도(prompt_c2_repair.md: 원 prompt + 이전 코드 + 검사 실패 줄), 가설 A, 원문 그대로",
+   "gate": "ingest ok, errors 0, warnings 0, 항 36",
+   "plan": "iter_03 대비: reach 거리 = 손바닥-컵 origin(2r 뺀 거리, 척도 7r·2r), finger_dir_src/rcv 추가(가중 0.4, fade·근접 가중), 재시도로 W_REACH 1.0→0.8·W_LIFT 3.0→4.0(들기 전 합 2.2 < 들기 빠른 성분 2.8). far_cross·palm_sat 없음",
+   "deterministic_check": {
+    "script": "iter_04/check_iter04.py",
+    "result": "공통 검사 PASS([18]·[19] B 전용 FAIL)",
+    "key": {
+     "16_src_table_3cm_8cm": [
+      8.74,
+      9.28,
+      9.54
+     ],
+     "16_rcv_table_3cm_8cm": [
+      8.74,
+      9.51,
+      10.21
+     ],
+     "20_replay_bad_vs_good": [
+      3.324,
+      4.622
+     ],
+     "21_top_vs_side_reach": [
+      0.682,
+      0.68
+     ],
+     "15_approach_25to15_15to6": [
+      0.188,
+      0.427
+     ]
+    }
+   },
+   "sha256_8": "adec1319"
+  },
+  "c3": {
+   "source": "kuku-reward-generator, 가설 B, 원문 그대로(qd_src 줄이 값만 같은 다른 식)",
+   "gate": "ingest ok",
+   "deterministic_check": "FAIL [11]·[16] c2 와 같은 들기 골",
+   "sha256_8": "6a7248e2"
+  },
+  "c3r": {
+   "source": "kuku-reward-generator 재시도, 가설 B, 원문 그대로. 생성기가 경로를 response_c2r.md 로 제안했으나 A 와 겹쳐 c3r 로 저장",
+   "gate": "ingest ok, 항 38",
+   "plan": "공통 1·2 + far_cross + palm_sat. 재시도로 reach dead zone 2r→1r, finger_dir 에 (1-held) 곱(iter_03 교훈 8 과 충돌 소지)",
+   "deterministic_check": {
+    "result": "FAIL [16] src 테이블→3cm +0.27 (문턱 0.3)",
+    "key": {
+     "20_replay_bad_vs_good": [
+      2.6,
+      4.202
+     ],
+     "18_far_vs_robot": [
+      1.155,
+      1.649
+     ],
+     "19_palm_all_sat_cost": 0.525
+    }
+   },
+   "sha256_8": "a7edaebe"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "보상이 바뀌었고 i03 오른손은 좁은 탐색(entropy 8.7)으로 주차에 굳었다 — fresh (memory warm-start-carries-collapsed-exploration)"
+}

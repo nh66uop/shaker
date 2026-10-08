@@ -1,0 +1,49 @@
+{
+ "label": "t2r_rh4_i09w",
+ "iter": 9,
+ "host": "server",
+ "gpu": 1,
+ "num_envs": 4096,
+ "task": "open-rh_b_pour_fab_mimic-lstm",
+ "python_pid": 2122762,
+ "network": "관측 → LSTM 1024 → LayerNorm → MLP [512,512] → 명령 24 (before_mlp True, concat 끔)",
+ "overrides": {
+  "horizon_length": 16,
+  "seq_length": 16,
+  "minibatch_size": 16384,
+  "save_frequency": 50,
+  "mini_epochs": 2,
+  "central_value_config.mini_epochs": 2,
+  "learning_rate": "1e-4",
+  "lr_schedule": "adaptive",
+  "kl_threshold": 0.016,
+  "e_clip": 0.1,
+  "central_value_config.learning_rate": "1e-4",
+  "entropy_coef": "0.0005 (yaml 그대로)",
+  "network.rnn.before_mlp": true,
+  "network.rnn.concat_input": false,
+  "network.rnn.concat_output": false,
+  "config.clip_actions": false,
+  "env.enable_self_collisions": true
+ },
+ "reward": "iter_09 c1r2 (sha256 3aaa6d75)",
+ "server_head": "3ba72f30",
+ "checkpoint": null,
+ "started_local": "2026-09-28 17:00",
+ "launched_by": "session 146751a7, 사용자 'dextrah_kuka_allegro 제어 방법을 다시 제대로 분석해서 적용 · 손가락 말고 팔 · FABRICS 를 너무 손봤다' + 'i09 종료 후 교체' 09-28",
+ "entropy_budget": "프레임 기준 판정: task/*_grasped 0.05 전에 entropy < 15 면 종료 후보 보고 (memory lstm-h16-entropy-budget)",
+ "why": "같은 보상(iter_09)에 팔 제어만 DEXTRAH 방식으로: 작업공간 절대 palm 지령(EMA·누적·leash 없음) + fabric q 관측 + fabric ADR(감쇠 10→20, 속도 FF 1→0) + fabric yaml DEXTRAH 값(palm gain 50, repulsion 0.5/1/5). i09 e499 대비 팔 제어만 바뀐 비교.",
+ "env_overrides": {
+  "palm_action_mode": "workspace",
+  "obs_fabric_state": true,
+  "fabric_adr": true,
+  "fabric_param_preset": "dextrah",
+  "hand_action_mode": "increment",
+  "synergy_close_speed": 0.0167
+ },
+ "obs_dims": {
+  "policy": 196,
+  "critic": 238
+ },
+ "fps_e4": 17644
+}

@@ -1,0 +1,12 @@
+{
+ "selected": "hand_edit",
+ "source": "main session edit of iter_03 per user 09-30/10-01 ('파지는 보상을 추가하는게 맞고', '재기동')",
+ "changes": [
+  "grip_slip_src / grip_slip_rcv = -1.0 * held * lift_shape * tanh(max(|v_palm - v_cup - w_cup x (p_palm - p_cup)| - 0.02, 0) / 0.05): palm speed in the cup frame while lifted, both hands"
+ ],
+ "why": "i03f ep2600 deterministic: receiver cup slides ~3 cm in the hand when beads arrive, four-finger close 0.23, finger force 9-12 N; palm speed in cup frame during hold p90 7.9 cm/s (i24 2.2). Nothing in the reward or success rewarded holding the cup rigidly under growing load",
+ "deterministic_check": "iter_04/check_iter04.py -> check_iter04.out: rigid hold -> 0 (max 1e-6); monotone, capped at -1.0; worst-case lift net income increasing in height (+0.49 at 10 cm); receiver hold i03f -0.130/step vs i24 -0.039",
+ "gate": "validator PASS (validation.json)",
+ "warm_start": "t2r3_i03g latest checkpoint with policy sigma clamped to <= 0.5 per dimension",
+ "warm_start_why": "refinement of a learned behavior; entropy_coef 0.0015 let clipped dims run away (thumb opposition sigma 514, receiver rotation 1.4-2.1), so sigma is reset and entropy_coef lowered to 0.0005 (i01b: all sigma 0.1-0.87)"
+}

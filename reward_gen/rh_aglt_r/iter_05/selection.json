@@ -1,0 +1,16 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획 준수(improvement.md 두 항목) + 원장 PASS + 성질 검사(check_iter05.py) 통과",
+ "decided_by": "session (사용자 09.30 '진행': iter_05 생성·원장·두 팔 기동)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator (prompt.md, 가설 분할 없음)",
+   "hypothesis": null,
+   "gate": "validation_c1.json PASS",
+   "plan": "iter_04 대비: thumb_inside/thumb_out(반경 안 × 입구 높이 램프), 엄지 접촉·on_wall 바깥만, fingers_all(평균/최소 반반)·plane_level·oppose_q 로 shape, shape_f = 0.6+0.4·shape 를 grasp_hold·lift·transport·goal_hold 에 곱함. 계획 밖 1건: grasp_hold 기저 0.65→1.05 — shape_f 곱으로 서툰 첫 파지가 머묾의 2배 아래로 떨어지는 것을 막으려는 생성기 판단(첫 파지/머묾 2.31×로 유지)",
+   "deterministic_check": "check_iter05.out: 목표에서 든 상태 — 엄지 입구 안 11.99 < 바깥 13.54, 새끼 접촉력 0→1 N 에 13.84→16.59 단조, 손가락 0→40° 에 16.59→11.89 단조·바닥, 엄지 입구 안이어도 들기 사다리 0.99→3.26→8.92→11.99 상승. 원장 PASS: 6i 0.72×·6k 0.83×·6d 0.83×, 3i 0.58×·3k 0.80×·3d 0.74×, 3f 0.88×, 3s/2h 2.31×"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "보상이 새 행동(바깥 엄지·새끼 접촉·손가락 수평)을 요구 → fresh(seed 42), 두 팔 모두"
+}

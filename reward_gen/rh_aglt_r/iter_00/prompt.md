@@ -1,0 +1,187 @@
+You are an expert in robotics, reinforcement learning and code generation.
+
+We control one 7-DOF OpenArm robot arm (the right arm) carrying a five-finger Inspire RH56F1 hand, standing at a table (+x points from the robot toward the table, +z up, the table top is at ctx.table_z). The RH56F1 is under-actuated: six motors drive the thumb abduction (thumb_1), the thumb flexion (thumb_2) and one flexion joint per finger (index_1, middle_1, ring_1, pinky_1); the second link of each finger (and the thumb's last two links) follows its motor through a fixed mechanical coupling, so every finger curls as one unit. The fingers are short: the gap between thumb tip and finger tips is 105 mm fully open and 47 mm fully closed.
+
+Every episode starts FAR from the object: the arm is raised beside the robot, the palm about 0.33 m (0.29-0.44 m) from the cup, the whole hand above the top of the cup, the hand open. The palm faces +y (towards the cup side) and the fingers point forward (+x) and slightly down. One cup (a 57 mm diameter cylinder, 0.114 m tall, 0.134 kg, friction 2.0) stands upright on the table at a random position 0.27-0.43 m in x and 0.09-0.23 m to the side. The cup tips over when one side is pushed with only 0.3-0.4 N before something supports its other side.
+
+The action space is a normalized `Box(-1, 1, (13,), float32)` with direct joint control. There is no grasp primitive:
+    actions[0:7]  = arm joint targets RELATIVE TO THE START POSE: a = 0 holds the start pose, a = +1 / -1 command the joint's upper / lower limit (piecewise linear). The target is low-pass filtered (factor 0.1) and moves at most 0.3 rad/s.
+    actions[7:13] = hand motor targets in the order (thumb_1, thumb_2, index_1, middle_1, ring_1, pinky_1): a <= 0 keeps that motor fully OPEN, a = +1 commands the fully closed grip pose, values in between are linear. The target is low-pass filtered (factor 0.1) and moves at most one full range per second. A finger whose links touch the cup with more than 1 N stops closing (it can still open), exactly like the real hand's force stop.
+
+Now I want you to help me write a reward function for reinforcement learning.
+
+The reward function receives a single argument `ctx`, an instance of this class (all positions env-local, metres; angles rad; forces N):
+
+```python
+@dataclass
+class RewardContext:
+    # ---- 상수 기하 ----
+    table_z: float                 # 상판 윗면 z
+    cup_radius: float              # 컵 바깥 반지름(가장 넓은 곳)
+    cup_mouth_z: float             # 컵 원점 기준 입구 높이(+)
+    cup_bottom_z: float            # 컵 원점 기준 바닥 높이(−)
+    lift_latch_m: float            # 들기 래치 높이(스폰 대비)
+    goal_tol: float                # 현재 성공 허용오차(키포인트 최대거리)
+    goal_max: int                  # 에피소드 목표 수 상한
+    # ---- 손·팔 ----
+    palm_pos: torch.Tensor         # (N,3)
+    palm_lin_vel: torch.Tensor     # (N,3)
+    palm_axes: torch.Tensor        # (N,6) [법선, 손가락 길이]
+    tips_pos: torch.Tensor         # (N,5,3)
+    hand_closure: torch.Tensor     # (N,) 구동 관절 평균 폐쇄도 [0,1]
+    hand_q_target_closure: torch.Tensor   # (N,6) 관절별 목표 폐쇄도 [0,1]
+    finger_force: torch.Tensor     # (N,5) 손가락별 자기 컵 접촉력 합(첫마디 + 손끝)
+    finger_prox_force: torch.Tensor   # (N,5) 첫마디(_1) 컵 접촉력
+    finger_tip_force: torch.Tensor    # (N,5) 손끝(_sensor) 컵 접촉력
+    palm_force: torch.Tensor       # (N,) 손바닥 패드 컵 접촉력
+    hand_foreign_force: torch.Tensor   # (N,) 손이 컵 아닌 것(테이블·몸)에 닿는 힘
+    grasped: torch.Tensor          # (N,) bool — 엄지 AND (다른 손가락 하나 이상) 컵 접촉 > 1 N
+    hand_min_z: torch.Tensor       # (N,) 손 링크 원점 최저 z
+    arm_q: torch.Tensor            # (N,7)
+    arm_qd: torch.Tensor           # (N,7)
+    arm_limit_margin: torch.Tensor # (N,7) 1 = 범위 중앙, 0 = 한계
+    # ---- 컵 ----
+    cup_pos: torch.Tensor          # (N,3) 원점
+    cup_quat: torch.Tensor         # (N,4)
+    cup_up: torch.Tensor           # (N,3) 컵 축(+z)
+    cup_tilt: torch.Tensor         # (N,) rad
+    cup_lin_vel: torch.Tensor      # (N,3)
+    cup_ang_vel: torch.Tensor      # (N,3)
+    cup_spawn_pos: torch.Tensor    # (N,3)
+    lifted: torch.Tensor           # (N,) bool 래치 — 한 번이라도 lift_latch_m 넘게 들렸다
+    # ---- 목표 ----
+    goal_pos: torch.Tensor         # (N,3)
+    goal_kp_dist: torch.Tensor     # (N,) 키포인트 최대거리(컵 ↔ 목표)
+    near_goal: torch.Tensor        # (N,) bool kp_dist ≤ goal_tol
+    goal_success: torch.Tensor     # (N,) bool 이 스텝에 목표 하나를 달성(쥔 채)
+    goal_successes: torch.Tensor   # (N,) 이번 에피소드 달성 수(이 스텝 포함)
+    # ---- 시간·액션 ----
+    episode_progress: torch.Tensor # (N,) [0,1]
+    actions: torch.Tensor          # (N,13) [팔 7, 손 6]
+    prev_actions: torch.Tensor     # (N,13)
+```
+
+Additional knowledge:
+1. Everything is BATCHED: every tensor field has a leading dimension N. Return a reward tensor of shape (N,) and a dict of named component tensors, each of shape (N,). Use only `torch` and `math`; do not import anything else. Do not keep any state between calls (no globals).
+2. Write staged rewards with tensor masks (`torch.where`), not `if`/`else` on tensors.
+3. Prefer bounded, smooth shaping (`torch.exp(-k * d)`, `1 - torch.tanh(k * d)`) so no single term dominates.
+4. Finger order everywhere is (thumb, index, middle, ring, pinky). `finger_force` = `finger_prox_force` (the finger's first link) + `finger_tip_force` (the fingertip pad link), all measured against the cup only. `ctx.grasped` is the environment's grasp flag: the thumb AND at least one other finger touch the cup with more than 1 N.
+5. `ctx.palm_axes[:, 0:3]` is the unit palm normal (pointing out of the palm, towards a held object) and `ctx.palm_axes[:, 3:6]` the unit direction along the fingers. Cylinder geometry: for a point p, `v = p - ctx.cup_pos`, axial coordinate `h = (v * ctx.cup_up).sum(-1)`, radial vector `v - h.unsqueeze(-1) * ctx.cup_up`; the side wall is at radius `ctx.cup_radius`, the mouth at `h = ctx.cup_mouth_z` and the bottom at `h = ctx.cup_bottom_z`.
+6. Height: `ctx.cup_pos[:, 2] - ctx.cup_spawn_pos[:, 2]` is how far the cup has been raised (0 on the table). `ctx.lifted` becomes True once that exceeds `ctx.lift_latch_m` and stays True for the rest of the episode, even if the cup is dropped.
+7. Goal and success are computed by the environment and cannot be redefined by the reward. The first goal of an episode is 0.10-0.18 m above the cup's start position and at most 5 cm away horizontally; after each success the next goal is up to 8 cm away from the previous one. `ctx.goal_kp_dist` is the largest distance between four points on the cup axis and the same points at the goal pose (0 = exactly at the goal, upright). A success is counted when the cup has spent `goal_success_steps` = 10 steps with `goal_kp_dist <= ctx.goal_tol` and, on that step, is near the goal AND `ctx.grasped`. `ctx.goal_tol` starts at 0.10 m and shrinks to 0.02 m as the policy improves. The episode ends after 5 successes.
+8. An episode lasts at most 900 steps (15 s). It ends early when the cup falls off the table, leaves the work area, tilts more than 60 degrees, any hand link goes 5 mm below the table top (`ctx.hand_min_z`), an arm joint moves faster than 20 rad/s, the cup moves faster than 3 m/s or 30 rad/s, or a hand contact exceeds 200 N. Do not add penalty terms for these terminations.
+9. Name components meaningfully (e.g. "approach", "lift", "success_bonus"); each one is logged during training and shown back to you after training.
+
+I want it to fulfil the following task: reach a cup from far away, grasp it, lift it and carry it to the goal, and hold it there against disturbances, repeatedly. The policy starts from RANDOM WEIGHTS: this one continuous reward, with no stage switch and no checkpoint, has to teach the whole task - travel to the cup with an open hand, bring the palm beside its side wall with the thumb on the far side and the fingers on the near side, close the fingers around it, lift it straight up, carry it to ctx.goal_pos, and stay at rest there.
+
+THE GRASP WE WANT (measured on this hand and this cup): the palm normal and the finger direction both horizontal; the palm about 1.5 cup radii from the cup axis (1.4 cm from the wall), at the height of the cup origin plus 0.15 x the mouth height; the horizontal direction from the palm to the cup axis about 0.67 x palm normal + 0.73 x finger direction; the thumb on the opposite side of the cup from the fingers. The grasp we do NOT want: a vertical pinch from above (fingers pointing down), and a two-finger pinch - both slipped out when lifted.
+
+Per-step ceilings:
+- travelling to the cup with the hand open: about 0.6, fading to near zero once the cup is held.
+- closing and keeping the grasp (more fingers on the cup is better, thumb opposing the fingers, palm oriented as above): about 1.2, and at least twice what the step just before the grasp earns.
+- lifting the held cup: about 2.5, rising with height up to the height the goal needs (ctx.goal_pos[:, 2] - ctx.cup_spawn_pos[:, 2]).
+- moving towards the goal: about 2.5, gated on the cup being off the table.
+- at rest at the goal, upright, really held: about 10, the dominant income, gated on the cup being off the table.
+- success: a large bonus for the first success of an episode; later successes worth little.
+
+Keep the cup upright by multiplying the lift, transport and hold income by uprightness from ctx.cup_tilt. Knocking the cup over before it is held must cost a short-lived, bounded amount charged only while it is actually tipping (its tilt or angular speed rising), never a state penalty that keeps charging after the push. Losing a lifted cup must cost a bounded amount only while it is actually falling, never an amount proportional to `lifted`. Lowering a held cup must be worth less than keeping it still. Penalise fast arm and cup motion while holding, small enough that lifting and carrying always beat standing still.
+
+Use no cup dimension, no scene coordinate, no joint index and no per-finger weight: use ctx.cup_radius, ctx.cup_mouth_z, ctx.table_z and ctx.goal_pos, and treat the four fingers alike. About 15 terms.
+1. Please think step by step and tell me what this task means and which stages the robot must go through.
+2. Then write a function with exactly this signature:
+```python
+def compute_reward(ctx: RewardContext) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    ...
+    return reward, {"component_name": component_tensor, ...}
+```
+3. Take care of tensor shapes and types; never access a field that is not listed in the class definition above.
+4. Put the final code in ONE ```python fenced block that starts with `import torch` and `import math` and contains only the function (plus small helper functions if needed). Add short comments explaining the weights.
+
+The deterministic check that will be run on your code evaluates these states of one episode and requires each row to earn MORE per step than the one before: start (far, open) < halfway (open) < just before the grasp (open, 4 cm from the grasp pose) < grasped on the table < lifted 5 cm < lifted to goal height < at the goal held. It also requires: a closed fist at the pre-grasp spot < the open hand there; an open hand that is tipping the cup (tilt 20 deg, spinning) < the open hand at the pre-grasp spot; a vertical two-finger pinch on the table < the horizontal grasp on the table; a cup dropped after lifting (falling) < grasped on the table.
+
+# Design brief (verified facts from the sibling tracks; Korean)
+
+# rh_aglt 보상 설계 브리프 (2026-09-29 판 — iter_00 전)
+
+확인된 사실만 적는다. 추정은 [가설] 로 표시한다. **이 문서는 매 라운드 생성기 프롬프트 맨 앞에 통째로 들어간다**
+(메모리 `reward-design-uses-full-history`: 직전 런만 패치하지 말고 전 이력을 종합한다). 좌우 트랙(`rh_aglt_r`·`rh_aglt_l`)이
+이 한 파일을 쓴다(`reward_gen/rh_aglt_l/DESIGN_BRIEF.md` 는 이 파일로의 링크). 좌우 보상은 바이트 동일로 시작한다.
+
+## 1. 과제와 고정 조건 (보상이 바꿀 수 없다)
+
+- RH56F1 한 팔이 먼 출발(손바닥↔컵 원점 평균 약 0.33 m, 손은 모든 컵 윗면 위)에서 테이블 위 57 mm 컵(0.134 kg)에 다가가
+  잡고, 들어서 `ctx.goal_pos` 로 옮기고, 거기서 쥔 채 유지한다. 목표는 에피소드당 최대 5개(달성마다 ±8 cm 이동).
+- 성공(env): 키포인트 최대거리 ≤ `ctx.goal_tol` 인 스텝 10 누적 **그리고 그 순간 쥐고 있음**(엄지 AND 다른 손가락 > 1 N).
+  첫 목표는 스폰보다 0.10~0.18 m 위라 들지 않고는 닿지 않는다. tol 0.10 → 0.02 커리큘럼.
+- 액션 13 = [팔 절대 목표 7(a=0 먼 출발 자세, ±1 관절 한계, 0.3 rad/s 상한), 손 구동 6(a ≤ 0 편 손, a = 1 쥔 자세, 1 N 넘게 닿은 손가락은 닫기 정지)].
+- 종료(env, 벌점 항 두지 않는다): 컵 낙하·상자 이탈·60° 넘게 기울어짐 · 팔 qd > 20 · mimic 폭주 · 손이 상판 5 mm 아래 ·
+  컵 > 3 m/s·30 rad/s · 손 접촉 > 200 N 2스텝.
+- 제어 주기 1/60 s, 에피소드 900 스텝(hold 10 스텝은 보상 0).
+
+## 2. 단계 원칙
+
+접근 → 편 손으로 컵 옆 → 감싸 쥐기 → 들기 → 목표로 이송 → 유지. **한 단계 앞으로 가는 것이 그 자리에 머무는 것보다 항상 스텝당
+이득**이어야 하고, 머물기만 해도 벌리는 자리(주차)가 없어야 한다. 파지를 하고 들려고 할 때 보상이 떨어지면 안 된다(pour_bi_rh 사용자 원칙 09-28).
+
+## 3. 측정으로 확정된 사실 — 형제 트랙 두 개
+
+### 3-1. cup_grasp (DG5F-M-S, 같은 구조의 먼 출발 무작위 컵 → 목표 이송, 처음부터 완주)
+출처 `reward_gen/cup_grasp_r/DESIGN_BRIEF.md` 1~14, `CUP_GRASP_REWARD_LEDGER.json`, LOOP_STATE.
+| # | 사실 |
+|---|---|
+| G1 | 처음부터 학습해 완주한 보상(r_iter_00): 접근 수입이 `(1−held)` 로 사라지고 `held` 뒤에 들기 2.5 · 이송 2.5 · 목표 유지 10 · 첫 성공 60 을 얹는 구조. 우 grasp 0.91 lift 0.89 성공 0.48(tol 0.023), 좌(l_iter_01) 성공 0.60(tol 0.031) |
+| G2 | 먼 거리 접근은 **곱셈 인자 없는** 단순 손바닥 거리(0.35 × (0.6 far + 0.4 near))일 때 배웠다. 접근 수입을 줄이는 인자(옆벽 인자, 편 손 인자 바닥 0.15)를 곱하면 물러나거나 주차했다(손바닥 간격 0.22 → 0.37 m, 접촉 36 → 1.5) |
+| G3 | 편 손 신호가 없으면 쥔 손으로 도착했다(파지 에피소드 0.008) |
+| G4 | 손가락 접촉 없이 지불되는 편 손·손바닥 근접 수입은 벽에 평평한 손을 눌러 붙였다(+0.195/스텝, 손가락 접촉 0, 1,400 epoch) |
+| G5 | 물체가 테이블 위에 있는 동안 목표형 수입이 나오면 테이블에 둔 채 머물렀다(0.54~0.69/스텝, 들기 0.007) |
+| G6 | 에피소드 내내 서는 래치에 비례한 낙하 벌점이 가장 큰 항(−0.75/스텝)이 되어 들기를 잊었다. 떨어지는 동안만 물리면 붕괴가 없었다 |
+| G7 | 하류 게이트가 4지에서 포화하면 4지 파지가 최적이었다(5번째 손가락 가치 < 하류 수입 1 %) |
+| G8 | 하류 수입에 인벨롭 품질을 곱하면 우팔 인벨롭 0.86, 좌팔은 접촉력 ×2.6·팔 폭주 종료 5 → 42 %·파지 0.86 → 0.38 |
+| G9 | 사용자 판정(09-27): 4번 관절 과굽힘 손끝 파지, 좌팔은 급하게 들어 올림. 파지 중 가운데 마디 접촉 0.00·손끝 패드 0.90~1.00 |
+| G10 | 같은 보상이 거울 팔에서 다른 파지를 냈다(좌 손바닥 0.38 전체 파지, 우 손바닥 0.001 세 손가락 집기) |
+
+### 3-2. pour_bi_rh (RH56F1, 같은 손·같은 컵·같은 제어)
+출처 `reward_gen/pour_bi_rh/DESIGN_BRIEF.md` 3·4절, pour_fabric_mimic CLAUDE.md.
+| # | 사실 |
+|---|---|
+| R1 | 컵은 한쪽 접촉 0.3~0.4 N 에 넘어진다(바닥 지름 3.8 cm 테이퍼) — 반대편이 받치기 전에 한 손가락이 밀면 쓰러진다 |
+| R2 | 인벨롭 파지 기하(이 손·이 컵, 34k 스텝 중앙): 손바닥-컵 축 1.5 r(표면에서 1.4 cm), 높이 원점 +0.15 × 입구, 손바닥 법선·손가락 축 수평, 손바닥→컵 축 수평 방향 = 0.67 × 법선 + 0.73 × 손가락 축, 손바닥 접촉 0 |
+| R3 | 관절 제어에서 손바닥 **속도 차분** 접근은 신호가 되지 않았다(f00: 접근 −0.001~−0.018, 손바닥-컵 21~43 cm 왕복). 접근·편 손은 상태형으로 |
+| R4 | 닫기·파지 수입이 손 방향과 무관하면 위에서 세로 집기를 산다(f03: 손가락 축 z −0.95). 두 손가락 집기는 들 때 10곳 중 9곳 미끄러졌다(힘 2~3.5 → 0.3~0.8 N), 쥔 채 든 곳은 2.6 → 3.0 N |
+| R5 | 파지 직전 상태 수입이 크면(파지/직전 1.38 배) 파지 판정 전에 머문다 |
+| R6 | 상태형 밀림 벌점(`(1−lifted)·tanh(밀린 거리)`)은 한 번 민 컵에서 매 스텝 비용을 내 파지 시도를 포기하게 했다(i09 파지 0.11 → 0.02) |
+| R7 | 상태형 "편 손" 가산이 컵 12 cm 앞 주차 자리를 만들었다(i08, 0.13~0.16/스텝) |
+| R8 | 손 마찰 2.0 에서만 직립·양쪽 파지가 들기로 이어졌다(쌍 마찰 0.97: 1/73, 2.0: 25/86) — env 에 반영됨 |
+| R9 | 관절 한계에 직접 강벌점을 주면 안 된다(i15, corr +0.90). 증분 팔은 한계 96 % 에 갇혔다 → 이 트랙은 절대 팔 + bounds_loss 0.005 |
+
+### 3-3. 워크스페이스 공통 원칙(메모리)
+- 보상은 보편적이고 단순하게: 자산 고유 각도·치수 하드코딩 금지, 항 15개 내외.
+- 곱 사다리는 앞 인자가 작으면 뒤 칸 기울기가 0 — 끈끈한 단계 지불의 합 + 게이트 없는 얕은 쉐이핑.
+- 물체별 하드코딩 단계 래치 금지 — 가까우면 손가락을 닫는 연속 신호.
+- 상태 비례 조밀 보상은 "자세 잡고 가만히 있기"를 최적해로 만든다 — 다음 단계 자리가 늘 더 비싸야 한다.
+- 최솟값 기준 항은 동률이면 평평하다 — 평균 램프로.
+
+## 4. 이 트랙이 앞 두 트랙과 다른 점 (보상 설계에 영향)
+
+| 항목 | cup_grasp | pour_bi_rh | rh_aglt |
+|---|---|---|---|
+| 손 | DG5F 20 관절 | RH56F1 구동 6 | RH56F1 구동 6 (a ≤ 0 편 손) |
+| 시작 | 먼 출발 0.15–0.49 m | 근거리 16 cm | 먼 출발 평균 0.33 m, 손이 컵 위 9 cm 이상 |
+| 컵 | 8종 105–161 mm | 57 mm | 57 mm |
+| 목표 | keypoint 5개 | 붓기 | keypoint 5개(cup_grasp 와 같은 구조) |
+| 성공 파지 조건 | wrap_frac 커리큘럼 | 두 컵 파지 | env grasp 플래그(엄지 AND 다른 손가락 > 1 N) |
+| ctx 표면 필드 | 링크별 표면 거리 | 없음 | 없음 — 컵이 원통 하나라 원점·축·반지름으로 계산 |
+
+## 5. iter_00 요구
+
+1. 뼈대는 G1 구조: 접근(상태형, 곱셈 인자 없음, `(1−held)` 로 소멸) → 파지 유지 → 들기(들린 높이, 목표 높이까지) →
+   이송(테이블에서 떨어졌을 때만, 목표 거리) → 목표 유지(쥔 채·직립·정지, 가장 큰 수입) → 첫 성공 큰 보너스.
+2. 편 손 접근: 손이 펴져 있을 때 접근 수입이 조금 더 크되 **곱셈으로 접근을 줄이지 않는다**(G2·G3·R7).
+3. 파지 수입은 손 방향과 묶는다: 손바닥 법선(`palm_axes[:, 0:3]`)이 컵 축을 수평으로 향할 때(R2·R4). 세로 집기에는 작게.
+4. 파지 판정 `ctx.grasped` 뒤 수입이 직전 상태 수입의 2배 이상(R5).
+5. 컵 전도 방지는 **짧게 물리는** 벌점: 컵이 들리기 전 기울어지는 각속도·기울기 증가에만(R1·R6·G6). 상태형 밀림 벌점 금지.
+6. 테이블 위 컵에는 목표형 수입 없음(G5). 들기 래치 비례 벌점 없음(G6).
+7. 5개 손가락을 같게 다룬다: 손가락별 가중치·관절 인덱스·컵 치수 상수 금지(`ctx.cup_radius` 등 ctx 값만).
+8. 팔·컵 빠른 움직임 벌점은 작게 — 들고 옮기는 것이 가만히 있는 것보다 늘 이득.
+9. 항 15개 내외.
+

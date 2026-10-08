@@ -1,0 +1,1 @@
+Mirror of reward_gen/cup_grasp_l/iter_06 (same reward both arms). Right history: ... iter_03 (= left iter_05, stopped at ~285 epochs for the origin-approach change) -> iter_04 (= left iter_06, approach relative to the object origin).

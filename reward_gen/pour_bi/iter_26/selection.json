@@ -1,0 +1,47 @@
+{
+ "selected": "c1r",
+ "candidates": {
+  "c1": {
+   "source": "claude kuku-reward-generator",
+   "gate": "PASS",
+   "terms_kept": "22/22",
+   "renamed": {
+    "tilt_aimed": "tilt_rate"
+   },
+   "plan": "all five notes_iter26 changes: tilt income as a potential rate that dies once the first bead has left the source; need = min(request - poured, beads in source); finish opens at the env tolerance or when unreachable and pays upright + pre-tilt pose (aim_geo) with the 09.25 smooth handover kept; spill charged per request-worth, aim with spout precision and drop height in cup radii; receiver keep multiplied by the share of lift-time fingers still touching",
+   "deterministic_check": {
+    "script": "check_tilt_rate.py",
+    "dphi_vs_fd_float64": "abs err max 9.3e-11, rel p99 4.1e-9",
+    "closed_cycles": "2048 cycles x 3 start points incl. settled ramp, max sum -0.048, none > 0"
+   },
+   "known_approximation": "pre-tilt pose taken as the aim geometry (reward has no memory); dphi assumes src_cup_ang_vel in the same frame as src_cup_up",
+   "review": "kuku-code-reviewer request_changes (22:0x, after launch): HIGH finish pose factor on lip aim_geo pays a 40-60 deg hover (~7.0) more than upright (~6.4); MEDIUM released not a latch; MEDIUM spill per bead ~= flow per bead at large requests; MEDIUM deliberate dump to open finish; LOW finger ref_on share vs absolute"
+  },
+  "q1": {
+   "source": "local qwen3.6",
+   "gate": "FAIL NameError carry_rcv"
+  },
+  "q2": {
+   "source": "local qwen3.6",
+   "gate": "PASS",
+   "terms_kept": "22/22",
+   "rejected": "plan: tilt gate on poured fraction (not first bead leaving, spill never closes it); finish pose measured from spawn xy (not pre-tilt pose) and 09.25 smooth handover removed; flow/overshoot use need after this step (last bead underpaid); receiver keep drops the lift-time reference (iter_24 coupling must stay)"
+  },
+  "q3": {
+   "source": "local qwen3.6",
+   "gate": "PASS",
+   "terms_kept": "22/22 + rcv_grip",
+   "rejected": "plan: changes FLOW/OVER/SUCCESS weights outside the five changes; tilt income still paid for holding a tilt (gate = beads in source, continuous); finish pose = keep_src (not a pose) and handover removed; aim width rescaled to 2 cup radii (AIM_FAR 0.40 m -> ~6 cm)"
+  },
+  "c1r": {
+   "source": "claude kuku-reward-generator repair of c1 with reviewer H1, M1, M2",
+   "gate": "PASS",
+   "terms_kept": "22/22",
+   "changes": "H1 finish pose = source cup BODY horizontal distance to receiver mouth (tilt-independent, plateau cup_mouth_z + 2 cup radii, 0 when nested) -> finish rises monotonically with upright: 90 deg 5.0, 60 deg 7.5, 45 deg 8.5, upright 10; M1 released from cumulative (arrived + spilled) bead events; M2 spill weight floored at OVER_DELTA_W",
+   "status": "selected 22:4x; launched FRESH as t2r_i26r (user: \"fresh 학습으로 진행\")"
+  }
+ },
+ "rule": "gate PASS AND plan conformance (iter_25 terms kept, only the five notes_iter26 changes, KEEP rules) AND user principles; then deterministic check of the new rate term",
+ "decided_by": "kuku-ai-55 main: gate + plan conformance + deterministic check + reviewer fixes (c1r); user chose fresh restart",
+ "at": "2026-09-25T21:44"
+}

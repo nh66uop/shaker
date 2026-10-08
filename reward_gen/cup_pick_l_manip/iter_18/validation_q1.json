@@ -1,0 +1,40 @@
+{
+ "ok": false,
+ "errors": [
+  "[cpu] 호출 실패(seed 0): RuntimeError: The size of tensor a (64) must match the size of tensor b (5) at non-singleton dimension 1",
+  "[cuda] 호출 실패(seed 0): RuntimeError: The size of tensor a (64) must match the size of tensor b (5) at non-singleton dimension 1"
+ ],
+ "warnings": [],
+ "term_stats": {},
+ "total_stats": {},
+ "fields_used": [
+  "actions",
+  "arm_qd",
+  "cup_ang_vel",
+  "cup_lin_vel",
+  "cup_pos",
+  "cup_spawn_pos",
+  "cup_tilt",
+  "episode_progress",
+  "goal_dist",
+  "goal_pos",
+  "hand_default_q_norm",
+  "hand_q_norm",
+  "hand_z_min",
+  "lifted",
+  "link_cup_force",
+  "link_surface_dist",
+  "link_surface_normal",
+  "num_successes",
+  "palm_clearance",
+  "palm_cup_force",
+  "palm_normal",
+  "palm_surface_dir",
+  "palm_surface_dist",
+  "palm_surface_normal",
+  "prev_actions",
+  "success",
+  "success_tol",
+  "table_z"
+ ]
+}

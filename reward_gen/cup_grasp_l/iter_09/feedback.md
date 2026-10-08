@@ -1,0 +1,16 @@
+## I can see from the robot that
+iter_09 (the iter_02 code with only the envelope quality changed) was trained on the right arm only (cg_r_i07, local RTX 5090, fresh, seed 42) and stopped by the operator at about 1800 epochs. It followed the iter_02 right-arm run up to the grasp (palm 3.8-4.2 cm from the surface, palm touching 0.5, proximal links 0.55, the log's grasp rate 0.7-0.8 from epoch 1400 on) but never lifted (lift 0.01, lift income 0.000); the iter_02 right-arm run had lifted 0.94 by the same epoch.
+
+Last 100 epochs, contact per digit (iter_09 / iter_02 right-arm run at epoch 1750-1850): thumb 0.39 (its proximal link 0.45) / 0.77, index 0.06 / 0.08, middle 0.00 / 0.69, ring 0.27 / 0.71, pinky 0.49 / 0.74, palm 0.45 / 0.66. Digit-count income 0.003 / 0.019, opposition 0.007 / 0.088, shove cost -0.050 / -0.012, stall cost -0.028 / -0.001.
+
+Operator verdict on the deterministic replay (best checkpoint, two environments): the index finger and the thumb go to the mouth of the object again. They must be BELOW the rim for a real envelope; because they were not, the object could not be lifted. The log's grasp rate still read 0.7-0.8, so the defect was not visible in the numbers. Frames: with the large cup the palm covers the mouth and the fingers hook over the rim; with the small cup the hand stays at the top of the cup with the fingers half curled.
+
+Known cause in the code (measured in earlier rounds): the long-range reach and the palm seating use the distance from the palm to the NEAREST SURFACE point, so with the hand above the object the nearest point is the rim and a palm above the mouth scores about the same as a palm beside the side wall (8 cm from the origin: side 0.153, above 0.161 with this approach). The operator's decision stands: on the real robot the camera gives the object's origin, not its shape, so the approach is defined relative to the object origin.
+
+## Feedback for improvement
+Keep the previous code (iter_09 = the iter_02 code plus the per-digit wrap envelope) exactly as it is, and change only what Hypothesis A says, identically for the mirrored arm. Do NOT bring back any other change from iters 03-08 (no palm-arrival closing, no rebuilt open-hand income, no flat-top open measure, no touch-only flexion, no rim guard, no stall or fade change).
+
+Operator requirement for the whole reward (unchanged): every income must connect smoothly to the next one, without a flat stretch or a step at any boundary; moving a little towards the next stage must always earn more than staying.
+
+## Hypothesis A
+- Define the approach relative to the object ORIGIN (ctx.cup_pos, with ctx.cup_axis as the object's up direction), not relative to the nearest surface point: the long-range reach and the palm-seating income must be earned by bringing the palm to the SIDE of the origin, level with it along the object axis, with the palm facing the origin, so that the index finger and the thumb end up below the rim, around the side wall. A palm above the object must earn clearly less than a palm at the same distance beside the origin. The approach income must rise monotonically all the way from the start pose to the side of the object (it must rise faster than the existing open-hand term fades in the last centimetres), so it never makes the arm back away or stop short. Use no object dimension.

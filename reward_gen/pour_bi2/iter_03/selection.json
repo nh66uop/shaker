@@ -1,0 +1,42 @@
+{
+ "selected": "c1",
+ "rule": "게이트 PASS + 계획 준수(코드 차이: adr 를 action_flip·arm_tremor 에 곱함, adr 정의 위치만) + 결정론 성질 검사 PASS(A~I)",
+ "decided_by": "변경 내용은 사용자 결정 09-27 '떨림 청구는 원래대로 ADR 이 켜지면'",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator (iter_03/prompt.md, 가설 id 없음)",
+   "hypothesis": null,
+   "gate": "ingest PASS, 성분 22개",
+   "deterministic_check": {
+    "script": "check_iter03.py",
+    "result": "PASS",
+    "tremor_flip_at_fresh_state": {
+     "adr0": 0.0,
+     "adr1": -0.185
+    },
+    "positive_income_fresh_state": 0.36,
+    "rot_income_75deg": {
+     "perfect": 5.372,
+     "visited_12.3cm": 1.745
+    }
+   }
+  }
+ },
+ "agent_overrides": {
+  "task": "open-short_b_pour_fab-lstm",
+  "horizon_length": 16,
+  "seq_length": 16,
+  "minibatch_size": 16384,
+  "save_frequency": 50,
+  "lr_schedule": "linear (LSTM cfg 기본 adaptive → MLP 와 같게)",
+  "central_value_config.learning_rate": "3e-4 (LSTM cfg 기본 5e-5 → MLP 와 같게)"
+ },
+ "warm_start": null,
+ "warm_start_why": "LSTM 망은 MLP 체크포인트를 이어받을 수 없고, i02l 체크포인트는 움직이지 않는 습관을 배웠다",
+ "compute_reward_sha256_16": "a7382e6a7f932467",
+ "watch_first": [
+  "S0: 파지 0.8 이 약 2,600만 스텝(=e400)까지 오는가 — i02l 은 6,070만 스텝에 0.000",
+  "reward/total 이 초반에 양수인가, diag/ctrl_arm_qd_rms_rcv 가 0.2 아래로 굳지 않는가",
+  "info/last_lr 가 3e-4 에서 선형으로 내려가는가"
+ ]
+}

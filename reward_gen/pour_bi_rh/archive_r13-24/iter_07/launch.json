@@ -1,0 +1,15 @@
+{
+ "label": "t2r_rh2_i07",
+ "num_envs": 1024,
+ "started": 1789915252,
+ "commit": "f626d722",
+ "host": "vision-3090",
+ "iter": "reward_gen/pour_bi_rh/iter_07",
+ "round": 7,
+ "fresh": false,
+ "checkpoint": "log/rl_games/open-rh/both/pour-fab-mimic/t2r_rh2_i06/nn/ep750_sigclamp08.pth",
+ "agent_cfg_change": "entropy_coef 0.0005 -> 0.0",
+ "sigma_clamp": "hand 12 dims -> 0.8, arm 12 dims untouched",
+ "note": "09.20 round 7. i06 는 e840 에서 종료: 붓기 전 단계 전부 성립(컵 0.436 m·들기 0.167/0.056 m·파지 0.60/0.60·align 0.79·rewards 4206)했으나 src_tilt 17.9°·pour_tilt 0.0014·inT 0. 재생성기 진단: 운영점 d_align 0.30 m 에서 pour_gate 0.018·align_gate 0.0019 → 자세 통로 45° 고정, src_up 이 grasp_src·lift_src 를 곱해 45→65° 가 -2.41/step 내리막이었다. iter_07 = aim_shape(0.30) 단일 인자, tilt_rise(45→65°) 신설, pour_tilt 65→100°, 통로 자유각 65°, W_TILT_LEAD 2.0, aim_gate 진단. 동역학(사용자 지시): entropy_coef 0.0005→0 (커밋 3b02f403). sigma 는 --sigma 0.5 가 스칼라라 팔 축까지 망가뜨려(첫 기동 파지 0.00) 폐기하고, 체크포인트 sigma 를 손 12축만 0.8 로 clamp(팔 12축 0.19~0.77 유지). 체크포인트 저장은 반드시 Isaac python — 시스템 python 저장분은 학습측 torch 가 못 읽는다. ★런 폴더가 -r3 로 자동 증가했다(첫 기동 --sigma 0.5, 둘째 체크포인트 로드 실패). 미러·판독은 t2r_rh2_i07-r3 를 쓴다. ★--sigma 는 로그 표준편차를 채운다(모델 continuous_a2c_logstd): 0.5 는 σ=e^0.5=1.65 라 모든 축이 더 시끄러워진다. 폐기된 첫 런 entropy 46.05 = 24×0.5+34.05 로 확정.",
+ "run_dir": "log/rl_games/open-rh/both/pour-fab-mimic/t2r_rh2_i07-r3"
+}

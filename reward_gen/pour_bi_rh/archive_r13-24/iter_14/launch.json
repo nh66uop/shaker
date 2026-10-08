@@ -1,0 +1,18 @@
+{
+ "label": "t2r_rh3_i14",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "started": 1790121723.0611308,
+ "started_local": "2026-09-23 09:02",
+ "commit": "c8862fc3",
+ "run_dir": "t2r_rh3_i14",
+ "server_pids": [
+  875359,
+  875366
+ ],
+ "checkpoint": "log/rl_games/open-rh/both/pour-fab-mimic/t2r_rh3_i13/nn/last_open-rh_b_pour_fab_mimic_ep_550_rew_13132.567.pth",
+ "checkpoint_note": "i13 ep550 — 결정론 재생 in_target 0.906·in_source 0.000·흘림 0.094·성공 0.938.",
+ "env_note": "성공 기준 갱신 첫 런: fill 0.50→0.80·spill 0.40→0.25·hold 10→20. success 는 이전 런과 비교 불가."
+}

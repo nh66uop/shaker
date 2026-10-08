@@ -1,0 +1,18 @@
+{
+ "track": "cup_grasp_l",
+ "iter": 3,
+ "task": "Pick an object up with a five-fingered hand, carry it to the goal, and hold it there against disturbances, repeatedly. The policy starts from RANDOM WEIGHTS: this one continuous reward, with no stage switch and no checkpoint, has to teach the whole task - travel to the object with an open hand, seat the palm against its side wall and wrap all five digits around it, lift it straight up, carry it to ctx.goal_pos, and stay at rest there while the environment pushes and twists the object.\n\nTHE GRASP WE WANT. Each finger rolls around the object: its links follow the wall one after another, from the base of the finger to the tip, with the palm seated against the side wall and the thumb opposing the fingers. The grasp we do NOT want, and which every previous grasp turned into after lifting, is fingertip pressing: the finger roots stay straight, the last joint folds fully, the middle of the finger stands 2.4-3.9 cm off the wall and only the fingertip pad touches it. The grasp must stay rolled while the object is carried and held, not only while it is still on the table.\n\nPer-step ceilings:\n- travelling to the object with the fingers open: about 0.6, fading to near zero once the object is held.\n- closing and keeping the grasp (digit count with the fifth digit a real step, palm contact, thumb-finger opposition): about 1.2.\n- lifting the held object: about 2.5, rising with height up to the height the goal needs (ctx.goal_pos[:, 2] - ctx.cup_spawn_pos[:, 2]).\n- moving towards the goal: about 2.5, gated on the object being off the table.\n- at rest at the goal, upright, really held: about 10, the dominant income, gated on the object being off the table.\n- success: a large bonus for the first success of an episode; later successes worth little.\n\nKeep the object upright by multiplying the lift, transport and hold income by uprightness from ctx.cup_tilt. Losing the object must cost a short-lived, bounded amount charged while it is actually falling or back on the table, never an amount proportional to a latch that stays set for the rest of the episode. Lowering a held object must be worth less than keeping it still. Do not push the hand into the table. Penalise fast arm and object motion while holding, small enough that lifting and carrying always beat standing still.\n\nUse no object dimension, no joint index and no per-finger weight: every term must treat the five digits alike and work for any object shape through the surface fields of ctx.",
+ "task_file": null,
+ "variant": "rand_left",
+ "created": "2026-09-27T17:21:03.546372",
+ "context": "openarm.agnostic.tasks.manip_stages.grasp_context.GraspRewardContext",
+ "prev_iter": "reward_gen/cup_grasp_l/iter_02",
+ "history_iters": [
+  0,
+  1,
+  2
+ ],
+ "description": "reward_gen/cup_grasp_l/iter_02/observation.md",
+ "feedback": "reward_gen/cup_grasp_l/iter_02/improvement.md",
+ "events": null
+}

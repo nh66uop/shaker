@@ -1,0 +1,31 @@
+{
+ "ok": false,
+ "errors": [
+  "호출 실패(seed 0): RuntimeError: where expected condition to be a boolean tensor, but got a tensor with dtype Float"
+ ],
+ "warnings": [],
+ "term_stats": {},
+ "total_stats": {},
+ "fields_used": [
+  "actions",
+  "cup_cup_force",
+  "cup_mouth_z",
+  "d_in_target",
+  "d_spill",
+  "rcv_cup_mouth_pos",
+  "rcv_cup_pos",
+  "rcv_cup_spawn_pos",
+  "rcv_grasped",
+  "rcv_hand_foreign_force",
+  "rcv_tips_pos",
+  "src_cup_mouth_pos",
+  "src_cup_pos",
+  "src_cup_spawn_pos",
+  "src_cup_tilt",
+  "src_cup_up",
+  "src_grasped",
+  "src_hand_foreign_force",
+  "src_tips_pos",
+  "success"
+ ]
+}

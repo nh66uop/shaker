@@ -1,0 +1,94 @@
+{
+ "track": "cup_grasp_r",
+ "label_prefix": "cg_r_i",
+ "round": 10,
+ "iter": 10,
+ "label": "cg_r_i10",
+ "status": "stopped 2026-09-29T11:02:59 by user at ~ep1600 (last ckpt ep1250 + best)",
+ "host": "local-5090",
+ "gpu": 0,
+ "task": "open-short_r_cup_grasp-lstm",
+ "note": "새 트랙(09-26 사용자 지시 15:0x): dg5f-m-s(openarm_dg5f-m-short-tl) cup grasp, T2R + reward design agent 로 iter_00 부터 재설계, 오른팔 local 5090 · 왼팔 arm4090 병렬, 09-27 08:00 까지 자동 진행. 좌우 보상 바이트 동일, env 만 거울. 이전 이력 = reward_gen/cup_pick_{l,r}_manip, our_source/cup_pick_runs_0926.",
+ "design_brief": "reward_gen/cup_grasp_r/DESIGN_BRIEF.md",
+ "task_file": "scripts/reward_gen/tasks/cup_grasp_ms.txt",
+ "launch": {
+  "launcher": "/home/user/rl_ws/our_source/fj_t2r_runs/launch_cg_r_i10.sh",
+  "host": "local"
+ },
+ "judge": "reward_gen/cup_grasp_r/iter_00/hypotheses.md",
+ "deadline": "2026-09-27T08:00",
+ "tick": "off (stopped by user)",
+ "awaiting": null,
+ "pid": 4061830,
+ "started": "2026-09-28T18:03:30",
+ "pid_note": "실제 python PID(kit/python/bin/python3 train.py)",
+ "console": "local:~/rl_ws/our_source/fj_t2r_runs/cg_r_i02.out",
+ "commit": "f62f2f29",
+ "last_tick": {
+  "at": "2026-09-29T10:46:05",
+  "cg_r_i10": "E1599 reach 0.99 palm_cm 6.0 contact_frac 0.65 digits 0.20 palm_c 0.18 grasp 0.19 lift 0.002 contFlex 0.16 ent 18.8 bounds 0.2 palm_level 0.84"
+ },
+ "overnight_summary": "iter_00 (hyp B) cg_r_i00: fresh full task. e12401 last 500: grasp 0.91 lift 0.89 envelope 0.79 far success 0.48 at tol 0.023 (0.64 at tol 0.026 two hours earlier) palm 0.73, five digits (pinky 0.33), ADR 1.0. Run left running.",
+ "user_verdict_curl_final": {
+  "at": "2026-09-27T10:0x",
+  "choice": "joint4_overcurl",
+  "note": "사용자: 핸드의 4번 조인트들이 아직도 과하게 말려있음. 오른손은 자연스럽게 가서 잡아 올리는데 왼손은 자연스럽게 가서 급하게 올림.",
+  "via": "chat after final videos (our_source/videos/cup_grasp)"
+ },
+ "stopped": "2026-09-27T09:31 (right SIGKILL 09:48 after stuck SIGTERM)",
+ "history": [
+  "iter_01 (cg_r_i01): stopped e5000 by user 09-27 17:50 — grasp 0.95 lift 0.92 success 0.69, phalanx digits 3.6, but at the goal index/middle contact 0.41 -> 0.01 (three digits + palm)"
+ ],
+ "stopped_at": "2026-09-28T18:48:54",
+ "user_verdict_rim_i04": {
+  "at": "2026-09-27T23:10:02",
+  "choice": "rim approach got worse in iter_04",
+  "note": "user: '04에서 원래 컵 입구로 접근하는걸 막았던걸로 아는데 오히려 심해진것 같아'; measured approach_ok_height 0.00 both arms all run",
+  "via": "chat"
+ },
+ "user_decision_origin_approach": {
+  "at": "2026-09-27T23:35:33",
+  "choice": "approach relative to object origin (s2r FPP gives origin, not shape)",
+  "via": "chat"
+ },
+ "user_decision_hand_zero_open": {
+  "at": "2026-09-28T10:14:03",
+  "choice": "1,2 모두 필요 (reward open tolerance + action 0 = open pose)",
+  "via": "chat"
+ },
+ "user_decision_base_iter02": {
+  "at": "2026-09-28T13:07:21",
+  "choice": "iter_02 base + only tip-press fix",
+  "via": "chat"
+ },
+ "user_verdict_rim_i07": {
+  "at": "2026-09-28T15:58:50",
+  "choice": "index and thumb go to the rim",
+  "note": "user: 검지랑 엄지가 입구보다 아래여야 인벨롭, 그게 안 돼서 못 들었다. 지표에선 좋다고 해서 못 찾았다",
+  "via": "chat"
+ },
+ "user_decision_real_delays": {
+  "at": "2026-09-28T16:31:30",
+  "choice": "real-robot delays and long hold must be learned (next env round)",
+  "note": "SIME2REAL handoff 09-28",
+  "via": "chat"
+ },
+ "user_decision_real_conditions_timing": {
+  "at": "2026-09-28T16:41:29",
+  "choice": "after cg_r_i08 is verified (approach below rim + grasp/lift), next round: same reward, env real conditions on",
+  "values": "real_arm_lag_steps [7,9], real_hand_lag_steps [8,14], real_obj_lag_steps [20,28], real_obj_dropout_p 0.002, real_obj_dropout_steps [30,180] (long hold withdrawn: goal_hold_after 0, goal_max/episode_length unchanged)",
+  "via": "chat",
+  "correction": {
+   "at": "2026-09-28T16:57:09",
+   "by": "SIME2REAL 16:50",
+   "note": "sim 7 s episode claim was wrong (tol 0.1125 curriculum start vs trained 0.0318); at trained tol sim holds 16 s. Real release = reaction lag. Hold item withdrawn; delays 2-5 valid."
+  }
+ },
+ "user_verdict_fist_i08": {
+  "at": "2026-09-28T17:48:25",
+  "choice": "fingers already curled before the approach",
+  "note": "origin approach fixed the rim (palm at body height 0.87) but the hand travels as a fist and parks beside the cup at ~8 cm",
+  "via": "chat"
+ },
+ "note_0929": "mirror of left iter_15 (user: iter_14 baseline, both hands iter_15)"
+}

@@ -1,0 +1,46 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획(notes_iter08 1~4) 준수 + check_iter08 의 차분형·단계 검사 PASS. 정지 상태 전제 검사 3건 예외(아래)",
+ "decided_by": "session 146751a7. 기동은 사용자 '1,2 진행'(env 증분 이식 + iter_08)",
+ "env": "launch 에 env.palm_action_mode=increment (pour_fabric_mimic 이식, 기본값 absolute 유지)",
+ "exceptions": {
+  "21": "옆·잡는 높이 자세 - 입구 위 총수입 +0.294 (기준 0.3). 상태형 reach 제거로 정지 상태 차이가 작아짐. 입구 위 비용(mouth_hover)은 그대로",
+  "22b": "ep850 입구 위 자세에서 높이만 내림 +0.067 (기준 0.2). 정지 상태 검사 — 내려가는 이득은 속도 검사 [23](먼저 내리고 수평 진입 62.16 > 대각선 60.98 > 위에서 수직 하강 53.77)과 [29](옆 수평 접근 +0.393 vs 위 수직 하강 +0.000)가 보인다",
+  "25": "손가락 사이 재생 자세 닫힘 0.7 +0.227 (기준 0.3). iter_07 과 같은 엄지 높이 사유 + 닫으면 open 가산이 줄어드는 몫. [25b] 엄지를 잡는 높이로 내리면 +0.402"
+ },
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, 원문 그대로 response_c1.md",
+   "gate": "ingest ok, errors 0, warnings 0, 항 42",
+   "plan": "iter_07 대비: 상태형 reach_* 제거 → approach_* (손바닥 속도의 컵 origin 방향 성분/10r·s⁻¹, 홀함수 clamp ±1, 옆 접근 가중 수평², 파지 전·컵 직립, 옆 파지 거리 안 0, 0.4/손), open_* (컵이 손가락 사이가 아닐 때 폄 정도, 약 5.4r 밖 0, 0.2/손). reach_raw 는 rcv_gate 에만 사용. 제어 벌점 유지",
+   "deterministic_check": {
+    "script": "iter_08/check_iter08.py",
+    "key": {
+     "29_toward_away_side_top": [
+      0.209,
+      -0.209,
+      0.393,
+      0.0
+     ],
+     "28_open_minus_closed_10cm": 0.14,
+     "23_diag_lowfirst_topdown": [
+      60.98,
+      62.16,
+      53.77
+     ],
+     "16_src_table_3_8": [
+      8.6,
+      9.97,
+      10.44
+     ],
+     "26": 0.733,
+     "27": 0.0
+    },
+    "stage_ledger": "0→10 단계 전부 증가: 0.62,1.02,2.26,2.61,3.96,8.23,11.81,13.77,14.51,15.09,15.63..18.61,48.86"
+   },
+   "sha256_8": "bbb75192"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "액션 의미(palm 절대→증분)가 바뀜 — fresh 필수"
+}

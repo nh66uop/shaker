@@ -1,0 +1,14 @@
+{
+ "label": "t2r_rh5_b02",
+ "host": "local5090",
+ "gpu": 0,
+ "python_pid": 2046510,
+ "num_envs": 2048,
+ "seed": 42,
+ "commit": "e99b5d56",
+ "reward": "iter_06 c1r (sha256 d63b2ff4)",
+ "start_bank": "~/rl_ws/our_source/pour_handoff_bank/bank_i10_keep.npz (md5 bba2d28b, 3333, frac 1.0)",
+ "overrides": "b01 과 같음(arm absolute, 지연 0, 손 속도 2.1/0.56, 편 손 하한 0.065, phys 종료, minibatch 8192)",
+ "why": "사용자 10-01 'b01 종료하고 iter_06 진행' — b01 은 쥐고 높이 든 채 머묾(조준 39 cm)·팔꿈치 한계(ep400 step 180~)",
+ "vram_mib": 25944
+}

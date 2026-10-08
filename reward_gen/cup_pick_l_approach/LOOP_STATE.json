@@ -1,0 +1,46 @@
+{
+ "label_prefix": "cp_l_a",
+ "round": 1,
+ "status": "stopped",
+ "awaiting": "2단계 기동 승인 대기 — iter_13(연속 보상 + 접근 중 열린 손 유지) 생성 후 our_source/policy_zoo/cup_pick/left/approach/cup_pick_l_approach_e2450.pth 가중치를 이어받아 기동",
+ "best": {
+  "checkpoint": "~/rl_ws/our_source/policy_zoo/cup_pick/left/approach/cup_pick_l_approach_hold_e4280.pth",
+  "epoch": 4284,
+  "far_approach_gate_ep": 0.943,
+  "cup_contact": 0.0,
+  "cup_tilt_deg": 0.029,
+  "envelope_gate_ep": 0.0,
+  "lift_ep": 0.0
+ },
+ "success_ticks": 0,
+ "host": "vision-3090",
+ "note": "09.24 좌우 2단계 계획의 1단계(파지까지) fresh. 목표 인벨롭 ≥0.5 가 200 epoch 유지. 끝나면 가중치+보상을 policy_zoo 에 분리 저장하고 같은 정책으로 2단계(연속 보상) 진행.",
+ "track": "cup_pick_l_approach",
+ "iter": 0,
+ "label": "cp_l_a20",
+ "pid": null,
+ "started": "2026-09-24T18:21:03",
+ "commit": "d7fb8f04",
+ "console": "vision-3090:~/rl_ws/our_source/fj_t2r_runs/cp_l_a20.out",
+ "logdir": "vision-3090:~/rl_ws/hdgp/log/rl_games/open-short/left/cup-pick/cp_l_a20",
+ "algo": {
+  "from_iter_00": "PPO-LSTM 4096 · 좌팔 fj_randL_i00b e800(접근 0.9) 가중치 이어받기"
+ },
+ "history": [
+  "1단계(접근·인벨롭) 보상 = 우 grasp_fj_rand/iter_00(= grasp_fj_stage i08)의 좌측 미러(시작 방향 한 줄만 반전). 근거(09.20 iter 분석): 우 i00 은 처음부터 접근 0.91(e500)·인벨롭 0.59(e750)·검지 0.32·약지 0.25 를 가르쳤고, 좌팔에 i01(2단계 보상)을 처음부터 쓴 라운드는 1500 epoch 동안 검지·약지 0·인벨롭 0 이었다. ingest PASS · 새 gym id open-short_l_grasp_fj_ab-lstm 부팅 스모크 GATE PASS. 기동 PID 742079.",
+  "09.20 이름 규칙 정리: 트랙 grasp_fj_ab_l_* → cup_pick_l_*, gym id open-short_l_grasp_fj_ab-lstm → open-short_l_cup_pick-lstm, 로그 grasp-fj-ab → cup-pick. 진행 중이던 fj_abL_a00 은 옛 id·옛 로그 폴더에서 그대로 끝낸다(사용자 '그대로 두고 다음부터'). 보상 파일 경로도 런 부팅 때 이미 메모리에 올라가 있어 이름 변경의 영향을 받지 않는다.",
+  "1단계 목표 달성(09.20, e3433 · 4.85 h): 인벨롭 완료 0.70-0.81 이 e2400 부터 1000 epoch 유지(기준 0.5/200 epoch). 접근 0.90 · 닿은 손가락 2.96 · 손바닥 0.54 · 검지 0.0014→0.70 · 약지 0.0003→0.002(여전히 빠짐) · 리프트 0.19 · 성공 0. 체크포인트 policy_zoo/cup_pick/left/approach/cup_pick_l_approach_e3400.pth 보관. 2단계 전환 승인 대기.",
+  "iter_01 — 1단계 재설계(09.20 사용자 '컵을 치고 쓰러뜨림 · 1단계부터 재설계'). iter_00(= i08 계열)은 접근에 더해 인벨롭까지 가르쳐 정책 경계가 없었다(인벨롭 0.81). 새 과제 문장: 컵 +y 옆 사전파지 자리에 가서 **무접촉으로 정지·유지**, 컵을 밀거나 넘어뜨리지 않음, 쥐기·들기·목표 도달 금지(goal/success/lifted/envelope 필드 사용 금지). t2r 생성 → ingest PASS. 출발 = 시드 e800(쥐는 습관 없음, 접근 0.88). 참고: e3400(접근+파지) 정책은 policy_zoo 에 보관.",
+  "iter_01 라운드 끝(09.21, e4284 · 5.6 h · 시간 상한): 접근 0.94 · 컵 접촉 0.000 · 컵 기울기 0.03° · 인벨롭 0 · 리프트 0 · 정지 유지 항 0.40→0.565(아직 상승 중) · 위치 조건 간격 0.78 · 축방향 0.78. 영상 cup_pick_l_a01_0921_0244 — 컵 옆에 멈춰 끝까지 유지, 컵 안 건드림. 정책 policy_zoo/cup_pick/left/approach/cup_pick_l_approach_hold_e4280.pth 보관. 초안 작성, 승인 대기.",
+  "cp_l_a20 09.24 vision-3090 fresh 기동 · 검증된 1단계 보상(iter_00) · PID 3884986. iter_10~12 fresh 단일보상은 감쌈을 못 만들어 정체(닫은 손으로 접근).",
+  "cp_l_a20 1단계 완료·저장(our_source/policy_zoo/cup_pick/left/approach/cup_pick_l_approach_e2450.pth). 인벨롭 0.5 이상 200 epoch 유지 조건 충족. 영상·보상 사본·params·사이드카 저장 완료."
+ ],
+ "next_stage": "1단계 합격 = 접근 래치 ≥0.9 **이면서** 컵 무접촉(contact/fingers_touching ≈0 · palm_touching ≈0) · 컵 안 넘어짐(done/tipped ≈0) · 사전파지 자세 유지. 합격하면 체크포인트를 policy_zoo 에 넣고 승인 요청 → 2단계(cup_pick_l_manip, 닫기 사다리 복원본)로 갈아탄다.",
+ "legacy_run": {
+  "label": "fj_abL_a00",
+  "gym_id": "open-short_l_grasp_fj_ab-lstm",
+  "logdir": "log/rl_games/open-short/left/grasp-fj-ab/fj_abL_a00",
+  "reward_at_boot": "reward_gen/grasp_fj_ab_l_approach/iter_00/compute_reward.py (지금 cup_pick_l_approach)"
+ },
+ "reward": "reward_gen/cup_pick_l_approach/iter_00/compute_reward.py"
+}

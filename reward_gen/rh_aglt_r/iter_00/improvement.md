@@ -1,0 +1,5 @@
+Make the grasp income distinguish an envelope grasp from what the policy does now. Two changes, nothing else:
+
+1. Wrap and opposition. The grasp/keep-grasp income must be clearly higher when the fingers' first links (ctx.finger_prox_force) touch the cup as well as the fingertip pads, and when the thumb tip is on the opposite side of the cup axis from the finger tips (not over the rim). Measured now: 0.8-0.9 of 3-4 touching fingers use their first link, and a fingertip-only grasp earns exactly the same as an envelope grasp. The ledger now requires a fingertip-only grasp and a thumb-on-rim grasp to earn less than 90 % of the envelope grasp on the table.
+
+2. Uprightness while grasping. The cup tilts 20-25 deg while held on the table and almost horizontal while lifted; the grasp income on the table is not reduced by tilt (a 20 deg tilt costs 4 %). Multiply the grasp income by uprightness as the lift/transport/hold income already is, so a held cup tilted 20 deg earns less than 90 % of an upright one. Keep the tipping penalty as it is (it ignores resting jitter).

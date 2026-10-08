@@ -1,0 +1,1 @@
+Mirror of reward_gen/cup_grasp_l/iter_07 (same reward both arms). Right history: ... iter_04 (= left iter_06, origin approach; palm stalls 6 cm with a fist) -> iter_05 (= left iter_07, closing follows the palm, open hand kept until curling).

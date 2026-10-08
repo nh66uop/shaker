@@ -1,0 +1,15 @@
+{
+ "selected": "c1r2",
+ "rule": "ingest PASS + 계획 준수(notes_iter03 B: iter_04 손끝 사다리·옆 도착·K7 방향(접근·닫기·파지)·속도형 밀림·두 팔 같은 구조·팔 크기 비용 없음, 붓기 이후 iter_02 그대로) + check_iter03 PASS + 원장 단조(골 0)",
+ "decided_by": "session 146751a7 (사용자 'B로', '진행' 09-29) — 기동은 사용자 허락 뒤",
+ "candidates": {
+  "c1": {"source": "kuku-reward-generator, iter_03/prompt.md", "gate": "PASS", "deterministic_check": "FAIL — 시작 접근 기울기([15][24]), 6→7, [14][21][22][23][25][28][31]"},
+  "c1r": {"source": "생성기 재시도 1 (prompt_c1_repair.md)", "gate": "PASS", "deterministic_check": "FAIL — [21][22] 입구 위 대 옆 +0.05, [31] 0.493, [33] 0.093, [34] 0.40"},
+  "c1r2": {"source": "생성기 재시도 2 (prompt_c1_repair2.md)", "sha256_8": "daad5d2f", "gate": "PASS",
+           "deterministic_check": "PASS — [15] +0.12/+0.17, [21] 옆 7 cm 1.04 대 입구 위 0.56, [22] +0.99, [24] +0.07/+0.11, [25] +0.22/+0.43, [28] +0.34, [31] +0.70, [33] 0.070, [34] 0.28, [35] 6.76/5.81/3.39, [36] 5/4 1.72·5v 6.61, [37] 0, [1] 회전·배달 57 %",
+           "ledger": "iter_03/ledger_c1r2.txt — 0 1.25 → 1b 4.60 → 2 6.76 → 5 17.84 → 6 25.31 → 7 29.12 → 10 64.44, 골 0"}
+ },
+ "tool_fixes": "원장: 0~1b 손끝 이동(ebfeb5c7), 주차 행 수평 손, 5v 행, 7 행부터 인벨롭 손을 컵과 함께 옮김. check_iter03 [31][34] 손끝 구조 대응",
+ "warm_start": null,
+ "warm_start_why": "fresh — 팔 액션 의미(절대 목표)·보상 구조가 바뀌었다"
+}

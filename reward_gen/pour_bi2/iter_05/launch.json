@@ -1,0 +1,38 @@
+{
+ "label": "t2r2_i05",
+ "track": "pour_bi2",
+ "iter": 5,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "task": "open-short_b_pour_fab-lstm",
+ "commit": "3ead8cfc",
+ "python_pid": 1548019,
+ "checkpoint": "log/rl_games/open-short/both/pour-fab/t2r2_i04/nn/last_open-short_b_pour_fab-lstm_ep_4450_rew_7427.5146.pth",
+ "fresh": false,
+ "seed": 42,
+ "network": "관측 224 → LSTM 1024 → LayerNorm → MLP [512,512] → 명령 18",
+ "overrides": {
+  "horizon_length": 16,
+  "seq_length": 16,
+  "minibatch_size": 16384,
+  "save_frequency": 50,
+  "lr_schedule": "linear",
+  "central_value_config.learning_rate": "3e-4",
+  "network.rnn.before_mlp": true,
+  "network.rnn.concat_input": false,
+  "network.rnn.concat_output": false,
+  "config.clip_actions": false,
+  "env.pour_target_schedule": [
+   1.0,
+   0.8,
+   0.5,
+   0.2
+  ]
+ },
+ "reward": "pour_bi2 iter_05 c1r",
+ "log": "~/logs/t2r/t2r2_i05.log",
+ "started_local": "2026-09-28T08:03:23+09:00",
+ "started": 1790550203.6193292,
+ "note": "first launch 4 min without console log was stopped; run dir moved to _aborted_t2r2_i05_nolog"
+}

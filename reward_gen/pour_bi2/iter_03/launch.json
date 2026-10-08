@@ -1,0 +1,32 @@
+{
+ "label": "t2r2_i03l",
+ "track": "pour_bi2",
+ "iter": 3,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "task": "open-short_b_pour_fab-lstm",
+ "commit": "ad03a2e2",
+ "server_pids": [
+  893137,
+  893173,
+  893180
+ ],
+ "python_pid": 893180,
+ "checkpoint": null,
+ "fresh": true,
+ "seed": 42,
+ "overrides": {
+  "horizon_length": 16,
+  "seq_length": 16,
+  "minibatch_size": 16384,
+  "save_frequency": 50,
+  "lr_schedule": "linear",
+  "central_value_config.learning_rate": "3e-4"
+ },
+ "reward": "pour_bi2 iter_03 c1 — iter_02 + 떨림·부호반전 ADR 게이트 복귀",
+ "launcher": "env T2R_TASK=open-short_b_pour_fab-lstm T2R_HORIZON=16 T2R_MINIBATCH=16384 T2R_SAVE_FREQ=50 T2R_HYDRA_EXTRA='agent.params.config.lr_schedule=linear agent.params.config.central_value_config.learning_rate=3e-4' bash ~/logs/t2r/launch_t2r_gpu.sh 0",
+ "log": "~/logs/t2r/t2r2_i03l.log",
+ "started_local": "2026-09-27T12:31:40+09:00",
+ "started": 1790479900.18409
+}

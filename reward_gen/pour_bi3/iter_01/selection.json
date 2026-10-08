@@ -1,0 +1,18 @@
+{
+ "selected": "hand_edit",
+ "source": "main session edit of iter_00 (pour_bi iter_24) per user decision 09-28 '기본적으로 대칭적이므로 동일하게'",
+ "changes": [
+  "LIFT_RCV_W 1.5->3.0",
+  "lift_rcv shape = source shape (liftoff e-fold + linear to target), envelope as +25% bonus (was 0.25+0.75 gate)",
+  "POSTURE_RCV_W 1.2->3.0, POSTURE_KEEP_RCV_W 0.8->1.5",
+  "HOLD_RCV_W 0.5->1.5",
+  "RCV_V/W_FREE,SCALE = source values (0.15/0.15, 1.5/1.5); rcv_motion always during carry at weight 1 (was 0.5 x pour_phase)",
+  "rcv_still removed (source has none)"
+ ],
+ "kept_role_specific": [
+  "lift height target 10 cm and 15 cm band (rcv_band)",
+  "receiver upright penalty",
+  "receiver home/side constraints"
+ ],
+ "gate": "validator PASS"
+}

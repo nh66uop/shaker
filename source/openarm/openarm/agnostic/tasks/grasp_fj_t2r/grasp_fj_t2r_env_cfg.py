@@ -1,0 +1,192 @@
+"""grasp_fj_t2r cfg — Track B leaf(`GraspFJTesolloRightShortEnvCfg`: short · thumb_1 용접)에
+생성 보상 코드 경로만 더한다.
+
+관측·액션·종료·성공 판정·커리큘럼·자산은 전부 B leaf 그대로다. B 의 보상 계수(`rw_*`, g(q))는
+에피소드 상태(lifted 래치·최단거리 추적기)를 만드는 데만 쓰이고 **총보상에는 쓰이지 않는다** —
+총보상은 `reward_code_path` 의 `compute_reward(ctx)` 가 낸다.
+"""
+
+from __future__ import annotations
+
+from isaaclab.utils import configclass
+
+from ..grasp_fj.grasp_fj_env_cfg import GraspFJTesolloRightShortEnvCfg
+
+
+@configclass
+class GraspFJT2RRightShortEnvCfg(GraspFJTesolloRightShortEnvCfg):
+    """text2reward 생성 보상판. 보상 코드는 런처가 `env.reward_code_path=<절대경로>` 로 준다."""
+
+    #: 생성 보상 코드(`compute_reward(ctx)`) 절대경로. 비면 **영 보상** — 부팅·무작위 롤아웃 전용.
+    #:   env 가 `__init__` 에서 읽는다(런타임) — hydra override 가 `__post_init__` 에 구워지는 함정이 없다.
+    reward_code_path: str = ""
+    #: 정책이 모는 팔 — "r" | "l"(09.20 좌팔판). env 가 법선 방향·손 정규화 방향·손바닥 bbox 를 여기서 고른다.
+    hand_side: str = "r"
+    #: ★09.15 사용자 "시작 상태 커리큘럼 + env 고정" — 리셋 중 이 비율을 컵 옆 IK 자세에서 시작한다(0 = 끔). reach leaf 만 켠다.
+    near_start_frac: float = 0.0
+    #: 공통 스텝이 이 값 이하일 때는 가까운 출발을 쓰지 않는다 — B 부팅 시작 거리 가드(`common_step_counter <= 4`)가 먼 출발만 본다.
+    near_start_after_common_steps: int = 4
+    #: 가까운 출발 팔 관절(r_aj_1..7) 표 — 행 순서 = `near_start_species` = 물체 뱅크 순서(env_id % N). env 가 부팅에서 대조한다.
+    near_start_species: tuple = ()
+    near_start_arm_q: tuple = ()
+
+
+@configclass
+class GraspFJT2RReachEnvCfg(GraspFJT2RRightShortEnvCfg):
+    """★최종 목표판(09.14 사용자): 팔·손을 **테이블 앞 가장자리 위**에서 시작해 **여러 모양의 컵**으로 접근 → 파지 → 들기.
+
+    위 판과 다른 것 넷 — 전부 사용자 결정(09.14):
+      · 시작 자세 — palm (0.05, −0.30, 0.45): 상판 앞 가장자리(x 0.07) 바깥, 상판 위 0.245 m. 회전은 short_tl 시작 자세와 같다.
+        `urdf/tools/solve_arm_reset_pose.py` 의 Urdf·잔차로 short-tl URDF 에서 6D IK — 위치·회전 오차 0 · 관절한계 여유 11.4° ·
+        |q−홈| 1.464 rad(r_aj_1, 검증기 1.5 이내) · 손 링크 최저 z 0.40 · palm→컵 중심 0.369–0.379 m.
+        ★손가락이 +x 로 뻗어 손끝이 상판 위 x 0.25 까지 걸친다. palm 을 x −0.05/−0.10 으로 물리면 |q−홈| 1.66/1.53 rad(가드 초과),
+          −0.15 는 IK 미수렴이라 같은 손 방향으로는 손 전체를 바깥에 둘 수 없다 — 사용자 확인 후 x 0.05 채택.
+      · 팔 속도 2배 — k_arm 0.05 · dofSpeedScale 3.0 · slew 0.3 rad/s(검증기가 셋을 같이 대조한다). 컵까지 거리가 0.16→0.37 m.
+      · 에피소드 15 s(900 스텝) — 0.15 rad/s·10 s 로는 이동만 ≥452 스텝이었다.
+      · 물체 `cup_family` — 입구 열린 컵 cup_big 7크기(파지 반경 52.7–80.6 mm) + 닫힌 shaker_closed(44 mm). 전부 `baseLink`
+        강체라 `_cup_contact_filter` 가 `Object/baseLink` 를 찾는다(셰이커 `shaker.usda` 는 루트가 강체라 섞을 수 없다).
+    """
+
+    arm_reset_joint_pos_override: tuple = (-1.1974, 0.6707, 0.1866, 1.7310, 0.6920, 0.0416, 0.9460)
+    #: palm→컵 중심 IK 0.369–0.379 m(원점 높이가 다른 컵별) — 부팅 가드는 리셋 직후 env 평균을 본다.
+    start_palm_dist_band_m: tuple = (0.30, 0.46)
+    k_arm: float = 0.05
+    arm_dof_speed_scale: float = 3.0
+    arm_slew_rad_s: float = 0.3
+    episode_length_s: float = 15.0
+    object_bank: str = "cup_family"
+    #: ★09.15 23:2x 사용자 "시작 상태 커리큘럼 + env 고정 · 50 % · C자 사전파지" — 두 번째 에피소드부터 절반을 컵 옆에서 시작한다.
+    #:   자세 = `urdf/tools/solve_arm_reset_pose.py`(short-tl URDF, 시작 자세와 같은 회전, rot-weight 0.3) 6D IK — 위치 오차 7종 0 ·
+    #:   s085 0.2 mm(팔꿈치 r_aj_4 하한) · 회전 오차 ≤ 0.01° · 나머지 관절한계 여유 17.6–39.5°. palm_ee 목표 = 스폰 중심
+    #:   (0.362, −0.16) 에서 x −(R+0.025) · y −(R+0.045) · z = 0.205 + 원점 오프셋 + 0.8·반높이 → C자 완료
+    #:   (손바닥면 −1~+2 cm · 컵 축 R−0.5~R+2 cm)보다 손바닥면 4.5 cm · 컵 축 2.5 cm 앞.
+    #:   ★09.15 서버 스모크: 손바닥면 3 cm 판은 컵 스폰 −2 cm 흔들림에 1 cm 가 돼 32 중 4 env 가 첫 스텝에 공짜 접근 래치 → 4.5 cm
+    #:   (흔들려도 ≥ 2.5 cm, 창 밖). 컵 축 ≥ R+0.5 cm 라 엄지와 겹치지 않는다. 띠 중심 높이(0.5 H 이하)는 작은 컵에서 팔꿈치 한계로
+    #:   IK 미수렴(최대 29 mm)이라 0.8 H. `tests/test_grasp_gates.py` 가 FK 로 대조한다.
+    #:   ★09.16 사용자 "가까운 출발 = 접근 완료로 시작" — env 가 리셋에서 접근 래치를 세운다(2단계부터). 창 밖 4.5 cm 는 겹침 여유로만 남는다.
+    #: ★09.16 사용자 결정 — i06 에서 가까운 출발이 리셋에서 approach_done 을 공짜로 받아 2·3단계 전 구간(실측 ~0.9/step)을
+    #:   즉시 먹는 동안, 먼 출발은 래치 전까지 1단계 수입 0.006/step 뿐이었다. 정책이 공유되므로 기대수익이 가까운 출발로 쏠려
+    #:   far 접근 래치가 e530 의 0.669 에서 0.0014 로 붕괴했다. 비중을 낮춰 먼 출발이 기울기의 3/4 을 차지하게 한다.
+    near_start_frac: float = 0.25
+    near_start_after_common_steps: int = 4
+    near_start_species: tuple = ("cup_big_s085", "cup_big_s100", "cup_big_s115", "cup_big_s130", "shaker_closed",
+                                 "cup_big_s090", "cup_big_s105", "cup_big_s120")
+    near_start_arm_q: tuple = (
+        (0.3906, 0.3075, -0.5595, 0.0000, 0.5611, 0.3050, 1.1696),      # cup_big_s085
+        (0.1150, 0.4313, -0.2859, 0.5365, 0.4627, 0.2277, 0.9178),      # cup_big_s100
+        (-0.0054, 0.5243, -0.3017, 0.7565, 0.5714, 0.1857, 0.8356),     # cup_big_s115
+        (-0.0932, 0.6387, -0.3641, 0.9209, 0.7127, 0.1307, 0.8049),     # cup_big_s130
+        (0.1320, 0.5151, -0.5643, 0.7116, 0.7427, 0.0664, 0.8426),      # shaker_closed
+        (0.2411, 0.3814, -0.3960, 0.3075, 0.4886, 0.2463, 1.0271),      # cup_big_s090
+        (0.0693, 0.4596, -0.2809, 0.6197, 0.4912, 0.2157, 0.8828),      # cup_big_s105
+        (-0.0301, 0.5778, -0.3668, 0.8160, 0.6580, 0.1532, 0.8317),     # cup_big_s120
+    )
+
+    #: ★09.16 사용자 "테이블과 접촉하는 정책은 사용불가" — 상판 관통 종료를 부모 3 cm 에서 5 mm 로 조인다.
+    #:   왜 0 이 아닌가: `floor_hit = hand_z_min < table_surface_z − depth` 라 0 은 PhysX 정상 접촉의 미세 관통에도
+    #:   에피소드를 끊어 접근 자체를 죽인다(cfg 주석의 "0 이면 끔"은 옆 필드 `palm_box_min_z_override` 설명이다).
+    #:   근거: i05 가 허용 슬랙 안쪽 2.8 cm 에 눌러앉았고, 관통이 라운드 최소(1.2 mm)였던 e950 에 리프트가 최고(0.296)였다.
+    hand_floor_terminate_depth: float = 0.005
+    #: ★09.16 사용자 "Task 성공 세팅 및 지표를 제대로 수정" — 감쌈 전제조건을 되살린다.
+    #:   부모가 0.0(= 끔)이라 i05 의 성공에는 파지 조건이 **전혀** 없었다(성공 = kp_dist ≤ tol 10스텝 누적뿐).
+    #:   사다리는 `prev_episode_successes ≥ 2.0` 에서만 750 프레임마다 ×1.10 오르므로, 성공이 희박한 동안은
+    #:   임계가 고정이라 fj_h2 의 "0.627 잠김"은 재발하지 않는다. 관측 wrap_frac 0.59 > 0.15 라 즉시 붕괴도 없다.
+    grasp_wrap_start: float = 0.15
+    #: ★09.16 감쌈 래칫 상한 — i06 에서 wrap_tol 이 0.150 → 0.689 까지 올랐는데 실측 wrap_frac 은 0.189 였다(기준이 실력을
+    #:   3.6배 추월). 래칫은 `prev_episode_successes ≥ 2.0` 로 오르는데 그 2.0 을 가까운 출발 성공(0.87~0.94)이 혼자
+    #:   채우므로 멈추지 않는다. 승급 조건·간격·배율은 그대로 두고 **도달 가능한 범위에서 멈추도록 상한만** 내린다.
+    grasp_wrap_max: float = 0.35
+
+
+@configclass
+class GraspFJT2RRandEnvCfg(GraspFJT2RReachEnvCfg):
+    """★09.17 사용자 "s2r 에서 컵 위치를 랜덤하게 둘 거라 알아서 찾아가 파지하는 정책" — 컵 소환 위치 랜덤화판(트랙 `grasp_fj_rand`).
+
+    reach 판과 다른 것 셋 — 전부 사용자 결정(09.17):
+      · 컵 소환 = x 0.10–0.40 · y −0.30–0.00 균등(env-local). 부모 스폰은 프로필 중심 ± `spawn_range` 정사각형이라
+        중심을 (0.25, −0.15) 로 옮기고 반범위 0.15. 중심은 프로필이 아니라 이 cfg 가 갖는다(같은 자산에 프로필을 더 등록하면
+        gym 슬롯이 겹친다) — env `__init__` 이 부팅 **뒤** 런타임 프로필 사본에만 적용하므로 부모 부팅 검사는 reach 판과 같다.
+        첫 목표는 정착한 컵 기준(+xy ±0.05, 들기 높이)이므로 목표 박스는 `_derive_goal_box` 가 같은 중심 ± 0.20 으로 옮긴다
+        (컵을 제자리에서 든다).
+        상판 x 0.07–0.47 · y ±0.45(env_v1 collision 메시 실측)라 범위 전체가 상판 위다.
+        도달성(short-tl URDF 6D DLS IK, palm_ee 를 C자 완료 자리 = 컵 −x·−y 옆에 둔다, 최소·최대 컵): 7×7 격자 98점 중
+        시작 방향 그대로 도달 70 · 손 방향 ±41° 이내(접근 조건 cos ≥ 0.7)로 도달 27 · 불가 1(cup_big_s130 @ x 0.10, y −0.25).
+      · 가까운 출발 끔 — IK 자세 표가 컵 ±2 cm 가정이라 넓은 소환과 맞지 않는다. 모든 에피소드가 먼 출발이다.
+      · 시작 거리 가드 대역 — 리셋 직후 손바닥→컵 거리 env 평균의 분포가 바뀐다(균등 소환 20만 표본: env별 0.153–0.494 m,
+        64 env 평균 0.276–0.345 m). reach 판 (0.30, 0.46) 이면 평균이 하한 밖으로 나가 부팅이 죽을 수 있어 (0.25, 0.38).
+    """
+
+    near_start_frac: float = 0.0
+    spawn_range: float = 0.15
+    #: ★09.17 두 번째 부팅 실패로 발견 — 부모가 ADR 축을 enable_adr 와 무관하게 부팅에서 검사해 max < base 면 죽는다
+    #:   (승급할수록 쉬워지는 역방향 축 방지). ADR 은 꺼져 있으므로 base 와 같게 두어 항등 축으로 만든다.
+    adr_spawn_range_max: float = 0.15
+    #: env-local (x, y). 빈 튜플이면 프로필 중심 그대로(다른 판은 이 필드가 없다).
+    object_spawn_center_override: tuple = (0.25, -0.15)
+    start_palm_dist_band_m: tuple = (0.25, 0.38)
+    #: ★09.17 부팅 실패로 발견 — 첫 목표 = 정착한 컵 + xy U(±goal_first_xy_range 0.05) + 들기 높이, 목표 박스(= 스폰 중심 ±
+    #:   반폭)로 클램프한다. 반폭이 0.08 이면 넓은 소환에서 목표가 박스 가장자리로 잘려 "컵을 제자리에서 들기"가 "옆으로 옮기기"가
+    #:   된다 — cfg 검증(spawn_range + goal_first_xy_range ≤ 반폭)이 막았다. 반폭 = 0.15 + 0.05 로 컵 위치 그대로 들게 한다.
+    #:   Track B 는 관절공간 증분이라 부모의 목표 박스 팔 도달성 부팅 검사(`_assert_goal_box_in_arm_reach`)는 건너뛴다.
+    goal_box_xy_halfwidth: float = 0.20
+    #: ★09.17 소환 점검 프로브(`probe_grasp_fj_t2r_spawn_check.py`, 4096 표본)에서 겹침 10.4 % · 상판 이상 4.8 % — 원인 둘.
+    #:   사용자 결정 "문제 위치만 다시 뽑기". 리셋마다 아래 두 조건에 걸린 env 만 같은 범위에서 다시 뽑는다(env `_reset_idx`).
+    #: 시작 자세 오른손 그림자 (x0, x1, y0, y1, z) — 윗면이 z 보다 높은 컵의 윗면 원(반경 grasp_radius)이 이 xy 사각형에 닿으면 버린다.
+    #:   URDF FK(시작 자세): 새끼 마디 원점 z 0.401(x 0.068–0.212, y −0.29) · 약지 0.426 · 손바닥 원점 (0.05, −0.30, 0.45) 이고
+    #:   손바닥 바운딩박스 바닥 ≈ 0.411 · 법선 방향 y −0.337–−0.27. 마디 반경 ~1 cm 를 빼 z 0.385, xy 는 링크 폭만큼 넓혔다.
+    #:   컵 윗면 = 상판 + 원점 오프셋 + rim_z: s115 0.409 · s120 0.418 · s130 0.436 · s105 0.391 이 걸린다(프로브 겹침 306건의 최근접 몸체가
+    #:   새끼·약지 마디). 중지·엄지(원점 z 0.45·0.469)는 가장 큰 컵 윗면 위다.
+    spawn_reject_hand_box: tuple = (0.0, 0.27, -0.34, -0.26, 0.385)
+    #: 상판 구멍 ((cx, cy, r), ...) — env_v1 collision 메시 상판(z 0.205, 두께 1 cm) 내부 꼭짓점을 군집하면 카운터보어 반경 0.0305 구멍
+    #:   다섯 개: (0.135, ±0.30) · (0.27, ±0.30) · (0.135, 0.0). 소환 범위(y ≤ 0)에 걸치는 셋만 둔다. 컵 원(반경 grasp_radius, 컵에서
+    #:   가장 넓은 반경)이 구멍 원 + `spawn_reject_hole_margin` 과 겹치면 버린다.
+    #:   ★1차 판(바닥 반경 · 구멍 하나 · 여유 0.005)은 재점검에서 (0.135, −0.30) 구멍 위 컵이 39° 기울고 (0.135, 0.0) 옆 x 0.20–0.25 칸에
+    #:   이상 22/99 가 남았다 — 구멍을 다 넣고 반경·여유를 넓혔다.
+    spawn_reject_holes: tuple = ((0.135, -0.30, 0.0305), (0.27, -0.30, 0.0305), (0.135, 0.0, 0.0305))
+    spawn_reject_hole_margin: float = 0.01
+
+    def _derive_goal_box(self, profile) -> None:
+        """목표 박스 중심도 소환 중심 덮어쓰기를 따른다 — 부모는 프로필 중심을 읽어 원래 소환 중심 (0.362, −0.16) 에 둔다."""
+        _ctr = tuple(self.object_spawn_center_override)
+        if not _ctr:
+            super()._derive_goal_box(profile)
+            return
+        cx, cy = (float(v) for v in _ctr)
+        h = float(self.goal_box_xy_halfwidth)
+        z0 = float(self.table_surface_z) + float(self.object_origin_offset_z)
+        self.goal_box_min = (cx - h, cy - h, z0 + float(self.goal_box_z_range[0]))
+        self.goal_box_max = (cx + h, cy + h, z0 + float(self.goal_box_z_range[1]))
+
+
+#: 우 → 좌 팔 관절 부호(y 반전 미러, `modules/robot_profiles._ARM_SIGN_L` 과 같은 값 — 테스트가 대조한다)
+_ARM_SIGN_L = (-1.0, -1.0, -1.0, 1.0, -1.0, -1.0, -1.0)
+
+
+@configclass
+class GraspFJT2RRandLeftEnvCfg(GraspFJT2RRandEnvCfg):
+    """★09.20 사용자 "왼팔로도 학습" — `GraspFJT2RRandEnvCfg`(우 grasp_fj_rand, i01 e5000 성공 0.85)의 **좌팔 거울상**.
+
+    전부 XZ 평면 반사(y → −y)다. 사용자 결정(09.20): 컵 범위 좌우 대칭 · 처음부터 학습 · 유휴 우팔은 접은 자세.
+      · 프로필 `tesollo_left_short_tl` — 같은 short-tl 자산의 좌팔·좌손(19관절), 유휴 우팔 = 우판 유휴 좌팔의 부호 미러.
+      · 시작 자세 = 우 시작 자세 × `_ARM_SIGN_L`. FK(short-tl URDF): palm_ee (0.090, +0.272, 0.450) = 우 (0.090, −0.272, 0.450)
+        의 y 반전(0.0003 mm) · 법선(palm_ee x) −y · 손가락(z) +x.
+      · 컵 소환 x 0.10–0.40 · y 0.00–+0.30 · 손 그림자·상판 구멍(env_v1 은 y ±0.30 에 구멍이 있다) 모두 y 반전.
+      · 종료 상자 y(`object_out_y`)도 y 반전(09.26).
+    """
+
+    profile_name: str = "tesollo_left_short_tl"
+    hand_side: str = "l"
+    arm_reset_joint_pos_override: tuple = tuple(
+        s * v for s, v in zip(_ARM_SIGN_L, (-1.1974, 0.6707, 0.1866, 1.7310, 0.6920, 0.0416, 0.9460)))
+    object_spawn_center_override: tuple = (0.25, 0.15)
+    spawn_reject_hand_box: tuple = (0.0, 0.27, 0.26, 0.34, 0.385)
+    spawn_reject_holes: tuple = ((0.135, 0.30, 0.0305), (0.27, 0.30, 0.0305), (0.135, 0.0, 0.0305))
+    #: ★09.26 사용자 결정 d_cup_l_out_y = mirror_left — 우 `fj_core_cfg` (−0.60, 0.25) 의 y 반전.
+    #:   왜: 물려받은 우 상한 0.25 가 좌 소환(y ≤ 0.30)·목표 박스(y ≤ 0.35)를 잘라, m18 재생에서 들기 뒤 y 이탈 종료가
+    #:   에피소드의 0.105–0.160 이었다.
+    object_out_y: tuple[float, float] = (-0.25, 0.60)
+    #: 같은 09.25 원칙("y 가 든 모든 필드 반전")으로 world 좌표 두 가지도 y 반전한다. 지금 Track B(관절 증분)의
+    #:   제어·보상·종료에는 안 쓰인다: 앵커 오프셋은 부팅 박스 검사와 소비되지 않는 palm_targets 뿐, 카메라는 GUI 전용.
+    palm_anchor_offset_xyz: tuple[float, float, float] = (-0.066, 0.022, 0.085)
+    gui_camera_eye: tuple[float, float, float] = (1.1, 0.9, 0.75)
+    gui_camera_target: tuple[float, float, float] = (0.35, 0.2, 0.35)

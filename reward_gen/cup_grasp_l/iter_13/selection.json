@@ -1,0 +1,13 @@
+{
+  "selected": "c1r",
+  "rule": "gate PASS + plan compliance (AST diff vs iter_12 limited to release band, open-income level, segment closing credit) + deterministic check (new L20 near-curl pays, L21 far air flexion does not pay, L22 open approach then curl at 3 cm monotone; L19 at 10/7 cm) with only lineage failures left",
+  "decided_by": "main session (user 09-28: 'i12 에서 가까이 갔을 때 잡기할 수 있게 수정해서 fresh', vision-3090)",
+  "candidates": {
+    "c1": {"source": "kuku-reward-generator prompt.md, Hypothesis A", "hypothesis": "A", "gate": "PASS", "plan": "PASS",
+           "deterministic_check": "check_iter13_c1.out: L20/L22 near pass but first touch lowered the reward (L12 progress 0.8, L13a: open_hand -0.048 on touch), L20 5 cm local dip -0.00076, L11 rim close credit 33 %", "result": "rejected -> repair"},
+    "c1r": {"source": "kuku-reward-generator prompt_c1_repair.md (Review items 1-3)", "hypothesis": "A", "gate": "PASS", "plan": "PASS",
+            "deterministic_check": "check_iter13_c1r.out: L20 PASS (curl 0->0.6 at 5/4/3 cm: +0.049/+0.068/+0.095; iter_12 -0.23/-0.18/-0.10), L21 PASS, L22 PASS, L19 PASS (10 cm open-hook 0.335, 7 cm 0.162), L12/L13a/L16c/L14/L18/L10b PASS; fails L10/L11b/L11c as iter_02-12; L15 ratio dilution as iter_12 (identical values)"}
+  },
+  "warm_start": null,
+  "warm_start_why": "reward requires new behaviour (closing near the object); fresh, seed 42 (user: fresh start)"
+}

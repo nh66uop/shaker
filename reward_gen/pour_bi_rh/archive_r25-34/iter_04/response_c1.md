@@ -1,0 +1,449 @@
+brief 에 가설 id 줄이 없다. 그래서 prompt 전체, 즉 iter_04 의 두 변경을 한 후보로 구현했다.
+
+## 과제와 단계
+
+1. **접근 (A).** 두 손바닥이 각자 자기 컵으로 간다. 오른손은 비드가 든 소스 컵, 왼손은 빈 리시버 컵이다.
+2. **파지 (A2, B).** 잡는 높이까지 내려온다. 엄지와 다른 손가락이 컵의 반대편에 오게 fingertip 파지를 만든다.
+3. **들기 (C).** 소스 컵은 높게 든다. 높아야 손목 한계에 기대지 않고 기울일 수 있다(K3). 리시버 컵은 낮게 든다.
+4. **배치와 조준 (C, D, E).** 소스 컵 주둥이를 리시버 컵 입구 위, 컵 반지름 배수의 창 안에 둔다. 기우는 방향은 받는 컵 쪽이어야 한다.
+5. **회전과 배달 (F).** 창 안에서 방향이 맞을 때 기울여 비드를 옮긴다. 배달 증분을 보상한다.
+6. **마무리.** 리시버 컵은 20도 이내로 세운다. 흘림을 줄이고 두 컵을 계속 쥔다. 이 상태를 20 스텝 유지한다.
+
+iter_04 변경은 두 가지다. 나머지 iter_03 코드와 기존 성분 이름은 그대로 두었다.
+1. 파지 전 손바닥이 자기 컵보다 +x(먼 쪽)로 넘어가면 비용을 준다(`far_cross`). 두 손 모두 적용한다.
+2. 팔별 palm 명령 포화 비용을 둔다(`palm_sat`).
+
+```python
+import torch
+import math
+
+
+def _sat(x: torch.Tensor, lo: float = 0.0, hi: float = 1.0) -> torch.Tensor:
+    return torch.clamp(x, lo, hi)
+
+
+def _rms(x: torch.Tensor) -> torch.Tensor:
+    return torch.sqrt((x * x).mean(dim=-1) + 1e-12)
+
+
+def _band(x, lo, hi, soft):
+    """1 inside [lo, hi], Gaussian fall-off of width `soft` outside."""
+    outside = torch.clamp(lo - x, min=0.0) + torch.clamp(x - hi, min=0.0)
+    return torch.exp(-(outside / soft) ** 2)
+
+
+def _close_in(d):
+    """Tip-to-wall shaping: long scale for the approach plus a short scale so the last 10 mm still pay
+    (10 mm -> 0.47, 6.5 mm -> 0.59, 2 mm -> 0.83, contact -> 1)."""
+    return 0.5 * torch.exp(-30.0 * d) + 0.5 * torch.exp(-160.0 * d)
+
+
+def _soft_contact(force: torch.Tensor, scale: float = 0.15) -> torch.Tensor:
+    """cup_grasp 형태: 0 N -> 0, 0.1 N -> ~0.6, 수십 분의 1 N 위에서 포화 (힘 스파이크가 지배하지 못함)."""
+    return torch.tanh(torch.clamp(force, min=0.0) / scale)
+
+
+def _palm_surface_dist(palm_pos, cup_pos, cup_up, cup_r, cup_mouth_z, cup_bottom_z):
+    """손바닥 -> 자기 컵 원통 표면 거리 (컵 축 기준: 반경 간극 + 바닥~림 높이 밖 간극). 치수는 ctx 에서."""
+    rel = palm_pos - cup_pos
+    h = (rel * cup_up).sum(dim=-1)
+    rad = (rel - h.unsqueeze(-1) * cup_up).norm(dim=-1)
+    gap_r = torch.clamp(rad - cup_r, min=0.0)
+    gap_h = torch.clamp(h - cup_mouth_z, min=0.0) + torch.clamp(cup_bottom_z - h, min=0.0)
+    return torch.sqrt(gap_r * gap_r + gap_h * gap_h + 1e-12)
+
+
+def _palm_cmd_sat(palm_actions: torch.Tensor) -> torch.Tensor:
+    """iter_04: 팔 하나의 palm 6 채널 명령 포화도 [0,1]. |a| 0.9 -> 0, 1.0 -> 1 램프(0.9 아래는 무료),
+    채널 평균. 손 채널(닫기)은 넣지 않는다."""
+    return _sat((palm_actions.abs() - 0.9) / 0.1).mean(dim=-1)
+
+
+def _grip_geometry(tips_pos, cup_pos, cup_up, cup_mouth_z, tip_r):
+    """Fingertip geometry in the cup frame (axis = cup_up, so it stays valid while the cup is tilted).
+    rh2_i03 블록 재사용. 높이 오차(h_err_t, h_err_o)를 추가로 돌려준다 (접촉력 대체 경로의 높이 게이트용)."""
+    ARRIVE_RISE = 0.045    # arrive 45 mm above grasp height (높이 허용 = 절대값 예외) ...
+    FUNNEL_R0 = 0.01       # ... and be at grasp height once the cup is centred within 1 cm
+    FUNNEL_R1 = 0.04
+    EPS = 1e-6
+    grasp_h = 0.25 * cup_mouth_z        # pinch height above cup origin (~13 mm)
+    thumb_hi = 0.5 * cup_mouth_z        # thumb band 0..27 mm above origin
+
+    up = cup_up.unsqueeze(1)                                   # (N,1,3)
+    rel = tips_pos - cup_pos.unsqueeze(1)                      # (N,F,3)
+    h_tip = (rel * up).sum(dim=-1)                             # (N,F) height along the cup axis
+    rad_vec = rel - h_tip.unsqueeze(-1) * up                   # (N,F,3)
+    rad = rad_vec.norm(dim=-1)                                 # (N,F)
+    gap = torch.clamp(rad - tip_r, min=0.0)                    # (N,F)
+
+    thumb_h = h_tip[:, 0]
+    h_err_t = torch.clamp(-thumb_h, min=0.0) + torch.clamp(thumb_h - thumb_hi, min=0.0)
+    d_thumb = torch.sqrt(gap[:, 0] ** 2 + h_err_t ** 2)        # (N,)
+    h_oth = h_tip[:, 1:]
+    h_err_o = torch.clamp(-0.4 * cup_mouth_z - h_oth, min=0.0) + torch.clamp(h_oth - 0.8 * cup_mouth_z, min=0.0)
+    d_oth = torch.sqrt(gap[:, 1:] ** 2 + h_err_o ** 2).min(dim=1).values   # nearest non-thumb tip, (N,)
+
+    # opposition: 1 when the thumb and the other fingers sit on opposite sides of the cup axis
+    e_t = rad_vec[:, 0] / (rad[:, 0:1] + EPS)
+    o_vec = rad_vec[:, 1:].mean(dim=1)
+    e_o = o_vec / (o_vec.norm(dim=-1, keepdim=True) + EPS)
+    opp = 0.5 * (1.0 - (e_t * e_o).sum(dim=-1))                # (N,)
+
+    # pinch centre and the descending funnel target
+    mid = 0.5 * (tips_pos[:, 0] + tips_pos[:, 1:].mean(dim=1))  # (N,3)
+    rel_m = mid - cup_pos
+    h_m = (rel_m * cup_up).sum(dim=-1)
+    rad_m = (rel_m - h_m.unsqueeze(-1) * cup_up).norm(dim=-1)
+    rise = ARRIVE_RISE * torch.clamp((rad_m - FUNNEL_R0) / (FUNNEL_R1 - FUNNEL_R0), 0.0, 1.0)
+    d_funnel = torch.sqrt(rad_m ** 2 + (h_m - grasp_h - rise) ** 2)
+    d_grip = torch.sqrt(rad_m ** 2 + (h_m - grasp_h) ** 2)
+    thumb_band = _band(thumb_h, 0.0, thumb_hi, 0.02)
+    return {"d_thumb": d_thumb, "d_oth": d_oth, "opp": opp, "d_funnel": d_funnel, "d_grip": d_grip,
+            "thumb_band": thumb_band, "h_err_t": h_err_t, "h_err_o": h_err_o}
+
+
+def _hand_cup_terms(palm_pos, tips_pos, finger_force, palm_force, hand_closure, grasped, arm_qd,
+                    cup_pos, cup_up, cup_lin_vel, cup_ang_vel, cup_spawn_pos,
+                    cup_r, cup_mouth_z, cup_bottom_z, pose_ok, progress,
+                    lift_split, lift_target, over_h, over_span):
+    """팔별 무가중 항 (iter_03: cup_grasp 골격으로 다시 씀). 두 팔 사이 곱 없음.
+    들기 전 수입(reach·descend·close)은 held x 컵 높이로 꺼진다 (테이블 위에서는 끄지 않는다)."""
+    geo = _grip_geometry(tips_pos, cup_pos, cup_up, cup_mouth_z, cup_r)   # 접촉 반경 = ctx.cup_radius
+    g_f = grasped.to(cup_pos.dtype)
+    f = torch.clamp(finger_force, min=0.0)                     # (N,F)
+    f_t = f[:, 0]
+    f_o = f[:, 1:].sum(dim=1)
+
+    # ---- 연속 held (cup_grasp 3 번 형태, RH 판): 엄지 x 다른 손가락, 손가락 수·손바닥 접촉이 오를수록 더
+    c = _soft_contact(f)                                       # (N,F)
+    c_t = c[:, 0]
+    c_o = c[:, 1:].max(dim=1).values
+    n_touch = c.sum(dim=1)
+    palm_c = _soft_contact(palm_force)
+    pinch_c = c_t * c_o                                        # 양쪽 접촉 (없으면 0: 한쪽 접촉은 held 아님)
+    count_sat = torch.clamp((n_touch - 2.0) / 2.0, 0.0, 1.0)   # 2 지 -> 0, 4 지 -> 1 (K8: 소스 3 지)
+    held = pinch_c * (0.6 + 0.4 * count_sat) * (0.85 + 0.15 * palm_c)
+    firm = torch.tanh(torch.minimum(f_t, f_o) / 1.5)           # lifts had thumb ~2.3 N vs fingers ~2.7 N
+
+    # ---- 높이 --------------------------------------------------------------------------------------
+    h_lift = cup_pos[:, 2] - cup_spawn_pos[:, 2]
+    h_pos = torch.clamp(h_lift - 0.005, min=0.0)               # 5 mm dead band: tipping on the rim is not lifting
+    t_up = torch.tanh(h_pos / 0.02)
+    fade = 1.0 - held * t_up                                   # 들기 전 수입 끄기: 컵 높이 기준 (테이블 위 = 1)
+    on_table = 1.0 - torch.tanh(h_pos / 0.04)
+    late = torch.clamp((progress - 0.2) / 0.8, 0.0, 1.0)
+    table_decay = 1.0 - 0.55 * late * on_table                 # cup_grasp 5 번: 후반 테이블 위 파지 수입 감쇠
+
+    # ---- A. 접근: 손바닥-컵 표면 거리, 두 척도(20 cm / 5 cm), 곱 인자 없음 --------------------------
+    d_palm = _palm_surface_dist(palm_pos, cup_pos, cup_up, cup_r, cup_mouth_z, cup_bottom_z)
+    reach_raw = 0.6 * (1.0 - torch.tanh(d_palm / 0.20)) + 0.4 * (1.0 - torch.tanh(d_palm / 0.05))
+    reach = fade * reach_raw
+
+    # ---- A2. 잡는 높이로 내려와 양쪽에서 감싸기 (rh2_i03 기하). 접촉력 대체 경로는 높이 대역 안에서만
+    funnel = 0.5 * (1.0 - torch.tanh(4.0 * geo["d_funnel"])) + 0.5 * torch.exp(-(geo["d_funnel"] / 0.03) ** 2)
+    band_t = torch.exp(-(geo["h_err_t"] / 0.02) ** 2)          # (N,)
+    band_o = torch.exp(-(geo["h_err_o"] / 0.02) ** 2)          # (N,F-1)
+    side_t = torch.maximum(_close_in(geo["d_thumb"]), torch.tanh(f_t * band_t / 0.5))
+    side_o = torch.maximum(_close_in(geo["d_oth"]), torch.tanh((f[:, 1:] * band_o).sum(dim=1) / 0.5))
+    tips = 0.5 * (side_t + side_o) * (0.3 + 0.7 * geo["opp"])
+    descend = fade * (0.4 * funnel + 0.6 * tips)
+
+    # ---- 닫기: 잡는 자리에서만, 0.7 에서 포화 --------------------------------------------------------
+    near_grip = torch.exp(-(geo["d_grip"] / 0.03) ** 2)
+    close = fade * table_decay * pose_ok * near_grip * torch.clamp(hand_closure / 0.7, max=1.0)
+
+    # ---- B. 파지: 성립 전 접촉부터 단계적 (한 손가락 < 양쪽 < 여러 손가락·단단히) ---------------------
+    grasp_q = 0.2 * c_o + 0.3 * pinch_c + 0.5 * held * (0.4 + 0.6 * firm)
+    grasp = table_decay * pose_ok * grasp_q * (0.1 + 0.9 * geo["thumb_band"])
+
+    # ---- C. 들기: 품질로 곱하지 않는다 (held x 직립만). 빠른 성분 0.7 >= 들기 전 수입 합 -> 골짜기 없음
+    lin_lo = torch.clamp(h_pos, max=lift_split) / lift_target
+    lin = torch.clamp(h_pos / lift_target, max=1.0)
+    lin_hi = torch.clamp(lin - lin_lo, min=0.0)
+    tax = 0.5 * torch.clamp((h_pos - over_h) / over_span, 0.0, 1.0)   # 과들기 세금: over_h 위에서만
+    hold_up = held * pose_ok
+    lift_lo = hold_up * (0.7 * t_up + 0.3 * lin_lo)
+    lift_hi = hold_up * (0.3 * lin_hi - tax)
+    lifted_w = torch.clamp(h_pos / 0.02, max=1.0)              # 0 on the table, 1 from 2.5 cm up
+    up_w = held * torch.clamp(h_pos / 0.05, max=1.0)           # "held and at least 5 cm up"
+
+    # ---- 벌점 (무가중, 유계, 래치 없음) --------------------------------------------------------------
+    v_lin = cup_lin_vel.norm(dim=-1)
+    disp = (cup_pos[:, :2] - cup_spawn_pos[:, :2]).norm(dim=-1)
+    v_xy = cup_lin_vel[:, :2].norm(dim=-1)
+    slide = (1.0 - lifted_w) * (0.6 * torch.tanh(disp / 0.03) + 0.4 * torch.tanh(v_xy / 0.05))
+    thumb_excess = torch.clamp(f_t - f_o - 1.0, min=0.0)
+    finger_excess = torch.clamp(f_o - f_t, min=0.0)
+    one_sided = (1.0 - lifted_w) * torch.tanh((thumb_excess + 0.5 * finger_excess) / 2.0)
+    palm_push = torch.tanh(torch.clamp(palm_force, min=0.0) / 2.0)
+    near = torch.exp(-(geo["d_grip"] / 0.10) ** 2)
+    rush = near * (1.0 - g_f) * torch.tanh(arm_qd.norm(dim=-1) / 0.5)
+    w_ang = cup_ang_vel.norm(dim=-1)
+    fling = 0.5 * torch.tanh(torch.clamp(v_lin - 0.5, min=0.0) / 0.5) \
+        + 0.5 * torch.tanh(torch.clamp(w_ang - 4.0, min=0.0) / 4.0)
+    return {"reach": reach, "reach_raw": reach_raw, "descend": descend, "close": close, "grasp": grasp,
+            "lift_lo": lift_lo, "lift_hi": lift_hi, "held": held, "up_w": up_w, "lifted_w": lifted_w,
+            "slide": slide, "one_sided": one_sided, "palm_push": palm_push, "rush": rush, "fling": fling}
+
+
+def compute_reward(ctx: RewardContext) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    """RH 양팔 붓기 iter_04 = iter_03 + 두 가지 최소 변경:
+    (1) far_cross: 파지 전 손바닥이 자기 컵보다 +x(먼 쪽)로 넘어가면 작은 비용 (두 손, rcv_cross 형태)
+    (2) palm_sat: 팔별 palm 6 채널 명령 포화 비용 (손 채널 제외)
+    나머지 항·이름은 iter_03 그대로."""
+    tilt_src = ctx.src_cup_tilt
+    dt = tilt_src.dtype
+    zeros = torch.zeros_like(tilt_src)
+    ones = torch.ones_like(tilt_src)
+
+    # ---- 가중 ------------------------------------------------------------------------------------
+    # 들기 전 팔별 최대 = W_REACH 1.0 + W_DESCEND 0.7 + W_CLOSE 0.3 = 2.0 < 들기 빠른 성분 0.7 x W_LIFT = 2.1
+    # -> 컵을 드는 순간 끊기는 수입보다 들기 수입이 늘 크다 (골짜기 없음)
+    W_REACH, W_DESCEND, W_CLOSE, W_GRASP, W_LIFT = 1.0, 0.7, 0.3, 2.0, 3.0
+    W_ALIVE = 0.5          # 상수: 경사를 만들지 않는다, 서 있기 < 접근(20 cm -> 2 cm 에 +0.58/스텝)
+    W_RCV_CROSS = 0.3      # 작은 비용: 리시버 파지 전 손바닥이 자기 컵보다 중심선 쪽으로 넘어감
+    # iter_04 (1): 파지 전 손바닥이 자기 컵 먼 쪽(+x)으로 넘어감. 측정된 오른손 주차(손바닥 x +0.025 m)에서
+    # 램프 약 0.39 -> 약 -0.2/스텝, 포화 -0.5. 주차 수입(reach 0.75 + descend 0.10)을 확실히 깎되
+    # 접근 최대 1.0 보다 작게 둔다 (작은 비용, 파지 후 0)
+    W_FAR_CROSS = 0.5
+    # iter_04 (2): 팔별 palm 명령 포화. palm 6 채널이 모두 한계에 붙으면 팔당 -0.5 = 접근 최대(1.0)의 절반
+    W_PALM_SAT = 0.5
+    UPRIGHT_TOL = math.radians(20.0)   # 받는 컵 성공 한계 20 deg 와 같은 척도
+    # 들기 목표·세금 높이 (높이 허용만 절대값 예외): 소스는 높게(K3), 리시버는 낮게
+    LIFT_T_SRC, OVER_H_SRC, OVER_S_SRC = 0.28, 0.45, 0.20
+    LIFT_T_RCV, OVER_H_RCV, OVER_S_RCV = 0.08, 0.15, 0.10
+    RCV_GATE_FLOOR = 0.25  # 바닥 있는 리시버 진행도 게이트 (소스의 들기 이후 수입에만)
+    RCV_PEN_SCALE = 0.5    # 리시버 근처 벌점 축소 (rh2_i04 교훈)
+
+    # ---- 공통 척도 (c5) ----------------------------------------------------------------------------
+    r_cup = float(ctx.cup_radius)
+    two_r = 2.0 * r_cup
+    wide = 10.0 * r_cup
+    LIM = math.radians(81.0)
+    active = float(max(int(ctx.num_beads), 1))
+
+    src_g = ctx.src_grasped.to(dt)
+    rcv_g = ctx.rcv_grasped.to(dt)
+    both_g = src_g * rcv_g
+    nested = ctx.cups_nested.to(dt)
+
+    # ---- 붓기 기하 (c5 원문) -------------------------------------------------------------------------
+    d_xy = ctx.rcv_cup_mouth_pos[:, :2] - ctx.src_cup_pos[:, :2]
+    d_n = torch.sqrt((d_xy * d_xy).sum(dim=-1) + 1e-12)
+    d_hat = d_xy / d_n.unsqueeze(-1)
+    up = ctx.src_cup_up
+    theta = torch.atan2((up[:, :2] * d_hat).sum(dim=-1), up[:, 2])
+    lip_xy = ctx.src_cup_mouth_pos[:, :2] + r_cup * torch.cos(theta).unsqueeze(-1) * d_hat
+    lip_z = ctx.src_cup_mouth_pos[:, 2] - r_cup * torch.sin(theta)    # K6
+    e_lip = lip_xy - ctx.rcv_cup_mouth_pos[:, :2]
+    lip_d = torch.sqrt((e_lip * e_lip).sum(dim=-1) + 1e-12)
+    dz_lip = lip_z - ctx.rcv_cup_mouth_pos[:, 2]
+    lip_gate = 1.0 - torch.tanh(torch.clamp(lip_d - two_r, min=0.0) / two_r)
+
+    upright_src = torch.exp(-(tilt_src / UPRIGHT_TOL) ** 2)
+    upright_rcv = torch.exp(-(ctx.rcv_cup_tilt / UPRIGHT_TOL) ** 2)
+    pose_ok_src = lip_gate + (1.0 - lip_gate) * upright_src
+    pose_ok_rcv = upright_rcv
+
+    # ---- A/B/C. 팔별 접근·파지·들기 ---------------------------------------------------------------
+    src = _hand_cup_terms(ctx.src_palm_pos, ctx.src_tips_pos, ctx.src_finger_force, ctx.src_palm_force,
+                          ctx.src_hand_closure, ctx.src_grasped, ctx.src_arm_qd,
+                          ctx.src_cup_pos, ctx.src_cup_up, ctx.src_cup_lin_vel, ctx.src_cup_ang_vel,
+                          ctx.src_cup_spawn_pos, r_cup, ctx.cup_mouth_z, ctx.cup_bottom_z,
+                          pose_ok_src, ctx.episode_progress,
+                          LIFT_T_RCV, LIFT_T_SRC, OVER_H_SRC, OVER_S_SRC)
+    rcv = _hand_cup_terms(ctx.rcv_palm_pos, ctx.rcv_tips_pos, ctx.rcv_finger_force, ctx.rcv_palm_force,
+                          ctx.rcv_hand_closure, ctx.rcv_grasped, ctx.rcv_arm_qd,
+                          ctx.rcv_cup_pos, ctx.rcv_cup_up, ctx.rcv_cup_lin_vel, ctx.rcv_cup_ang_vel,
+                          ctx.rcv_cup_spawn_pos, r_cup, ctx.cup_mouth_z, ctx.cup_bottom_z,
+                          pose_ok_rcv, ctx.episode_progress,
+                          LIFT_T_RCV, LIFT_T_RCV, OVER_H_RCV, OVER_S_RCV)
+
+    # 리시버 진행도 (reach -> 파지 -> 들기), 바닥 있는 계수. reach 는 끄기 전 값(들고 나서 진행도가 줄지 않게)
+    rcv_stage = _sat(0.4 * rcv["reach_raw"] + 0.3 * rcv_g + 0.3 * rcv["up_w"])
+    rcv_gate = RCV_GATE_FLOOR + (1.0 - RCV_GATE_FLOOR) * rcv_stage
+
+    alive = W_ALIVE * ones
+    reach_src = W_REACH * src["reach"]           # 소스·리시버 같은 크기로 독립 지급
+    reach_rcv = W_REACH * rcv["reach"]
+    descend_src = W_DESCEND * src["descend"]
+    descend_rcv = W_DESCEND * rcv["descend"]
+    close_src = W_CLOSE * src["close"]
+    close_rcv = W_CLOSE * rcv["close"]
+    grasp_src = W_GRASP * src["grasp"]
+    grasp_rcv = W_GRASP * rcv["grasp"]
+    # 소스: 리시버 목표 높이까지는 팔별(게이트 없음), 그 위 높이(K3 붓기용)·세금만 리시버 진행도 게이트
+    lift_src = W_LIFT * (src["lift_lo"] + src["lift_hi"] * rcv_gate)
+    lift_rcv = W_LIFT * (rcv["lift_lo"] + rcv["lift_hi"])
+
+    # 리시버 손바닥이 자기 컵보다 중심선 쪽(y 가 컵 y 보다 작은 쪽)으로 넘어가면 작은 비용 (1r 여유, 3r 에서 포화)
+    cross_x = _sat((ctx.rcv_cup_pos[:, 1] - ctx.rcv_palm_pos[:, 1] - r_cup) / two_r)
+    rcv_cross = -W_RCV_CROSS * (1.0 - rcv["held"]) * cross_x
+
+    # iter_04 (1): 파지 전 손바닥이 자기 컵보다 로봇 전방(+x, 먼 쪽)으로 넘어가면 작은 비용. 두 손 모두.
+    # rcv_cross 와 같은 형태: 컵 반지름 배수 여유(0.5r), 포화 램프(1.5r 에서 포화), (1 - held) 로 파지 전만, 래치 없음.
+    # 여유를 0.5r 로 둔 이유: 측정된 주차 자세(손바닥 x +0.025 m)가 1r(0.028 m) 여유 안에 들어가 비용이 0 이 되기 때문.
+    # (가설) 먼 쪽에서는 손가락이 컵을 감쌀 수 없어 내려오기·닫기 수입으로 가는 기울기가 막힌다.
+    far_margin = 0.5 * r_cup
+    far_src = _sat((ctx.src_palm_pos[:, 0] - ctx.src_cup_pos[:, 0] - far_margin) / r_cup)
+    far_rcv = _sat((ctx.rcv_palm_pos[:, 0] - ctx.rcv_cup_pos[:, 0] - far_margin) / r_cup)
+    far_cross = -W_FAR_CROSS * ((1.0 - src["held"]) * far_src + (1.0 - rcv["held"]) * far_rcv)
+
+    h_src = ctx.src_cup_pos[:, 2] - ctx.src_cup_spawn_pos[:, 2]
+    h_rcv = ctx.rcv_cup_pos[:, 2] - ctx.rcv_cup_spawn_pos[:, 2]
+    lifted = torch.minimum(_sat(h_src / two_r), _sat(h_rcv / two_r))
+
+    # ---- C. 두 컵 수렴 (c5 1.2) --------------------------------------------------------------------
+    converge_cups = 1.2 * both_g * lifted * rcv_gate * (
+        1.0 - torch.tanh(torch.clamp(lip_d - two_r, min=0.0) / wide))
+
+    # ---- D. lip 조준 (c5 0.8) ----------------------------------------------------------------------
+    h_score = 1.0 - torch.tanh(torch.abs(dz_lip - 0.25 * r_cup) / (0.5 * r_cup))
+    xy_far = 1.0 - torch.tanh(lip_d / wide)
+    xy_fine = 1.0 - torch.tanh(lip_d / two_r)
+    xy_score = 0.5 * xy_far + 0.5 * xy_fine
+    aim_lip = 0.8 * both_g * lifted * rcv_gate * (0.6 * xy_score + 0.4 * h_score)
+
+    # ---- 비드 장부 (c5: 전량 이송) -----------------------------------------------------------------
+    remaining = torch.clamp(1.0 - ctx.bead_in_target_frac, min=0.0)
+    need_frac = torch.minimum(remaining, torch.clamp(ctx.bead_in_source_frac, min=0.0))
+    want = _sat(need_frac * active)
+
+    # ---- F. 회전 구동 (c5 8.0) ---------------------------------------------------------------------
+    rot_prog = _sat(torch.clamp(theta, min=0.0) / (1.4 * LIM))
+    aim_xy = 1.0 - torch.tanh(torch.clamp(lip_d - r_cup, min=0.0) / two_r)
+    aim_h = 1.0 - torch.tanh(torch.abs(dz_lip - 0.25 * r_cup) / (1.5 * r_cup))
+    aim_quality = _sat(0.65 * aim_xy + 0.35 * aim_h)
+    AIM_FLOOR = 0.3
+    aim_factor = AIM_FLOOR + (1.0 - AIM_FLOOR) * aim_quality
+    pour_rot = 8.0 * src_g * want * lip_gate * aim_factor * rot_prog * rcv_gate
+
+    # ---- F. 실제 도착한 비드 (c5 알당 30, 증분만) ---------------------------------------------------
+    gained = torch.clamp(ctx.d_in_target, min=0.0) * active
+    pour_delta = 30.0 * want * gained
+
+    # ---- 흘림: 파지 전 알당 3, 두 컵을 쥔 뒤 또는 소스를 든 뒤 알당 40 (c5) --------------------------
+    post = torch.maximum(both_g, src["lifted_w"])
+    spill_w = 3.0 + 37.0 * post
+    spill = -spill_w * _sat(torch.clamp(ctx.d_spill, min=0.0) * active, 0.0, 5.0)
+
+    # ---- 마무리 (c5 1.5 < 회전 수입 8) -------------------------------------------------------------
+    finish_upright = 1.5 * (1.0 - want) * both_g * (1.0 - torch.tanh(tilt_src / (0.3 * LIM)))
+
+    # ---- 성공 보너스 (env 판정, c5 20) -------------------------------------------------------------
+    success_bonus = 20.0 * ctx.success.to(dt)
+
+    # ---- 조기 기울임 (c5) ---------------------------------------------------------------------------
+    pre_x = torch.clamp(tilt_src - 0.95 * LIM, min=0.0) / (0.05 * LIM)
+    pre_ramp = _sat(torch.tanh(2.0 * pre_x))
+    out_gate = _sat((lip_d - two_r) / (0.5 * two_r))
+    premature = -12.0 * src_g * pre_ramp * out_gate
+
+    # ---- 실기 안전 (c5 / rh2_i03 크기) -------------------------------------------------------------
+    cup_clash = -((1.0 + 1.0 * both_g) * torch.tanh(ctx.cup_cup_force / 5.0) + 3.0 * nested)
+    hand_foreign = -(0.5 + 0.5 * both_g) * (torch.tanh(ctx.src_hand_foreign_force / 5.0)
+                                            + torch.tanh(ctx.rcv_hand_foreign_force / 5.0))
+
+    # ---- 붓는 방향이 몸 바깥(+x)을 향하지 않게 (c5) -------------------------------------------------
+    dir_ramp = _sat((d_hat[:, 0] - 0.15) / 0.15)
+    pour_dir = -1.5 * lifted * dir_ramp
+
+    # ---- 리시버 컵: 직립, 중심선 기준 자기 쪽(+y) (c5) ----------------------------------------------
+    side_lo = 0.75 * r_cup
+    side_bad = _sat((side_lo - ctx.rcv_cup_pos[:, 1]) / side_lo)
+    rcv_keep = 0.5 * rcv_g * (1.0 - torch.tanh(ctx.rcv_cup_tilt / (0.3 * LIM))) - 1.5 * side_bad
+
+    # ---- G. 관절 여유: 붓는 중에만 작은 가산 (c5 최대 0.3) -----------------------------------------
+    m_src = ctx.src_arm_limit_margin
+    margin = _sat(0.5 * (m_src.mean(dim=-1) + torch.min(m_src, dim=-1).values))
+    posture_margin = 0.3 * src_g * want * lip_gate * rot_prog * margin
+
+    # ---- 컵 교란 벌점 (넘어뜨림 방지용, 작게; 리시버 쪽 RCV_PEN_SCALE) -----------------------------
+    tilt_pen_src = (1.0 - lip_gate) * torch.tanh(tilt_src / UPRIGHT_TOL)
+    tilt_pen_rcv = torch.tanh(ctx.rcv_cup_tilt / UPRIGHT_TOL)
+    cup_disturb_src = -(0.5 * src["slide"] + 0.3 * tilt_pen_src)
+    cup_disturb_rcv = -RCV_PEN_SCALE * (0.5 * rcv["slide"] + 0.3 * tilt_pen_rcv)
+    contact_push = -(0.3 * (src["one_sided"] + RCV_PEN_SCALE * rcv["one_sided"])
+                     + 0.2 * (src["palm_push"] + RCV_PEN_SCALE * rcv["palm_push"]))
+    rush_near_cup = -0.2 * (src["rush"] + RCV_PEN_SCALE * rcv["rush"])
+    cup_fling = -0.3 * (src["fling"] + RCV_PEN_SCALE * rcv["fling"])
+
+    # ---- 제어 정규화 (c5, 게이트 없음) --------------------------------------------------------------
+    da = ctx.actions - ctx.prev_actions
+    action_rate = -0.05 * (da * da).mean(dim=-1)
+    flip = torch.clamp(-ctx.actions * ctx.prev_actions, min=0.0).mean(dim=-1)
+    action_flip = -0.30 * flip
+    qd_rcv = _rms(ctx.rcv_arm_qd)
+    qd_src = _rms(ctx.src_arm_qd)
+    arm_tremor = -(0.25 * torch.tanh(qd_rcv / 1.0) + 0.10 * torch.tanh(qd_src / 1.0))
+    sat = _sat((ctx.actions.abs() - 0.9) / 0.1).mean(dim=-1)
+    action_reg_adr = -0.1 * sat
+
+    # iter_04 (2): 팔별 palm 명령 포화 비용. palm 채널만(소스 0:6, 리시버 12:18), 손 채널 제외.
+    # |a| 0.9 까지 무료, 0.9 -> 1.0 램프로 접근 중 짧거나 얕은 포화는 싸게, 모든 palm 채널이 한계면 팔당 -0.5.
+    # 측정: 오른손 palm 명령 |a| > 0.95 비율 x 0.67 · z 0.84 · yaw 0.96 · roll 0.95 (기존 action_reg_adr 로는 약 -0.017)
+    palm_sat = -W_PALM_SAT * (_palm_cmd_sat(ctx.actions[:, 0:6]) + _palm_cmd_sat(ctx.actions[:, 12:18]))
+
+    components = {
+        "alive": alive,
+        "reach_src": reach_src,
+        "reach_rcv": reach_rcv,
+        "descend_src": descend_src,
+        "descend_rcv": descend_rcv,
+        "close_src": close_src,
+        "close_rcv": close_rcv,
+        "grasp_src": grasp_src,
+        "grasp_rcv": grasp_rcv,
+        "lift_src": lift_src,
+        "lift_rcv": lift_rcv,
+        "rcv_cross": rcv_cross,
+        "far_cross": far_cross,
+        "converge_cups": converge_cups,
+        "aim_lip": aim_lip,
+        "pour_rot": pour_rot,
+        "pour_delta": pour_delta,
+        "spill": spill,
+        "finish_upright": finish_upright,
+        "success_bonus": success_bonus,
+        "premature": premature,
+        "cup_clash": cup_clash,
+        "hand_foreign": hand_foreign,
+        "pour_dir": pour_dir,
+        "rcv_keep": rcv_keep,
+        "posture_margin": posture_margin,
+        "cup_disturb_src": cup_disturb_src,
+        "cup_disturb_rcv": cup_disturb_rcv,
+        "contact_push": contact_push,
+        "rush_near_cup": rush_near_cup,
+        "cup_fling": cup_fling,
+        "action_rate": action_rate,
+        "action_flip": action_flip,
+        "arm_tremor": arm_tremor,
+        "action_reg_adr": action_reg_adr,
+        "palm_sat": palm_sat,
+    }
+
+    reward = zeros.clone()
+    for v in components.values():
+        reward = reward + v
+    return reward, components
+```
+
+## 근거 메모
+
+가설 id: 지정 없음. prompt 전체(iter_04 변경 1, 2)를 한 후보로 구현했다.
+
+| 보상 항 | 대응하는 prompt 관찰·지표 | 근거(prompt 파일:줄) |
+|---|---|---|
+| `far_cross` (새 항, 두 손, 파지 전) | 오른손이 컵 먼 쪽(+x)에서 손을 편 채 주차한다. 이 자세에서 접근 0.75와 내려오기 0.10이 매 스텝 들어온다. 성공한 왼손은 로봇 쪽(-x)에서 다가왔다 | prompt.md:670-672, 682-686 |
+| `far_cross` 형태 (여유 0.5r, 1.5r에서 포화, (1-held) 곱, 래치 없음) | rcv_cross와 같은 형태로 만들라는 지시(r 배수 여유, 포화 램프, 파지 전만). 여유를 1r로 하면 측정 주차(x +0.025 m < r = 0.028 m)에서 비용이 0이 된다. 그래서 0.5r로 줄였다 (추정: 선택값) | prompt.md:684, 389-391, 542, 670 |
+| `far_cross` 가중 0.5 | 작은 비용이어야 하고, 주차 수입(0.85)이 손끝을 벽에 붙이는 쪽보다 확실히 적어야 한다. 주차 지점에서 약 -0.2, 포화 시 -0.5다 (추정: 크기 선택) | prompt.md:684-686 |
+| `palm_sat` (새 항, 팔별, palm 6채널만) | 오른손 palm 명령이 한계에 붙어 있다(x 0.67, z 0.84, yaw 0.96, roll 0.95). 기존 `action_reg_adr`로는 약 -0.017뿐이다. 손 채널은 넣지 말라는 지시를 따랐다 | prompt.md:673-676, 687-689 |
+| `palm_sat` 크기와 램프 | 모든 palm 채널이 한계에 붙으면 접근 최대(1.0)의 절반을 깎는다. 팔당 0.5다. \|a\| 0.9에서 1.0까지는 램프로 두어 접근 중 짧은 포화를 허용한다 | prompt.md:688-689 |
+| 사용자 원칙 | 관절과 명령을 한계까지 밀지 않는다. palm_sat이 이 방향이다. 관절 한계에 강한 직접 벌점은 두지 않았다(i15 실패) | prompt.md:641, 566, 620 |
+| 그 밖의 모든 항 | iter_03 코드를 바꾸지 않았고 이름도 유지했다(로그 비교용). 새 ctx 필드는 없고 컵 치수는 ctx에서 읽는다 | prompt.md:690 |
+
+참고할 점:
+- 기존 `action_reg_adr`(24채널 평균)는 "그 밖에는 바꾸지 않는다"는 지시에 따라 그대로 두고, `palm_sat`을 따로 더했다. 그래서 palm 포화에는 두 항이 겹쳐 걸린다. 다만 기존 항의 몫은 한 손 palm 4채널 포화 기준 약 -0.017로 작다.
+- 성분 수는 36개로, prompt가 허용한 "30개 안팎"을 조금 넘는다. 새 항은 두 손과 두 팔을 각각 한 성분으로 합쳐 2개만 늘렸다.
+- 파일 경로: prompt는 /home/user/rl_ws/hdgp/reward_gen/pour_bi_rh/iter_04/prompt.md 다. 파일은 쓰지 않았다.

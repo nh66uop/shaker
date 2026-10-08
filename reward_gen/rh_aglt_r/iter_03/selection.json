@@ -1,0 +1,80 @@
+{
+ "selected": "c1r",
+ "rule": "ingest PASS + 원장 24행 PASS(사용자 i02 판정 2행 추가: 엄지 벽 지나침 0.85×·손바닥 면 25° 0.65× < 인벨롭 × 0.9). c1 은 두 행 0.99× FAIL",
+ "decided_by": "결정론 게이트(메인 확인)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator(iter_03/prompt.md)",
+   "hypothesis": null,
+   "gate": "PASS",
+   "plan": "iter_02 c1 대비: grasp_hold = upright·(0.65 기본 + hand_up·품질 가산), approach_orient × (1 − 0.5 near_k) — improvement.md 한 항",
+   "deterministic_check": {
+    "script": "scripts/reward_gen/t2r_aglt.py ledger",
+    "status": "PASS",
+    "rows": {
+     "0_start": 0.171,
+     "1_halfway_open": 0.225,
+     "2_pregrasp_open": 0.3838,
+     "3_grasped_on_table": 1.324,
+     "4_lift_5cm": 4.4173,
+     "5_lift_goal_height": 12.1434,
+     "6_at_goal_held": 16.324,
+     "2p_fist_at_pregrasp": 0.3618,
+     "2t_open_tipping_cup": 0.2077,
+     "3v_vertical_pinch_on_table": 0.9277,
+     "5d_dropped_after_lift": -0.6774,
+     "3r_thumb_on_rim": 1.13,
+     "3f_fingertips_only": 1.124,
+     "3x_held_cup_tilted20": 1.152,
+     "1u_halfway_palm_up": 0.1927,
+     "1f_halfway_flipped": 0.1851,
+     "2a_pregrasp_palm_away": 0.3304,
+     "3u_grasp_thumb_below": 0.8185,
+     "0j_start_cup_jitter": 0.171,
+     "0k_start_cup_jitter_x": 0.171,
+     "3s_sloppy_first_grasp": 0.8137,
+     "2h_hover_half_closed": 0.3706
+    }
+   }
+  },
+  "c1r": {
+   "source": "kuku-reward-generator 재시도(prompt_c1_repair.md: 사용자 영상 판정·원장 수치·요구 (a)(b))",
+   "hypothesis": null,
+   "gate": "PASS",
+   "plan": "c1 대비: on_wall(엄지 끝 벽 위) × oppose_q, plane_q(손바닥 면 수평) × 품질 — 리뷰 3(a)(b) 뿐",
+   "deterministic_check": {
+    "script": "scripts/reward_gen/t2r_aglt.py ledger",
+    "status": "PASS",
+    "rows": {
+     "0_start": 0.171,
+     "1_halfway_open": 0.225,
+     "2_pregrasp_open": 0.3838,
+     "3_grasped_on_table": 1.324,
+     "4_lift_5cm": 4.4173,
+     "5_lift_goal_height": 12.1434,
+     "6_at_goal_held": 16.324,
+     "2p_fist_at_pregrasp": 0.3618,
+     "2t_open_tipping_cup": 0.2077,
+     "3v_vertical_pinch_on_table": 0.675,
+     "5d_dropped_after_lift": -0.6774,
+     "3r_thumb_on_rim": 1.13,
+     "3f_fingertips_only": 1.124,
+     "3x_held_cup_tilted20": 1.0119,
+     "1u_halfway_palm_up": 0.1927,
+     "1f_halfway_flipped": 0.1851,
+     "2a_pregrasp_palm_away": 0.3304,
+     "3u_grasp_thumb_below": 0.8185,
+     "3o_thumb_overshoots_wall": 1.13,
+     "3p_grasp_palm_tilted25": 0.8652,
+     "0j_start_cup_jitter": 0.171,
+     "0k_start_cup_jitter_x": 0.171,
+     "3s_sloppy_first_grasp": 0.8137,
+     "2h_hover_half_closed": 0.3706
+    }
+   }
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "보상 변경 — fresh",
+ "sha256": "2cd733d632a49e2fbd9c4cefed0e87d752f5dd351fde23f97a2051b910cfe475"
+}

@@ -1,0 +1,110 @@
+"""t2r(text2reward 계약) — Isaac 불요."""
+import textwrap
+
+import pytest
+import torch
+
+from openarm.agnostic.modules.t2r import context as C
+from openarm.agnostic.modules.t2r import loader as L
+from openarm.agnostic.modules.t2r import prompts as P
+from openarm.agnostic.modules.t2r import validator as V
+
+GOOD = textwrap.dedent("""
+    import torch
+    import math
+
+    def compute_reward(ctx):
+        d = (ctx.src_palm_pos - ctx.src_cup_pos).norm(dim=-1)
+        approach = torch.exp(-5.0 * d)
+        pour = 20.0 * ctx.d_in_target.clamp(min=0.0)
+        lift = torch.where(ctx.src_grasped, ctx.src_cup_pos[:, 2] - ctx.src_cup_spawn_pos[:, 2],
+                           torch.zeros_like(d))
+        reward = approach + pour + lift + 10.0 * ctx.success.float()
+        return reward, {"approach": approach, "pour": pour, "lift": lift}
+""")
+
+
+def _write(tmp_path, src, name="r.py"):
+    p = tmp_path / name
+    p.write_text(src)
+    return str(p)
+
+
+def test_context_fields_split_and_stub_has_every_field():
+    stub = C.context_stub_source()
+    for f in C.TENSOR_FIELDS + C.SCALAR_FIELDS:
+        assert f in stub, f
+    assert "@property" not in stub
+    # 09.16 +2: bead_fill_level(채움 정도 0~1) · premature_tilt(조준 전 틸트 래치)
+    # 09.18 +3: src_pour_lip_pos(붓는 쪽 림 점) · src_tilt_toward_rcv(리시버 쪽 부호 각) · premature_tilt_limit(채움별 상한)
+    # 09.21 +1 스칼라: adr_progress(탐색을 죽이는 벌점을 학습 초반에 끄는 게이트)
+    # 09.22 +18: 손별 파지 기준(처음 잡아 올린 순간의 손-컵 컵좌표 위치·힘 비율·힘 합) + 지금 값
+    # 09.23 +3: 목표량 붓기(pour_target_beads·pour_target_frac·bead_active_count)
+    assert len(C.TENSOR_FIELDS) == 79 and len(C.SCALAR_FIELDS) == 6   # 09.28 +src/rcv_palm_lin_vel
+    assert "adr_progress" in C.SCALAR_FIELDS
+    for f in ("src_pour_lip_pos", "src_tilt_toward_rcv", "premature_tilt_limit"):
+        assert f in C.TENSOR_FIELDS, f
+
+
+def test_fake_context_shapes():
+    ctx = V.make_fake_context(8, num_fingers=5, num_arm=7, num_actions=18)
+    assert ctx.num_envs == 8
+    assert tuple(ctx.src_tips_pos.shape) == (8, 5, 3)
+    assert tuple(ctx.actions.shape) == (8, 18)
+    assert ctx.success.dtype == torch.bool
+    assert tuple(ctx.bead_fill_level.shape) == (8,) and float(ctx.bead_fill_level.min()) >= 0.0 \
+        and float(ctx.bead_fill_level.max()) <= 1.0
+    assert ctx.premature_tilt.dtype == torch.bool and tuple(ctx.premature_tilt.shape) == (8,)
+    with pytest.raises(Exception):
+        ctx.src_palm_pos = None    # frozen
+
+
+def test_zero_reward_default():
+    fn, src = L.load_reward_fn("")
+    ctx = V.make_fake_context(4)
+    total, terms = L.call_reward_fn(fn, ctx)
+    assert tuple(total.shape) == (4,) and float(total.abs().sum()) == 0.0 and terms == {}
+    assert "zero" in src
+
+
+def test_good_code_validates(tmp_path):
+    rep = V.validate(_write(tmp_path, GOOD))
+    assert rep.ok, rep.errors
+    assert set(rep.term_stats) == {"approach", "pour", "lift"}
+    assert "src_grasped" in rep.fields_used
+
+
+@pytest.mark.parametrize("bad, msg", [
+    ("import os\ndef compute_reward(ctx):\n    return torch.zeros(ctx.num_envs), {}", "import"),
+    ("import torch\ndef compute_reward(ctx):\n    return torch.zeros(ctx.num_envs) + ctx.nope, {}", "없는 필드"),
+    ("import torch\ndef compute_reward(ctx):\n    ctx.src_palm_pos = 0\n    return torch.zeros(ctx.num_envs), {}", "읽기 전용"),
+    ("import torch\ndef compute_reward(ctx):\n    return 1.0, {}", "(N,)"),
+    ("import torch\ndef compute_reward(ctx):\n    return torch.zeros(ctx.num_envs), {'a': torch.zeros(3)}", "(N,)"),
+    ("import torch\ndef other(ctx):\n    return torch.zeros(ctx.num_envs), {}", "정확히 하나"),
+    ("import torch\ndef compute_reward(ctx):\n    return eval('1'), {}", "금지 호출"),
+    ("import torch\ndef compute_reward(ctx):\n    return torch.zeros(ctx.num_envs) / 0 * 0, {}", "NaN"),
+])
+def test_bad_code_rejected(tmp_path, bad, msg):
+    rep = V.validate(_write(tmp_path, "import torch\n" + bad))
+    assert not rep.ok
+    assert any(msg in e for e in rep.errors), rep.errors
+
+
+def test_prompt_contains_stub_task_and_signature():
+    txt = P.render_prompt(P.PromptSpec(task="Pour the beads."))
+    assert "class RewardContext" in txt and "Pour the beads." in txt
+    assert "def compute_reward(ctx: RewardContext)" in txt
+    assert "Box(-1, 1, (18,)" in txt
+    assert "four-finger closure" in txt and "rcv_cup_tilt` at most" in txt
+    # 09.16 비드 부피 DR·조준 전 틸트 래치는 env 사실로 알린다(설계 의견 아님)
+    assert "bead_fill_level" in txt and "premature_tilt" in txt
+    assert "roughly 110°" not in txt                   # 비드 20개·12 mm 에서만 참이던 문장 제거
+    assert "previous reward function" not in txt
+
+
+def test_prompt_feedback_round():
+    fb = P.render_feedback_table({"reward/approach": [0.1, 0.2, 0.3], "task/success_now": [0.0] * 30})
+    txt = P.render_prompt(P.PromptSpec(task="t", previous_code=GOOD, feedback=fb, user_notes="it tilts early"))
+    assert "previous reward function" in txt and "reward/approach" in txt
+    assert "min 0 · mean 0 · max 0" in txt
+    assert "it tilts early" in txt

@@ -1,0 +1,13 @@
+{
+ "label": "aglt_l_i00b",
+ "host": "vision-3090",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-rh_l_aglt-lstm",
+ "python_pid": 3102887,
+ "commit": "20f05c35",
+ "reward": "iter_00 c1r (sha256 3b1b2f4e8194)",
+ "checkpoint": null,
+ "env": "09.29 2차: 팔 증분·손 pour 사상·소환 x0.10–0.40·마찰 1.5–2.5·질량 ×0.8–1.25→ADR·반발 0·컵 회전 잡음 0"
+}

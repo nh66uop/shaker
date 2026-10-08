@@ -1,0 +1,11 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획 준수(notes_iter05 1·2·4; 계획 밖 한 곳 = one_sided 의 finger_excess 를 나머지 합 → 가장 센 한 손가락, 합 기준이 다섯 손가락 파지에만 벌점을 매겨 변경 1 과 충돌 — 수용) + check_iter05 PASS + 원장 골 0",
+ "decided_by": "session 146751a7 (사용자 'iter05 진행', '접근까지는 안 배워도 되니 warm start' 09-29) — 기동은 사용자 허락 뒤",
+ "candidates": {"c1": {"source": "kuku-reward-generator, iter_05/prompt.md", "sha256_8": "d01b3718", "gate": "PASS",
+   "change": "finger_fac = 0.4 + 0.6·mean(tanh(f_i/0.7), 엄지 외 4) 를 판정 뒤 파지·grip_pose·held 에; grip_pose 를 컵 좌표(법선⟂축 0.35·손가락⟂축 0.35·높이 0.15·축 거리 0.15), 풀지 않음, W 1.5→2.5; one_sided 한 손가락 기준",
+   "deterministic_check": "PASS — [41] 두 손가락 대비 +5.20(테이블)·+8.36(3 cm), [42] 45° 자세 유지 +1.87, [38] 0, [39] 4.83, [40] 5.39, [1] 회전·배달 56 %",
+   "ledger": "iter_05/ledger_c1.txt — 5 22.65 · 5t 17.46 · 5v 8.51 · 6 30.01 · 9 45° 35.86 · 9r 33.99 · 10 69.05, 골 0"}},
+ "warm_start": "server t2r_rh4_f05/nn/last_open-rh_b_pour_fj-lstm_ep_500_rew_4385.3623.pth (가중치만, epoch 0)",
+ "warm_start_why": "사용자 제안 — 접근은 다시 배울 필요 없음. f05 e500: 근처 0.85/0.80·손가락 사이 0.63/0.86·엄지 대향 0.92/0.69·쥠 0.01/0·엄지 입구 위 0.09/0.20·entropy 30.7 — 대칭 접근 완료, 두 손가락 집기·엄지 걸기 습관 전(e600 부터 시작). 관측·액션 동일, 접근 보상 iter_04 와 같음"
+}

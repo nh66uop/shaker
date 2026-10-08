@@ -1,0 +1,13 @@
+{
+ "track": "pour_bi_rh",
+ "iter": 3,
+ "task": "Using both arms, grasp each cup with an envelope grasp from the side, the hand level with the table (palm upright facing the cup, fingers horizontal and curling around it): the right hand grasps the source cup (which contains the beads) and the left hand grasps the empty receiver cup. Lift both cups off the table, bring the mouth of the source cup over the mouth of the receiver cup, and tilt the source cup so that the beads pour into the receiver cup. Keep the receiver cup upright (tilted no more than 20 degrees), do not drop either cup, and spill as few beads as possible. The task is finished when at least 80% of the beads are inside the receiver cup, at most 25% have been spilled, both cups are still held and the receiver cup is upright, and this holds for 20 control steps.",
+ "created": "2026-10-01T07:50:29.803608",
+ "prev_iter": "reward_gen/pour_bi_rh/iter_02",
+ "events": [
+  "/tmp/claude-1000/-home-user-rl-ws/146751a7-8640-4668-9250-a319cc2d947e/scratchpad/rh5f02/events.out.tfevents.1790789763.oem-MS73-HB1-000"
+ ],
+ "notes": "reward_gen/pour_bi_rh/iter_03/notes_full.md",
+ "robot_file": "scripts/reward_gen/tasks/pour_bi_rh_fj_robot.md",
+ "num_actions": 26
+}

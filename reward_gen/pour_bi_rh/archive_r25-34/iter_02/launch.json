@@ -1,0 +1,29 @@
+{
+ "label": "t2r_rh4_i02",
+ "iter": 2,
+ "cycle": 3,
+ "host": "server",
+ "gpu": 1,
+ "num_envs": 4096,
+ "task": "open-rh_b_pour_fab_mimic-lstm",
+ "horizon_length": 16,
+ "minibatch": 16384,
+ "seq_length": 16,
+ "save_frequency": 50,
+ "commit": "08e2164f",
+ "reward_sha256": "8b0546cafa07f8b3b224b1b5d17eb810695873b1582b2e94ab916a3a8224c00b",
+ "started_local": "2026-09-27 13:07",
+ "checkpoint": null,
+ "env_overrides": [
+  "env.enable_self_collisions=true"
+ ],
+ "reward": "iter_02 c1 (rh2_i03 파지 블록 + 리시버 진행도 게이트 + c5 붓기)",
+ "launched_by": "session 146751a7, 사용자 '기동' 09-27",
+ "python_pid": 913839,
+ "log": "server ~/rl_ws/hdgp/log/pour_fabric_mimic/t2r_rh4_i02.log",
+ "watch": [
+  "파지 경로 지표: reach_src/rcv(손끝-벽), close_src/rcv, grasp_src/rcv(성립 전 접촉), task/*_grasped",
+  "리시버가 컵을 버리지 않는가(rcv_near_rate)",
+  "파지 뒤 모이기·회전"
+ ]
+}

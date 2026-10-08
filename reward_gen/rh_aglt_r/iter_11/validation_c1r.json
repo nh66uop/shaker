@@ -1,0 +1,32 @@
+{
+ "status": "PASS",
+ "errors": [],
+ "warnings": [
+  "항이 21개 — 15개 내외 원칙"
+ ],
+ "n_terms": 21,
+ "terms": [
+  "action_rate",
+  "approach",
+  "approach_orient",
+  "close_at_pose",
+  "drop_penalty",
+  "finger_factor",
+  "finger_wall",
+  "foreign_contact",
+  "goal_hold",
+  "grasp_contact",
+  "grasp_hold",
+  "height_factor",
+  "joint_room",
+  "lift",
+  "motion_penalty",
+  "open_hand",
+  "pre_pose",
+  "success_bonus",
+  "thumb_steer",
+  "tip_penalty",
+  "transport"
+ ],
+ "total_mean": 0.060653820633888245
+}

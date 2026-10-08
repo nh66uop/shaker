@@ -1,0 +1,30 @@
+{
+ "label": "t2r2_i00",
+ "track": "pour_bi2",
+ "iter": 0,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "commit": "feb5e22d",
+ "server_pids": [
+  172845,
+  172881,
+  172888
+ ],
+ "python_pid": 172888,
+ "checkpoint": null,
+ "fresh": true,
+ "seed": 42,
+ "reward": "pour_bi2 iter_00 c1 (selection.json)",
+ "launcher": "~/logs/t2r/launch_t2r_gpu.sh 0",
+ "log": "~/logs/t2r/t2r2_i00.log",
+ "started_local": "2026-09-26T15:08:26+09:00",
+ "started": 1790402906.429117,
+ "prior": "옛 계보 pour_bi t2r_i28f 는 e50 에서 종료(09-26 14:13). 이 런은 새 계보 첫 런이다.",
+ "gates": {
+  "e300": "파지·리프트 + diag/grip_src_ref_valid >= 0.8 (pour_rot 이 이 게이트에 걸려 있다)",
+  "e800": "task/src_tilt_deg 60도 돌파",
+  "e1200": "bead/in_target > 0 (첫 붓기)"
+ }
+}

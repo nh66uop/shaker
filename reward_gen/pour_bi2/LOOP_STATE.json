@@ -1,0 +1,152 @@
+{
+ "track": "pour_bi2",
+ "iter": 7,
+ "round": 8,
+ "label": "t2r2_i07c",
+ "status": "closed",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "driver": "pour_bi session (T2R : DG5F-M-S [Pouring])",
+ "approval": "사용자 승인 09.26: 2026-09-27 08:00 까지 라운드 자동 진행(보상 생성·게이트·기동·틱·재생성). 08:00 이후에는 기동 전 승인.",
+ "lineage": "reward_gen/pour_bi/iter_00~iter_28 을 종료하고 새로 시작. 기록은 ~/rl_ws/our_source/pour_bi_runs_0926/ (INDEX.md, ROUNDS.md)",
+ "user_decisions_0926": [
+  "목표 단계화: 붓기 먼저, 세우기·복귀는 다음 라운드(env 판정은 그대로)",
+  "94도 벽을 양쪽에서: premature 청구 시작점을 env 한계각 0.95 이상으로 올리고 55~94도에 연속 회전 수입",
+  "학습은 server GPU0, 08:00 까지 자동"
+ ],
+ "generator_input": "DESIGN_BRIEF.md 전문 + ROUNDS_pour_bi_i00_i28.md 요약 + 라운드 요구 R1~R9 를 notes_iterN.md 맨 앞에 넣는다. 생성 뒤 브리프 §5 형식으로 사용자에게 보고.",
+ "awaiting": "A/B 초반 비교: 파지·들기 도달 epoch, 에피소드 길이·낙하, 떨림(palm_err·bounds_loss), 붓는 방향",
+ "round_policy_note": "ROUND_POLICY 는 scripts/reward_gen/t2r_round.py 한 곳. pour_bi2 는 round 0 부터 다시 센다.",
+ "launch": {
+  "label": "t2r2_i07b",
+  "gpu": 0,
+  "host": "server",
+  "python_pid": 1245482,
+  "task": "open-short_b_pour_fab-lstm",
+  "commit": "004ebc6e",
+  "checkpoint": null,
+  "fresh": false,
+  "target_schedule": [
+   1.0,
+   0.8,
+   0.5,
+   0.2
+  ],
+  "started_local": "2026-09-27T23:08:51+09:00",
+  "num_envs": 4096,
+  "palm_action_mode": "increment",
+  "sigma_init": -1.0
+ },
+ "automation_until": "만료(2026-09-27 08:00). 이후 기동은 사용자 승인.",
+ "ended_i00": {
+  "label": "t2r2_i00",
+  "last_epoch": 1051,
+  "hours": 7.75,
+  "verdict": "advance",
+  "bottleneck": "접근 — pour_lip_dist 0.371 m, cups_center_dist 0.29→0.40 m, 거리 커널 폭 2r 로 기울기 1e-4, pour_rot 0.020/스텝",
+  "kept": "파지 0.87/0.88, 감쌈 3.6/4.0, grip_src_ref_valid 0.873, 드리프트 1.38 cm",
+  "stop": "SIGTERM 172888 — Isaac 종료 훅에서 멈춤(16.6 GB 유지), SIGKILL 사용자 확인 대기"
+ },
+ "ended_i01": {
+  "label": "t2r2_i01",
+  "last_epoch": 1350,
+  "hours": 9.5,
+  "stopped": "사용자 결정 09-27 09:1x: 회귀 확인 후 정지하고 영상 확인. SIGTERM 452573, ep_1350 저장",
+  "reached": "접근·회전·붓기 돌파 — 에피소드 최고 기울기 96~98도, diag/ep_amount_on_target 최대 0.530(e900 0.281), diag/ep_amount_err_beads -2.25(e900)",
+  "regression_after_e1100": "bead/in_target 0.140→0.030, bead/spill 0.073→0.265, premature_tilt_rate 0.108→0.329",
+  "user_video_verdict": "세 영상 모두 조준이 안 돼 옆으로 흘린다. 비드가 한 알씩 나오는데 전부 옆으로 샌다. 오른팔은 안정, 왼팔이 많이 떨린다",
+  "measured": {
+   "aim_dist_m_during_pour": 0.123,
+   "ctrl_arm_qd_rms_rcv": 0.46,
+   "ctrl_arm_qd_rms_src": 0.38,
+   "ctrl_flip_rate": 0.49,
+   "action_reg_adr_paid": 0.0,
+   "adr_progress": 0.0,
+   "ep_end_upright_held": 0.0,
+   "pose_meet_y_pour_drift_m": 0.049
+  },
+  "videos": "our_source/pour_bi_runs_0926/videos/t2r2_i01_ep1000_left_top.mp4, t2r2_i01_ep1350_{left_top,right}.mp4"
+ },
+ "stages": {
+  "note": "t2r2_i02l 은 LSTM·horizon 16 fresh 라 epoch 당 샘플이 MLP 의 1/4(65,536). 기대 epoch 은 i01(MLP fresh) 실측을 샘플로 환산해 ×4 로 본다: S0 파지·들기 ~e400, S1 접근 ~e1570, S2 첫 붓기 ~e1960, S4 목표량 ~e2430, 담김 0.1 ~e2610. LSTM 의 표본 효율은 다를 수 있어 참고값이다. 한 단계가 기대의 1.5배를 넘겨도 안 오면 병목으로 보고하고 사용자와 다음 라운드를 정한다.",
+  "S0_lift": {
+   "gate": "task/src_grasped, rcv_grasped >= 0.8, src/rcv_cup_lift >= 0.10 m, diag/grip_src_ref_valid >= 0.8",
+   "expect": "시작 시 이미 충족(유지 확인)"
+  },
+  "S1_converge": {
+   "gate": "task/pour_lip_dist <= 0.10 m",
+   "expect": "+150 epoch (i01: e250→e392)"
+  },
+  "S2_rotate_first_pour": {
+   "gate": "diag/ep_peak_tilt_deg_tgt_mid >= 94, bead/in_target >= 0.01",
+   "expect": "+250 epoch (i01 e518)"
+  },
+  "S3_aim": {
+   "gate": "task/aim_dist <= 0.081 m(2r) 그리고 bead/in_target > bead/spill",
+   "expect": "+450 epoch — 이번 라운드 변경 1의 판정점"
+  },
+  "S4_amount": {
+   "gate": "diag/ep_amount_on_target >= 0.30",
+   "expect": "+500 epoch"
+  },
+  "S5_tremor": {
+   "gate": "diag/ctrl_flip_rate < 0.40, diag/ctrl_arm_qd_rms_rcv <= ctrl_arm_qd_rms_src × 1.1",
+   "expect": "S3 와 함께 — 이번 라운드 변경 2의 판정점"
+  },
+  "S6_upright": {
+   "gate": "diag/ep_end_upright_held >= 0.30 그리고 task/episode_success > 0",
+   "expect": "i04 의 핵심 판정점"
+  },
+  "S5_curriculum": {
+   "gate": "adr/progress 0.25(80%), 0.5(50%), 0.75(20%) 단계 개방",
+   "expect": "성공률 0.3 이상이 유지될 때마다"
+  }
+ },
+ "ended_i02": {
+  "label": "t2r2_i02",
+  "stopped": "사용자 결정 LSTM 교체, SIGTERM 후 종료 훅 멈춤 → SIGKILL(승인)",
+  "note": "MLP i01 ep250 웜, 약 1시간 학습"
+ },
+ "ended_i02l": {
+  "label": "t2r2_i02l",
+  "last_epoch": 926,
+  "hours": 2.2,
+  "stopped": "사용자 결정: S0 병목(파지 0) → 정지 후 수리 재기동. SIGTERM 으로 정상 종료",
+  "cause": "떨림·부호반전 상시 청구가 fresh 초반 유일한 큰 신호 → 총보상 음수, 덜 움직이는 쪽으로 수렴(왼팔 qd 0.44→0.18, 손 닫힘 0.01). LSTM adaptive lr(1.8e-5~2e-4)·critic lr 5e-5 가 겹침",
+  "user_decision": "떨림 청구는 원래대로 ADR 이 켜지면 적용. LSTM 학습률은 MLP 와 같게(linear 3e-4, critic 3e-4)"
+ },
+ "decisions": {
+  "0928_box_keep": "사용자: 소스 박스 넓히지 않고 그대로. i07 ep800 궤적: 추종 정상(간극 src 1.5 cm·rcv 0.6 cm), 목표가 박스 끝(src yaw+45 100%, x 91%, z 87%; rcv pitch 89%, y 91%). 소스는 yaw+41/pitch−44/roll+15 로 좋은 런(roll −92~−159, 방위 142~166)과 반대 방향, 방위 −26"
+ },
+ "ended_i03l": {
+  "label": "t2r2_i03l",
+  "last_epoch": 1186,
+  "hours": 2.34,
+  "stopped": "사용자 결정 '변경해서 재시작', SIGTERM 정상 종료",
+  "result": "파지 0.000(7,770만 스텝), 손-컵 16→10 cm, 손 닫힘 0.026→0.004, entropy 25→10.5, 시작 bounds_loss 4.9~5.7"
+ },
+ "ended_i03m": {
+  "label": "t2r2_i03m",
+  "last_epoch": 3900,
+  "stopped": "사용자 지시 '학습은 미리 종료' → SIGTERM 멈춤 → 승인 SIGKILL",
+  "result": "S0~S2·S4 도달(파지 e199, 접근 e432, 첫 붓기 e461, 94도 e604, 요청량 0.30 e1321). 요청량 ±1 0.38~0.49 고원, 흘림 1%, 세우기 0, 성공 0. 오른손 감쌈 3→1.5지. 영상 ep3800 두 방향 + 궤적 trace64 확보"
+ },
+ "ticks": "09-28 A/B 30분 틱",
+ "ended_i04": "09-28 e4489 에서 i05 로 교체(사용자 승인). ADR 0 이라 목표 전량 고정, 최고 기울기 98.5°(방출각보다 6.6° 낮음), 끝 기준 3.35 알 부족, 세우기·성공 0. 감쌈 3.35지로 회복. 원인: rot_prog 1.4·한계각(약 103°) 상한",
+ "ended_i05": "09-28 e1350 사용자 지시로 종료. 최고 기울기 96~99° 에서 1100 epoch 정체. 궤적: 소스가 손목 j7 로 −y 쪽으로 부어 한계 여유 11°, 리시버가 몸 쪽으로 12.6 cm 끌려옴",
+ "ended_i06": "09-28 e~900 사용자 결정(1,2번)으로 교체. 소스 파지 0.8 e407(i03m e199), 소스 들기 e819 에야 시작. ep600 궤적: 쥔 채 손바닥 z 명령 −0.73 으로 눌러 컵을 테이블에 고정",
+ "ended_i07": "09-28 e~960 사용자 지시로 종료(몸 바깥 기울이기 고착). 들기 e112·파지 e312, 립 12.7 cm, 최고 48°. ep800 궤적: yaw +45 끝 100 %·roll≈0·방위 −26°(좋은 런은 yaw −45·roll −90~−130·방위 142~166)",
+ "ended_i07b": "09-28 e~260 사용자 지시로 종료(정상 SIGTERM). 파지 0·에피소드 90 스텝·낙하 종료 스텝당 0.011 — 컵을 쳐서 떨어뜨려 에피소드를 끝내는 고착. 초반 스텝 보상 −0.17~−0.24(충돌·타손 벌점이 i07 의 수 배), 관절속도 최대 76 rad/s. 간극 상한 끔이 강한 충돌을 허용한 것으로 추정",
+ "ab_test": {
+  "labels": [
+   "t2r2_i07c",
+   "t2r2_i07d"
+  ],
+  "question": "절대(한 번에) vs 증분(나눠서), 나머지 동일",
+  "kill_rule": "사용자 09-28: 도중에 망가지는 학습은 끈다"
+ },
+ "closed": "09-28 사용자 결정: i24 로 돌아가 reward_gen/pour_bi3 iter_00 에서 다시 시작. 기록 ~/rl_ws/our_source/pour_bi2_runs_0928",
+ "renamed_0928": "런 이름 = 보상 iter 번호: t2r2_i08A → t2r2_i07c(absolute), t2r2_i08B → t2r2_i07d(increment). 둘 다 iter_07 보상. 서버 log 폴더·vid_final·콘솔 로그·아카이브 모두 새 이름. 스모크 _aborted_t2r2_i05_nolog, t2r2_i08B-r2 삭제"
+}

@@ -1,0 +1,15 @@
+{
+ "label": "aglt_l_i10m",
+ "host": "arm5080",
+ "num_envs": 2048,
+ "seed": 42,
+ "python_pid": 694929,
+ "checkpoint": "our_source/policy/aglt_r_i10_ep3000_to_l/aglt_r_i10_ep3000_to_l.pth",
+ "mirror_tool": "scripts/tools/mirror_rh_aglt_ckpt.py --selftest (오차 0)",
+ "reward": "iter_10 c1 (sha256 9aadb48a4119)",
+ "overrides": [
+  "env.arm_cmd_delay_steps=[0,0]",
+  "env.hand_cmd_delay_steps=[0,0]"
+ ],
+ "stage": "1_no_delay"
+}

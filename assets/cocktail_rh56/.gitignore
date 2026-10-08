@@ -1,0 +1,4 @@
+# regenerable: python generate_shaker.py / generate_step.py
+archive/
+meshes/real/
+__pycache__/

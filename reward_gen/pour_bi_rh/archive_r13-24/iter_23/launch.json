@@ -1,0 +1,19 @@
+{
+ "label": "t2r_rh3_i23",
+ "iter": 23,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "commit": "8090e55d",
+ "started": 1790360495.0,
+ "started_local": "2026-09-26 03:21",
+ "checkpoint": "~/rl_ws/ckpt_in/pour_bi_rh/grasp_stage_i07r3_ep400.pth (rh2_i07-r3 ep400, grasp stage — TaskSpec REQ-grasp-stage-warmstart)",
+ "reward": "iter_23 c1 (selection.json)",
+ "launched_by": "kuku-ai-55 main",
+ "log": "server ~/rl_ws/hdgp/log/pour_fabric_mimic/t2r_rh3_i23.log",
+ "note": "notes recommended ep250 warm start; needs user TaskSpec exception — asked in RH session. Deterministic eval after tilt signal (>=60°, dir err <=60°).",
+ "server_pids": [
+  3849278
+ ]
+}

@@ -1,0 +1,89 @@
+{
+ "ok": true,
+ "errors": [],
+ "warnings": [],
+ "term_stats": {
+  "alive": {
+   "mean": 1.0,
+   "abs_max": 1.0
+  },
+  "grasp_src": {
+   "mean": 0.32072527209917706,
+   "abs_max": 1.0340968370437622
+  },
+  "grasp_rcv": {
+   "mean": 0.30036355058352154,
+   "abs_max": 0.7434442043304443
+  },
+  "lift_src": {
+   "mean": 0.250715916355451,
+   "abs_max": 1.4986759424209595
+  },
+  "lift_rcv": {
+   "mean": 0.1436178783575694,
+   "abs_max": 0.9957520365715027
+  },
+  "place_rcv": {
+   "mean": 1.1225292439576151e-05,
+   "abs_max": 0.0006764070130884647
+  },
+  "tilt_toward": {
+   "mean": 0.0009868661436485127,
+   "abs_max": 0.16071896255016327
+  },
+  "pour_delta": {
+   "mean": 0.0005807568474362292,
+   "abs_max": 0.7025293707847595
+  },
+  "spill_delta": {
+   "mean": 0.01946149083475272,
+   "abs_max": 1.242661952972412
+  },
+  "ctrl_smooth": {
+   "mean": -0.01699182018637657,
+   "abs_max": 0.02759581245481968
+  },
+  "collision_penalty": {
+   "mean": -2.033744692802429,
+   "abs_max": 3.796827554702759
+  },
+  "foreign_penalty_src": {
+   "mean": -2.274380048116048,
+   "abs_max": 3.8060142993927
+  },
+  "foreign_penalty_rcv": {
+   "mean": -2.1351213455200195,
+   "abs_max": 3.794909715652466
+  },
+  "success_bonus": {
+   "mean": 3.90625,
+   "abs_max": 50.0
+  }
+ },
+ "total_stats": {
+  "mean": -0.5175247887770336,
+  "abs_max": 52.56727981567383
+ },
+ "fields_used": [
+  "actions",
+  "cup_cup_force",
+  "cup_mouth_z",
+  "d_in_target",
+  "d_spill",
+  "rcv_cup_mouth_pos",
+  "rcv_cup_pos",
+  "rcv_cup_spawn_pos",
+  "rcv_grasped",
+  "rcv_hand_foreign_force",
+  "rcv_tips_pos",
+  "src_cup_mouth_pos",
+  "src_cup_pos",
+  "src_cup_spawn_pos",
+  "src_cup_tilt",
+  "src_cup_up",
+  "src_grasped",
+  "src_hand_foreign_force",
+  "src_tips_pos",
+  "success"
+ ]
+}

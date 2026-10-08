@@ -1,0 +1,38 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 원장 16행 PASS(인벨롭 판별 3행 < 90 % 포함). 가설 분할 없음(개선 2항 한 후보)",
+ "decided_by": "결정론 게이트(메인 확인), 기동은 사용자 '학습 진행'",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator(iter_01/prompt.md)",
+   "hypothesis": null,
+   "gate": "PASS",
+   "plan": "iter_00 c1r 대비 바뀐 문장: envelope(첫마디)·below_rim·oppose_q·upright 곱·grasp_hold 가중 재배분 — improvement.md 두 항뿐",
+   "deterministic_check": {
+    "script": "scripts/reward_gen/t2r_aglt.py ledger",
+    "status": "PASS",
+    "rows": {
+     "0_start": 0.031,
+     "1_halfway_open": 0.0852,
+     "2_pregrasp_open": 0.2673,
+     "3_grasped_on_table": 1.2425,
+     "4_lift_5cm": 4.3358,
+     "5_lift_goal_height": 12.0619,
+     "6_at_goal_held": 16.2425,
+     "2p_fist_at_pregrasp": 0.2454,
+     "2t_open_tipping_cup": 0.1233,
+     "3v_vertical_pinch_on_table": 0.6824,
+     "5d_dropped_after_lift": -0.8168,
+     "3r_thumb_on_rim": 1.0,
+     "3f_fingertips_only": 0.9925,
+     "3x_held_cup_tilted20": 1.0644,
+     "0j_start_cup_jitter": 0.031,
+     "0k_start_cup_jitter_x": 0.031
+    }
+   }
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "시작 자세·쉬는 팔 변경(env) — fresh",
+ "sha256": "048c681e6b1781953fbfcb8024c462c1dbbbefa8e6d74cdcd37f5ba0235fad64"
+}

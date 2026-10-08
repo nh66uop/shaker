@@ -1,0 +1,36 @@
+{
+ "selected": "c1r2",
+ "rule": "ingest PASS + 계획 준수(5-5 두 변경 범위) + check_iter01 [1]~[58] — [25]·[31]·[57] 은 은퇴(아래)",
+ "decided_by": "사용자 10-01 '1번이 맞을듯 인벨롭처럼 되려면 컵 입구보다 낮게 잡는 게 맞아'",
+ "retired_checks": {
+  "[25]": "i06 재생 자세(엄지 끝 잡는 높이 +4.7 cm 위)에서 닫기 이득 요구 — 5-5 1 '엄지·네 손가락이 둘러싼 뒤에만 닫기'와 충돌",
+  "[31]": "같은 i06 자세 대 12 cm 편 손 주차 +0.5 요구 — 같은 이유(c1r2 +0.32)",
+  "[57]": "f10 왼손(엄지 입구 위) 자세에서 닫기 이득 요구, 특히 제자리 닫기 ≥ 0 은 T4 가 막는 f00 자세 그 자체"
+ },
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, prompt.md",
+   "hypothesis": "단일(5-5 1·2)",
+   "gate": "PASS",
+   "plan": "5-5 두 변경만",
+   "deterministic_check": "check_c1.txt FAIL: [7][25][31][36][57], T1 D 절벽 −1.35, T4 최소 +0.133"
+  },
+  "c1r": {
+   "source": "kuku-reward-generator 재시도 1, prompt_c1_repair.md(검사 실패 원문)",
+   "hypothesis": "단일",
+   "gate": "PASS",
+   "plan": "5-5 범위",
+   "deterministic_check": "check_c1r.txt FAIL: [1] 46 %, [25][31][57], T1 −0.56, T4 C −0.99(반쯤 쥔 네 손끝만 벽에 닿은 자세 prewrap)"
+  },
+  "c1r2": {
+   "source": "kuku-reward-generator 재시도 2, prompt_c1_repair2.md",
+   "hypothesis": "단일",
+   "gate": "PASS",
+   "plan": "5-5 범위 + _tip_geometry 입구 안 높이 하한(입구−2r→입구−1r) — 생성기가 범위 밖 가능성을 스스로 표시, T1 절벽 해소용 문턱",
+   "deterministic_check": "check_c1r2.txt: [58] T1 최대 하락 −0.032 · T2 통과 · T3 전부 손해(80 % 붓고 80° 유지 +760, 반쯤 쥔 손 접근 +63) · T4 최소 +0.22 · T5 0.000 · [1] 54 % · [7] 다 부은 뒤 회전 0 · [36] 단조. FAIL 은 [25][31][57] 셋(은퇴)"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "fresh — 보상이 새 행동(편 손 접근)을 요구",
+ "sha256_prefix": "c4d6e3d4"
+}

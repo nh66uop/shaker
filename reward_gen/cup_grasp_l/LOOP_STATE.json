@@ -1,0 +1,148 @@
+{
+ "track": "cup_grasp_l",
+ "label_prefix": "cg_l_i",
+ "round": 15,
+ "iter": 15,
+ "label": "cg_l_i15",
+ "status": "stopped",
+ "host": "vision-3090",
+ "gpu": 0,
+ "task": "open-short_l_cup_grasp-lstm",
+ "note": "새 트랙(09-26 사용자 지시 15:0x): dg5f-m-s(openarm_dg5f-m-short-tl) cup grasp, T2R + reward design agent 로 iter_00 부터 재설계, 오른팔 local 5090 · 왼팔 arm4090 병렬, 09-27 08:00 까지 자동 진행. 좌우 보상 바이트 동일, env 만 거울. 이전 이력 = reward_gen/cup_pick_{l,r}_manip, our_source/cup_pick_runs_0926.",
+ "design_brief": "reward_gen/cup_grasp_r/DESIGN_BRIEF.md",
+ "task_file": "scripts/reward_gen/tasks/cup_grasp_ms.txt",
+ "launch": {
+  "launcher": "/home/usr/rl_ws/our_source/fj_t2r_runs/launch_cg_l_i15.sh",
+  "host": "vision-3090"
+ },
+ "judge": "reward_gen/cup_grasp_l/iter_01/hypotheses.md",
+ "deadline": "2026-09-27T08:00",
+ "tick": "30min",
+ "awaiting": null,
+ "pid": 2596060,
+ "started": "2026-09-28T19:08:34",
+ "pid_note": "실제 python PID(kit/python/bin/python3 train.py)",
+ "console": "arm4090:~/rl_ws/our_source/fj_t2r_runs/cg_l_i04.out",
+ "commit": "f62f2f29",
+ "last_tick": {
+  "at": "2026-09-29T10:46:05",
+  "cg_l_i15": "E~815 (resumed) reach 0.85 palm_cm 10.1 digits 0.04 apprFlex 0.11 ent 26.0 bounds 0.3"
+ },
+ "history": [
+  "iter_00 (cg_l_i00, hyp B): round_end at e5460 — thumb+ring pinch, palm 0.0016, grasp 0.08, lift 0 from e2500; right arm on the same reward succeeded",
+  "iter_02 (cg_l_i02, hyp A segment digits): stopped e4342 by user — grasp 0.88 lift 0.01; closing a 3rd digit on the table cost -0.285/step (pre-lift incomes faded by held)"
+ ],
+ "overnight_summary": "iter_01 (hyp A, left only) cg_l_i01: fresh full task. e6035 last 500: grasp 0.94 lift 0.92 far success 0.60 at tol 0.031 palm 0.70, four digits (pinky 0.008, envelope 0.14), ADR 1.0. Run left running.",
+ "user_verdict_curl_final": {
+  "at": "2026-09-27T10:0x",
+  "choice": "joint4_overcurl",
+  "note": "사용자: 핸드의 4번 조인트들이 아직도 과하게 말려있음. 오른손은 자연스럽게 가서 잡아 올리는데 왼손은 자연스럽게 가서 급하게 올림.",
+  "via": "chat after final videos (our_source/videos/cup_grasp)"
+ },
+ "stopped": "2026-09-27T09:31 (right SIGKILL 09:48 after stuck SIGTERM)",
+ "user_decision_left_stall": {
+  "at": "2026-09-27T15:1x",
+  "choice": "keep running (option 1)",
+  "note": "사용자: 하나는 되고 하나는 안되는건 탐색차이라고 봄"
+ },
+ "user_verdict_rim_iter02": {
+  "at": "2026-09-27T17:4x",
+  "choice": "digits_above_rim",
+  "note": "사용자(cg_l_i02 best 영상): 기존 오류 중 하나 — 컵 입구보다 검지와 엄지가 높아서 헛손질",
+  "via": "chat after videos our_source/videos/cup_grasp/cg_l_i02_best_env{11,0}.mp4"
+ },
+ "stopped_at": "2026-09-28T12:12:26",
+ "user_verdict_rim_i04": {
+  "at": "2026-09-27T23:10:02",
+  "choice": "rim approach got worse in iter_04",
+  "note": "user: '04에서 원래 컵 입구로 접근하는걸 막았던걸로 아는데 오히려 심해진것 같아'; measured approach_ok_height 0.00 both arms all run",
+  "via": "chat"
+ },
+ "user_decision_origin_approach": {
+  "at": "2026-09-27T23:35:33",
+  "choice": "approach relative to object origin (s2r FPP gives origin, not shape)",
+  "via": "chat"
+ },
+ "user_decision_hand_zero_open": {
+  "at": "2026-09-28T10:14:03",
+  "choice": "1,2 모두 필요 (reward open tolerance + action 0 = open pose)",
+  "via": "chat"
+ },
+ "user_decision_base_iter02": {
+  "at": "2026-09-28T13:07:21",
+  "choice": "iter_02 base + only tip-press fix",
+  "via": "chat"
+ },
+ "parallel_runs": {
+  "cg_l_i11": {
+   "iter": 11,
+   "host": "vision-3090",
+   "gpu": 0,
+   "pid": 2596060,
+   "launcher": "our_source/fj_t2r_runs/launch_cg_l_i11.sh (vision-3090)",
+   "why": "user 09-28 option 1: iter_11 on left with per-joint flexion log",
+   "status": "stopped 09-28 20:5x by user (vision 내리고 iter_13)"
+  },
+  "cg_l_i12": {
+   "iter": 12,
+   "host": "local",
+   "gpu": 0,
+   "pid": 3150517,
+   "launcher": "our_source/fj_t2r_runs/launch_cg_l_i12.sh",
+   "why": "user 09-28 option 2: strong open-hand approach, left, local",
+   "status": "stopped 09-28 23:1x by user (option 1/1+2 restart)"
+  },
+  "cg_l_i13": {
+   "iter": 13,
+   "host": "vision-3090",
+   "gpu": 0,
+   "pid": 2643671,
+   "launcher": "our_source/fj_t2r_runs/launch_cg_l_i13.sh (vision-3090)",
+   "why": "user 09-28: grasp when near, fresh",
+   "status": "stopped 09-28 23:1x by user (option 1/1+2 restart)"
+  },
+  "cg_l_i13b": {
+   "iter": 13,
+   "host": "vision-3090",
+   "gpu": 0,
+   "pid": 2716253,
+   "launcher": "our_source/fj_t2r_runs/launch_cg_l_i13b.sh (vision-3090)",
+   "why": "user 09-28 option 1 only: iter_13 reward + bounds_loss_coef 0.005",
+   "status": "stopped 09-29 08:0x by user (no lift after 3586 epochs)"
+  },
+  "cg_l_i14": {
+   "iter": 14,
+   "host": "local",
+   "gpu": 0,
+   "pid": 3486499,
+   "launcher": "our_source/fj_t2r_runs/launch_cg_l_i14.sh",
+   "why": "user 09-28 option 1+2: iter_14 reward (gentle open, no target cost) + bounds_loss_coef 0.005",
+   "status": "stopped 09-29 by user; archived our_source/policy/cg_l_i14 (baseline)"
+  },
+  "cg_l_i15": {
+   "iter": 15,
+   "host": "vision-3090",
+   "gpu": 0,
+   "pid": 3036756,
+   "launcher": "our_source/fj_t2r_runs/launch_cg_l_i15_resume.sh (vision-3090)",
+   "why": "user 09-29: wrap lower, both hands iter_15",
+   "status": "stopped 2026-09-29T11:02:59 by user (resume run; ckpts on vision-3090: ep800 + best)",
+   "resume_ckpt": "log/rl_games/open-short/left/cup-grasp/cg_l_i15/nn/last_open-short_l_cup_grasp-lstm_ep_800_rew_241.34717.pth (vision-3090)"
+  }
+ },
+ "video_cg_l_i14_best": {
+  "at": "2026-09-29T08:13:54",
+  "host": "vision-3090 (train host local, differs)",
+  "files": [
+   "our_source/videos/cup_grasp/cg_l_i14_best_env0.mp4",
+   "our_source/videos/cup_grasp/cg_l_i14_best_env5.mp4"
+  ],
+  "tol_eval": 0.112
+ },
+ "user_verdict_grasp_cg_l_i14": {
+  "at": "2026-09-29T08:18:49",
+  "choice": "envelope_grip_ok",
+  "note": "손가락은 컵 윗부분을 위에서 감싸 쥔 모습으로 보이긴 함. 파지 형태는 갈고리가 아니라 내가 원한 인벨롭 그립",
+  "via": "chat, video cg_l_i14_best env0/env5"
+ }
+}

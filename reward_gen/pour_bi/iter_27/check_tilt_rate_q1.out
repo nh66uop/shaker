@@ -1,0 +1,17 @@
+D  rate vs exact dPhi/dt: rel err p50 1.04e+00  p99 1.81e+01  max 2.08e+01
+A1 tilt 0->92->0 at the mouth, 1-8 s                                     max sum +422.237887
+A2 tilt 40->80->40 at the mouth, 0.5-4 s                                 max sum +240.000000
+A3 lean 60 fixed, lip in/out along d (8 cm), 0.5-4 s                     max sum +240.000000
+A4 lean 60 fixed, lip in/out sideways (6 cm), 0.5-4 s                    max sum +231.715643
+A5 lean 60 fixed, lip up/down (10 cm), 0.5-4 s                           max sum +240.000000
+A6 random both-cup Fourier cycles (64 x 3 seeds), 1-4 s                  max sum +240.000000
+A7 fast jiggle at the mouth (4 mm, 0.1 rad), 0.2-0.5 s                   max sum +30.000000
+A7n reward-Nyquist aliasing: jiggle with 0.1 s period, 10-30 Hz harmonics (info) max sum +6.000000
+A10 jiggle 2-10 mm, 1-5 Hz around the spout peak, all pay gates 1        max sum +60.000000
+A8 pay-gate toggles (side_ok, keep, carry) in phase with the rate sign   max sum +240.000000
+A9 settled ramps during the cycle (start 0 / 0.02 / 0.2)                 max sum +47.052747
+B  tilt 0->120->0 with the lip 40 cm away: |tilt_rate| max per step 6.162e-163
+B  lean 70 made far away, carried in and out: sum max +56.085317
+C  lean away / sideways at the mouth: |tilt_rate| max 2.869e+01;  holding 80 deg over the mouth: 1.000e+00
+S  COM 2 cm off the origin (lin_vel = COM velocity), tilt cycles: max sum +211.120951
+RESULT FAIL ['A1 tilt 0->92->0 at the mouth, 1-8 s', 'A2 tilt 40->80->40 at the mouth, 0.5-4 s', 'A3 lean 60 fixed, lip in/out along d (8 cm), 0.5-4 s', 'A4 lean 60 fixed, lip in/out sideways (6 cm), 0.5-4 s', 'A5 lean 60 fixed, lip up/down (10 cm), 0.5-4 s', 'A6 random both-cup Fourier cycles (64 x 3 seeds), 1-4 s', 'A7 fast jiggle at the mouth (4 mm, 0.1 rad), 0.2-0.5 s', 'A10 jiggle 2-10 mm, 1-5 Hz around the spout peak, all pay gates 1', 'A8 pay-gate toggles (side_ok, keep, carry) in phase with the rate sign', 'A9 settled ramps during the cycle (start 0 / 0.02 / 0.2)']

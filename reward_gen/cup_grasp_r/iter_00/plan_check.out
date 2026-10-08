@@ -1,0 +1,3 @@
+== c1 vs iter_20: added ['REACH_FAR', 'REACH_NEAR', 'W_OPEN', 'r_open', 'reach_near'] removed ['OPEN_FLOOR', 'open_mul'] changed ['W_REACH', 'components', 'r_palm_in', 'r_reach', 'reach_far', 'reward']
+== c2 vs iter_20: added ['REACH_FAR', 'REACH_NEAR', 'W_OPEN', 'r_open', 'reach_near'] removed ['OPEN_FLOOR', 'open_mul'] changed ['W_REACH', 'components', 'r_lift', 'r_palm_in', 'r_reach', 'r_rise', 'reach_far', 'reward']
+== c2 vs c1 changed: ['W_OPEN', 'r_lift', 'r_rise']

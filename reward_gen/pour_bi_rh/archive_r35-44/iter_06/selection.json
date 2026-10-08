@@ -1,0 +1,11 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획 준수(notes_iter06 1·2: 볼록 다섯 손가락 인자·손가락별 감싸기 항, 그 밖 iter_05 c1 그대로) + check_iter06 PASS + 원장 골 0",
+ "decided_by": "session 146751a7 (사용자 'b로 진행' 09-29 — iter_06 으로 f06 교체)",
+ "candidates": {"c1": {"source": "kuku-reward-generator, iter_06/prompt.md", "sha256_8": "3e8857cf", "gate": "PASS",
+   "change": "finger_fac = 0.3 + 0.7·part² (part = mean tanh(F_i/0.7), 엄지 외 4); finger_wrap = W 1.2·in_gate·o_grip·pose_ok·mean(max(0.8·exp(−d_i/0.5r), tanh(F_i/0.7)))² (두 팔 합, 항 25)",
+   "deterministic_check": "PASS — [43] 한 손가락 더 +0.95·+2.67·+3.66, [44] 40→20 mm +0.39·20→5 mm +0.67, [41] +7.28/+11.77, [42] +1.84, [38] 0, [36] 5/4 2.09, [1] 회전·배달 54 %",
+   "ledger": "iter_06/ledger_c1.txt — 5 24.67 · 5_4 21.01 · 5_3 18.34 · 5t 17.39 · 6 31.88 · 10 70.79, 골 0"}},
+ "warm_start": "server t2r_rh4_f05/nn/last_open-rh_b_pour_fj-lstm_ep_500_rew_4385.3623.pth (가중치만, epoch 0) — f06 과 같은 시작점",
+ "warm_start_why": "사용자 합의(접근은 다시 배울 필요 없음). f05 e500 = 대칭 접근 완료, 두 손가락 집기·엄지 걸기 습관 전"
+}

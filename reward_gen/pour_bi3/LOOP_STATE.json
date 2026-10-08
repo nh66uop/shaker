@@ -1,0 +1,96 @@
+{
+ "track": "pour_bi3",
+ "iter": 4,
+ "round": 9,
+ "label": "t2r3_i04",
+ "status": "stopped",
+ "host": "server",
+ "lineage": "09-28 사용자: i24 로 돌아가 iter_00 부터 다시. pour_bi2(iter_00~07, t2r2_i00~i08B)는 ~/rl_ws/our_source/pour_bi2_runs_0928 에 보관",
+ "iter_00": "reward_gen/pour_bi/iter_24/compute_reward.py 그대로(생성기 거치지 않음)",
+ "env": "env.preset=i24 (커밋 30d6dc33): fill 성공 판정·목표량 관측 없음(223/293)·비드 30 mm·활성 6~20·조급한 기울기 72/34·i24 박스·absolute EMA 0.25·스텝 상한 0.03",
+ "env_check": "i24 best 재생(현재 코드+preset, 64 env ADR0): 성공 0.688(보관 0.719)·최대 담김 0.906(0.927)·흘림 0.078(0.073)·최고 기울기 123°(123°)",
+ "cancelled": "적정 틸팅·목표량·세우기 과제 취소(사용자 09-28)",
+ "awaiting": "사용자 결정: i04 ep6400 을 기준 정책으로 보관·s2r 후보로 할지",
+ "launch": {
+  "label": "t2r3_i04",
+  "track": "pour_bi3",
+  "iter": 4,
+  "host": "server",
+  "gpu": 0,
+  "num_envs": 4096,
+  "seed": 42,
+  "task": "open-short_b_pour_fab-lstm",
+  "commit": "8977a5b9",
+  "python_pid": 2127324,
+  "checkpoint": "~/rl_ws/hdgp/log/rl_games/open-short/both/pour-fab/t2r3_i03g/nn/last_open-short_b_pour_fab-lstm_ep_400_rew_35456.848_sig05.pth (sigma clamped <= 0.5 per dim; before: thumb opposition 140/619, receiver rotation 1.4-2.2)",
+  "fresh": false,
+  "network": "LSTM 1024 (before_mlp, no concat) -> MLP [512,512], horizon 16, seq 16, minibatch 16384, sigma_init default",
+  "env": "env.preset=i24 + obs_fabric_state + fabric_velocity_ff_scale 0.0 + fabrics_damping_gain 20 + palm_cmd_max_step_rcv 0.005 + thumb_tip_close_floor [0.0,0.45] + wrench_force/torque_scale_max 0",
+  "reward": "pour_bi3 iter_04 (iter_03 + grip_slip both hands)",
+  "agent_extra": "bounds_loss_coef 0.05, entropy_coef 0.0005",
+  "log": "~/logs/t2r/t2r3_i04.log",
+  "started_local": "2026-10-01T00:13:51+09:00",
+  "why": "user: grip needs a reward; sigma runaway under entropy_coef 0.0015 (training samples 50-100 % clipped) -> entropy 0.0005 + sigma reset",
+  "launcher": "~/logs/t2r/launch_t2r_gpu_ckpt.sh",
+  "save_frequency": 200
+ },
+ "ticks": "09-28 30분 틱",
+ "ended_i00": "09-28 e~560 사용자 '재진행'으로 교체. 소스 파지 e125·들기 e92 로 빠름, 리시버는 파지 0.73 이지만 쥔 채 아래로 눌러(z −0.33, 목표 −4 cm) 들지 않음(0.5 cm), 엄지 닫기 0.18, yaw·roll 박스 끝. 원인: i24 보상의 리시버 비대칭(들기 1.5·감쌈 문턱·rcv_still)",
+ "ended_i01": "09-29 e1550 사용자 지시 종료. 리시버 대칭 효과: 리시버 파지 0.84·들기 11 cm·립 7.8~14 cm. 최고 기울기 43~48° 700 epoch 정체, 첫 붓기 없음. 결정론 떨림: 액션 부호반전 0.41~0.46, 관절 qd 고주파 0.24 rad/s(PD 속도 FF 경로)",
+ "ended_i01b": "09-29 e3900 사용자 '진행'(iter_02)으로 종료(SIGTERM 150 s 무응답 → 재확인 후 SIGKILL). 파지 0.89/0.88·최고 기울기 47°·첫 붓기 없음. 원인: 소스 박스 성분 3 +45 끝(i24 −45)·성분 5 미사용(i24 −112°), 소스(오른손) 손바닥 0 N 손끝 파지. 정체 구간 j7 떨림 0.22→0.36 rad/s",
+ "ended_i02": "09-29 e~800 사용자 '다시 시작하자'로 종료. entropy_coef 0.005 가 sigma 팽창: entropy 26.6(e75)→38.4(e624), 소스 들기 16→6 cm, 기울기 26°(i01b 같은 구간 37°), 손바닥 벌점 src −0.19→−0.53(개선 신호 없음)",
+ "ended_i02b": "09-29 e~760 사용자 '750으로 시작'(iter_03 이어 받기)으로 종료(SIGTERM 150 s 무응답 → 재확인 후 SIGKILL). entropy 24~26 유지(0.0015 적정). 벌점형 손바닥 항이 '들기 세금'이 되어 소스 들기 16→6 cm·기울기 22°, 리시버는 손바닥 벌점 −0.53→−0.42 개선",
+ "ended_i02c": "09-29 e~290 사용자 '다시 시작'으로 종료. i02b ep750 이어 받기는 소스 들기 5.2 cm·파지 0.87→0.70·추종 오차 0.09 로 같은 epoch fresh i01b(들기 12 cm·파지 0.83)보다 뒤처짐. 벌점 시기의 낮게 들기 습관과 critic 척도 변화가 따라온 것으로 추정",
+ "launch_policy": "09-29 사용자: pth 저장 200 epoch 마다 → 다음 기동부터 T2R_SAVE_FREQ=200 (t2r3_i03 은 50 으로 기동됨)",
+ "ended_i03": "09-30 e~13170 사용자 '멈추고 이어 받으면 될것 같음'으로 종료(SIGTERM 150 s 무응답 → 재확인 후 SIGKILL). ADR 1.0 에서 학습 성공 0.60·담김 0.67. ep11600 결정론 ADR0: 성공 0.94·담김 0.91·흘림 0.092·기울기 125°. 사용자 영상 판정: 전량 이송·오른손 파지 양호, 왼손 엄지 풀림·왼팔 떨림·비드가 들어오며 왼손 파지가 점점 풀림(컵 3.7 cm 미끄러짐 확인)",
+ "ended_i03f": "10-01 e~3050 재기동(외란 끄기)으로 종료. ADR 0.50 에서 성공 0.41·담김 0.52(i03 같은 ADR 0.56/0.62). ep2600 결정론: j7 0.18(i03 0.41), 리시버 4지 닫힘 0.23·손가락 9~12 N·비드 유입 때 컵 3 cm 미끄러짐",
+ "ended_i03g": "10-01 e~420 사용자 '재기동'(iter_04)으로 종료. 외란 끈 제어로 이어 받은 짧은 런",
+ "ended_i04": "10-01 e~6430 사용자 '학습 종료'. ADR 1.0 에서 성공 0.58~0.62 평탄 약 800 epoch, 담김 0.69, 흘림 0.03~0.04, entropy 5.7, σ 전부 ≤0.56. ep3600 결정론 ADR0: 성공 0.72, 왼팔 j7 0.12(i03 0.41), 왼손 컵 미끄러짐 1.2 cm. 최종 체크포인트 ep6400",
+ "eval_i04_ep6400": {
+  "adr0": {
+   "success": 0.938,
+   "fill": 0.944,
+   "spill": 0.056,
+   "fail": "cup_hit 1, premature 3"
+  },
+  "adr_max": {
+   "success": 0.969,
+   "fill": 0.954,
+   "spill": 0.046,
+   "fail": "cup_hit 1, premature 1"
+  },
+  "rcv_j7_tremor": 0.13,
+  "rcv_slip_cm": "1.4-2.0",
+  "trace": "server t2r3_i04/vid_final/t2r3_i04_ep6400_trace64_adr{0,30}_final.npz"
+ },
+ "det_eval_i04_ep6400": {
+  "at": "2026-10-01T17:20+09:00",
+  "label": "t2r3_i04",
+  "ckpt": "nn/snap_ep_6400_eval.pth (sha256 f7db59a7db2d6561...)",
+  "host": "server GPU0 (학습 호스트)",
+  "n_env": 64,
+  "adr0": {
+   "success": 0.938,
+   "fill": 0.957,
+   "spill": 0.043,
+   "tilt_deg": 125.2,
+   "j7_src_rcv": [
+    0.071,
+    0.15
+   ]
+  },
+  "adr_max": {
+   "success": 0.938,
+   "fill": 0.895,
+   "spill": 0.092,
+   "tilt_deg": 122.6,
+   "j7_src_rcv": [
+    0.101,
+    0.143
+   ]
+  },
+  "repeat_spread": "같은 체크포인트 재실행: ADR0 성공 0.938/0.938·흘림 0.043/0.056, ADR최대 0.938/0.969·흘림 0.092/0.046",
+  "videos": "our_source/videos/pour_bi3/t2r3_i04_ep6400_{front,side_left}.mp4",
+  "traces": "server t2r3_i04/vid_final/t2r3_i04_ep6400_trace64_adr{0,30}_eval.npz"
+ }
+}

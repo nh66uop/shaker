@@ -1,0 +1,29 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획(notes_iter03 'iter_03 에서 할 것' 1~5) 준수 + check_iter03 [1]~[17] PASS",
+ "decided_by": "session 146751a7 결정론 검사, 기동은 사용자 승인 대기",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator (a50bb2a338a6a797e), 응답 원문 그대로 response_c1.md. 가설 분할 없음(단일)",
+   "hypothesis": null,
+   "gate": "ingest ok, errors 0, warnings 0, 항 34",
+   "plan": "iter_02 대비 제거 0, 추가 3(descend_src, descend_rcv, rcv_cross). reach·close·grasp·lift 는 cup_grasp 골격으로 다시 씀(표면거리 20/5cm 두 척도, 곱 인자 없음, 들기 전 수입은 held x 컵 높이로 끔, 들기 품질 곱 없음, 후반 테이블 위 파지 감쇠). 붓기 부분(converge_cups~action_reg_adr)은 iter_02 c5 그대로. 생성기 메모: 소스 들기 중 LIFT_T_RCV(8cm) 위 높이·세금에만 rcv_gate",
+   "deterministic_check": {
+    "script": "iter_03/check_iter03.py",
+    "result": "PASS 17/17",
+    "key": {
+     "14_rcv_outside_vs_centerline_12cm": [1.280, 0.980],
+     "15_approach_25to15_15to6_per_step": [0.195, 0.467],
+     "15_iter02_same": [0.092, 0.151],
+     "16_src_lift_table_3cm_8cm": [7.79, 8.15, 8.34],
+     "17_open_one_two_contact": [2.260, 2.709, 3.727],
+     "13_prespill_cost_over_approach_income_steps": 2.3
+    },
+    "iter02_on_same_script": "FAIL ([14] 1.102 = 1.102)"
+   },
+   "sha256_8": "54553abe"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "보상이 바뀌어 새 행동(빠른 접근·파지·들기)을 요구하므로 fresh (memory warm-start-carries-collapsed-exploration)"
+}

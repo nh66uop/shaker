@@ -1,0 +1,11 @@
+{
+  "selected": "c1",
+  "rule": "gate PASS + plan compliance (AST diff vs iter_13 limited to open-pose measure, open weight, finger-target cost removed) + deterministic check (new L23 gentle open; iter_13 near checks L19-L22, L12, L13a kept) with only lineage failures left",
+  "decided_by": "main session (user 09-28: '하나는 1번 하나는 1, 2번으로 학습' -> this reward = option 2, run with option 1 bounds_loss_coef 0.005 on local)",
+  "candidates": {
+    "c1": {"source": "kuku-reward-generator prompt.md, Hypothesis A", "hypothesis": "A", "gate": "PASS", "plan": "PASS",
+           "deterministic_check": "check_iter14_c1.out: L23 PASS (far slight curl 0.15 loses 1 % of hook loss; iter_13 46 %), L19 PASS (10 cm open-hook 0.209, 7 cm 0.100), L20 PASS (+0.049/+0.068/+0.095), L21/L22/L12/L13a/L16c/L14 PASS; fails L10/L11b/L11c/L15 as the lineage"}
+  },
+  "warm_start": null,
+  "warm_start_why": "fresh, seed 42; agent bounds_loss_coef 0.005 (option 1) applied in the launcher, not in the reward"
+}

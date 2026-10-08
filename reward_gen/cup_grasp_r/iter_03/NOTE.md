@@ -1,0 +1,1 @@
+Mirror of reward_gen/cup_grasp_l/iter_05 (same reward both arms; user 09-27 '생성진행', '생성하면 바로 재기동 진행'). Right history: iter_00 (hyp B) -> iter_01 (= left iter_02) -> iter_02 (= left iter_04, parked 3-4 cm in front, grasp 0.01) -> iter_03 (= left iter_05).

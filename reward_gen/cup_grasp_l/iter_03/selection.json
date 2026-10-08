@@ -1,0 +1,15 @@
+{
+ "selected": "c1",
+ "rule": "k=1 (user 09-27: left reward redesign): gate PASS, AST plan = only fade, pre_hold, stall_gate changed, check_iter03 all PASS incl. L10 (table: 2 digits+thumb 1.254 < +ring 1.358 < +index 1.450; iter_02 fell 0.954 -> 0.670) and L10b (completed grasp: lift 3 cm gain +1.774)",
+ "decided_by": "cup_pick session 227884a1; launch awaits user permission",
+ "left_only": "right arm keeps iter_01 (running, completing the task); user decision 09-27 '일단 왼손은 보상함수 재설계'",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, hypothesis A, verbatim",
+   "hypothesis": "A",
+   "md5": "1a0008cc7a85061a33b3090eb89bf627"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "reward changed -> fresh, seed 42"
+}

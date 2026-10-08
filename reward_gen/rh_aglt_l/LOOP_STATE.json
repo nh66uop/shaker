@@ -1,0 +1,252 @@
+{
+ "track": "rh_aglt_l",
+ "label_prefix": "aglt_l_i",
+ "iter": 9,
+ "round": 9,
+ "label": "aglt_l_i10d",
+ "status": "running",
+ "host": "server",
+ "gpu": 1,
+ "task": "open-rh_l_aglt-lstm",
+ "note": "사용자 10.01 '5090이랑 server gpu1 을 사용해서 진행. 그동안 4090 에서는 iter10 버전으로 실기 진행'. tol·ADR 은 0.10·0 에서 다시",
+ "design_brief": "reward_gen/rh_aglt_r/DESIGN_BRIEF.md",
+ "tools": "scripts/reward_gen/t2r_aglt.py ingest|ledger",
+ "smoke": "rh_aglt_l_smoke0 (vision-3090, 8522baca) 부팅·리셋 통과",
+ "awaiting": null,
+ "killed": {
+  "label": "aglt_l_i00",
+  "why": "사용자 09.29 2차 설정 변경(소환·팔 증분·손 사상·DR) + 반발 1.0 버그로 tip_penalty −0.115/스텝",
+  "pid": 3092141,
+  "how": "SIGTERM"
+ },
+ "pid": 2621859,
+ "pid_note": "실제 python PID(kit/python/bin/python3 train.py)",
+ "started": "2026-10-01T13:2x",
+ "commit": "615b80b0",
+ "console": "server:~/rl_ws/our_source/rh_aglt_runs/aglt_l_i10d.out",
+ "reward_sha256": "0afe307e5661",
+ "user_verdict_grasp_i00b": {
+  "at": "2026-09-29T14:2x",
+  "choice": "approach_ok_not_envelope",
+  "note": "영상 확인: 컵에 가까이는 확실히 잘 감. 왼쪽은 올리긴 했지만 envelope grip 이 아님.",
+  "via": "chat after videos (our_source/videos/rh_aglt)"
+ },
+ "history_i01": {
+  "label": "aglt_l_i01",
+  "stopped": "e406/e210, 사용자 '접근 중 방향 유지 필요' → iter_02",
+  "how": "SIGTERM → 멈춤 → SIGKILL(상시 허락)"
+ },
+ "history_i02": {
+  "label": "aglt_l_i02",
+  "stopped": "e1451/e738 사용자 '학습 내리고 1번' — 파지 0(서툰 첫 파지/머묾 1.49×)"
+ },
+ "user_verdict_grasp_i02": {
+  "at": "2026-09-29T16:1x",
+  "choice": "thumb_overshoot_right_palm_tilt_left",
+  "note": "오른손은 손바닥이 컵 중심과 가깝지만 엄지가 지나쳐서 인벨롭 그립이 안 됨. 왼손은 엄지와 검지 사이에 컵이 있으나 손바닥 면이 기울어져 있음.",
+  "via": "chat after videos (our_source/videos/rh_aglt/aglt_{r,l}_i02_*)"
+ },
+ "history_i03": {
+  "label": "aglt_l_i03",
+  "pid": 3227531,
+  "epochs": "0-1800",
+  "reward_sha256": "2cd733d632a4",
+  "stopped": {
+   "at": "2026-09-29T19:3x",
+   "why": "사용자 '1번 진행': 컵 옆 기울어진 머묾(파지 0, 접촉 0.005 손가락, |n_z| 0.40) → iter_04",
+   "how": "SIGTERM → 종료 멈춤 → SIGKILL(상시 허락)"
+  },
+  "physx_overflow": "e800~ collisionStackSize 넘침 17,439회(접촉 누락)",
+  "video": "our_source/videos/rh_aglt/aglt_l_i03_ep1700_palmside.mp4 (서버 GPU0 재생, 학습 호스트와 다름)"
+ },
+ "stopped_1429": {
+  "at": "2026-09-29T14:2x",
+  "why": "사용자: 학습 종료, 처음 시작 자세가 잘못됨",
+  "how": "SIGTERM → 종료 멈춤 → 사용자 허락 SIGKILL"
+ },
+ "stopped_i04": {
+  "at": "2026-09-30",
+  "why": "사용자 '둘다 종료하고 영상 추출' — 과제 지표 수렴(파지 0.76~0.79 e2820~, 성공 0.34~0.40/에피소드 @tol 2 cm, 엔트로피만 계속 하강)",
+  "how": "SIGTERM → 종료 멈춤 → SIGKILL(상시 허락), VRAM 반환 확인",
+  "last_ckpt": "ep_11400",
+  "epochs": "0-11564"
+ },
+ "user_verdict_shape_l_i04": {
+  "at": "2026-09-30T12:2x",
+  "choice": "tilted_envelope_pinky_off",
+  "note": "왼팔은 손이 약간 기울인 상태로 접근해서 컵을 인벨롭해서 소지가 닿지 않았던 것",
+  "via": "chat after videos our_source/videos/rh_aglt/aglt_l_i04_ep11400_palmside.mp4 (vision-3090 재생)",
+  "log_check": "e10500-11500 쥔 스텝: 엄지·검지·중지·약지 0.98~1.00, 새끼 0.014, 손가락 방향 z −0.39(약 23° 아래), 손바닥-축 2.14 r(인벨롭 실측 1.5 r)"
+ },
+ "stopped_aglt_l_i05": {
+  "at": "2026-09-30T23:0x",
+  "why": "사용자 '이전 학습은 둘다 종료해' — e0-6508: 파지 0.80·들기 0.76, 손끝 파지(네 손가락 첫마디 0)·엄지 대향 0.01, 성공 0.4~0.8 흔들림",
+  "how": "SIGTERM → 1분 뒤 멈춤 → SIGKILL(상시 허락), VRAM 반환 확인",
+  "pid": 3786277
+ },
+ "history_i08": {
+  "label": "aglt_l_i08",
+  "pid": 4057204,
+  "stopped": "2026-09-30T22:31",
+  "why": "사용자 09.30 '실제 제어 로직으로 학습' 1번 — env 에 실기 반응을 넣고 재기동(약 18분 학습)",
+  "how": "SIGTERM, 정상 종료"
+ },
+ "env_change": "9a46c174 실기 반응: PD 목표만 팔 9~12·손 3~5 정책 스텝 지연(에피소드마다), 손 펌웨어 힘 멈춤(지연 없이), 편 손 하한 네 손가락 2~5.5°·엄지 굽힘 1~3°, 리셋 엄지 외전 U(1.40, 1.57). 관측은 명령 목표. 근거 sim2real docs/RH56F1_TUNING_0930.md",
+ "history_i08b": {
+  "label": "aglt_l_i08b",
+  "pid": 4067240,
+  "stopped": "2026-10-01T00:3x",
+  "last_epoch_approx": 1300,
+  "why": "실기 지연을 처음부터 넣자 접근이 약 5배 느림(같은 보상·seed 의 i08 e400 near 0.61 vs i08b 0.00) → 사용자 2단계 결정",
+  "how": "SIGTERM, 정상 종료"
+ },
+ "stage": "2_real_delay",
+ "two_stage_plan": "사용자 10.01 결정 2단계: ① 지연 0(env.arm_cmd_delay_steps=[0,0]·hand_cmd_delay_steps=[0,0] 기동 인자, 편 손 하한·엄지 리셋 유지)으로 파지·들기까지 fresh → ② ① 체크포인트에서 이어 실측 지연 DR(9~12·3~5 스텝, cfg 기본값) 적응. ② 기동은 사용자 허락 뒤.",
+ "history_i08c": {
+  "label": "aglt_l_i08c",
+  "pid": 4119951,
+  "stopped": "2026-10-01T02:3x",
+  "last_epoch_approx": 900,
+  "why": "사용자 10.01 '왼팔도 같이 재시작'(iter_09 관절 여유 인자) — 붕괴 전(e895 쥔 0.49·들림 0.42·j6 한계 0.10)",
+  "how": "SIGTERM 멈춤 → 상시 허락 SIGKILL"
+ },
+ "det_ep3000": {
+  "at": "2026-10-01T07:1x",
+  "label": "aglt_l_i09",
+  "host": "arm4090 (학습 vision-3090 과 다름)",
+  "tol": 0.0387,
+  "no_delay": {
+   "ep_success": 4.9,
+   "all5": 0.96,
+   "zero": 0.01,
+   "lifted_ep": 0.99,
+   "grasp": 0.606,
+   "lift": 0.532,
+   "palm_r": 1.83,
+   "thumb_r_h": [
+    1.3,
+    0.74
+   ],
+   "fingers": [
+    1.0,
+    0.94,
+    0.98,
+    0.21,
+    0.0
+   ],
+   "tilt_med": 7.5
+  },
+  "real_delay": {
+   "ep_success": 3.27,
+   "all5": 0.62,
+   "zero": 0.31,
+   "lifted_ep": 0.71,
+   "grasp": 0.571,
+   "tilt_p90": 20.5
+  },
+  "traces": "our_source/rh_aglt_traces/l_i09_ep3000*.npz",
+  "videos": "our_source/videos/rh_aglt/aglt_l_i09_ep3000_{palm,wide}.mp4"
+ },
+ "history_i09": {
+  "label": "aglt_l_i09",
+  "pid": 4168223,
+  "stopped": "2026-10-01T08:0x",
+  "why": "사용자 10.01 'C만 먼저 지연 있는 상태 정책 필요' — ① 종료, ② 기동",
+  "how": "SIGTERM, 정상 종료"
+ },
+ "warm_start": "our_source/policy/aglt_r_i10_ep4600_to_l (우 ep4600 거울, selftest 0, md5 ce9d5a8b)",
+ "user_verdict_video_i09": {
+  "at": "2026-10-01",
+  "choice": "ok_with_notes",
+  "note": "약지·새끼 안 씀 아쉬움(팁이라도 닿았으면) — 손가락은 나중(안 C). 좌 영상 끝 몸통 프레임 충돌 의심 → 손·컵 최소 7 cm 떨어짐·손 외부 접촉 0(팔 링크 미측정)",
+  "via": "chat"
+ },
+ "parallel_i10": {
+  "label": "aglt_l_i10m",
+  "host": "arm5080",
+  "pid": 694929,
+  "num_envs": 2048,
+  "started": "2026-10-01T10:5x",
+  "commit": "fd422532",
+  "reward": "iter_10 c1 (sha 9aadb48a4119)",
+  "stage": "1_no_delay",
+  "warm_start": "our_source/policy/aglt_r_i10_ep3000_to_l (우 aglt_r_i10 ep3000 거울, selftest 0)",
+  "warm_start_why": "사용자 10.01 '2번' — 같은 보상의 우팔이 쥐기·들기·새끼 접촉(0.65)까지 옴. 거울 이식은 09.30 검증 방식",
+  "first_epochs": "e5~34: 에피소드 성공 4.75~4.90 · 쥔 0.35~0.53 · 새끼 0.51~0.58 · 약지 0 (tol 0.10)",
+  "console": "arm5080:~/rl_ws/our_source/rh_aglt_runs/aglt_l_i10m.out"
+ },
+ "history_i10": {
+  "label": "aglt_l_i10",
+  "pid": 605075,
+  "host": "arm5080",
+  "stopped": "2026-10-01T10:4x",
+  "last_epoch_approx": 3800,
+  "why": "사용자 10.01 '2번' — 컵 앞 머묾(4096 환산 약 1270 epoch 쥔 0.1 %, 엄지 끝 0.94 M·1.56 r) → 중단, 우 i10 거울 이식",
+  "how": "SIGTERM 90 s 무응답 → PID 재확인 후 SIGKILL(상시 허락)"
+ },
+ "stopped_1001": {
+  "at": "2026-10-01T12:1x",
+  "why": "사용자 'A) 진행 후 ARM4090 환경에 정책 옮기기. B 학습들도 학습 종료'",
+  "runs": [
+   {
+    "label": "aglt_l_i09d",
+    "pid": 129811,
+    "host": "vision-3090"
+   },
+   {
+    "label": "aglt_l_i10m",
+    "pid": 694929,
+    "host": "arm5080"
+   }
+  ],
+  "how": "SIGTERM 90 s 무응답 → PID 재확인 후 SIGKILL(상시 허락)",
+  "i10_archive": "our_source/policy/aglt_r_i10_ep4600 · aglt_l_i10m_ep1800"
+ },
+ "det_ep3000_realdelay": {
+  "at": "2026-10-01T12:3x",
+  "label": "aglt_l_i09d",
+  "host": "vision-3090 (학습 호스트)",
+  "n_env": 64,
+  "steps": 1800,
+  "tol": [
+   0.0349,
+   0.02
+  ],
+  "lifted_episodes": [
+   0.98,
+   1.0
+  ],
+  "goal_succ_per_ep": [
+   1.19,
+   0.05
+  ],
+  "zero_succ_ep": [
+   0.23,
+   0.95
+  ],
+  "drop_steps": 0.001,
+  "fingers_contact": [
+   1.0,
+   1.0,
+   0.92,
+   0.85,
+   0.8
+  ],
+  "cup_tilt_med_deg": 18.3,
+  "j6_at_limit": 0.45,
+  "traces": "our_source/rh_aglt_traces/l_i09d_ep3000_tol*.npz",
+  "video": "our_source/videos/rh_aglt/l_i09d_ep3000_palm.mp4"
+ },
+ "deployed_candidate": {
+  "path": "arm4090:~/rl_ws/our_source/policy/aglt_l_i09d_ep3000",
+  "sha256_prefix": "cd3c0aa9670cb7a1",
+  "sent_to": "SIME2REAL 2026-10-01"
+ },
+ "user_verdict_video_i10": {
+  "at": "2026-10-01",
+  "choice": "i10_better",
+  "note": "i10 이 상태가 더 좋음. 약지 하나 안 닿는 것 외에는",
+  "via": "chat"
+ },
+ "reward": "iter_10 c1 (sha 9aadb48a4119)"
+}

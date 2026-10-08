@@ -1,0 +1,13 @@
+{
+ "selected": "hand_edit",
+ "source": "main session edit of iter_01 per user approval 09-29 ('진행') after t2r3_i01b ep3500 trace analysis",
+ "changes": [
+  "palm_lift_src / palm_lift_rcv = -PALM_SLIP_W(1.5) * held * lift_shape * clamp((PALM_MIN(3 N) - palm_force)/PALM_MIN, 0, 1); both hands (09-28 symmetry rule). PALM_SLIP_W/PALM_MIN were defined but unused since i24"
+ ],
+ "why": "t2r3_i01b: source (right) palm 0.00 N, finger sum 13 N, palm-cup 12.7 cm vs i24 7-8 N / 35 N / 10.3 cm. After lift only keep_src (relative to the lift-moment grasp) pays, so a fingertip lift is locked in",
+ "unchanged": "tilt income (linear to ~78 deg, not the 47 deg blocker), all other terms",
+ "deterministic_check": "iter_02/check_iter02.py -> check_iter02.out: i01b src -1.49/step vs i24 -0.12; palm 0 N worst-case lift net income non-decreasing in height",
+ "gate": "validator PASS (validation.json)",
+ "warm_start": null,
+ "warm_start_why": "reward changed + i01b committed to box component 3 at +45 (i24 -45) with entropy 7; fresh with entropy_coef 0.005"
+}

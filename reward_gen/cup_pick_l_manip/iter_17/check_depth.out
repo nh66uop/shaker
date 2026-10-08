@@ -1,0 +1,9 @@
+tip press 5N + inner brush 0.3N (round-16 habit) round16 0.982 -> iter17 0.372
+curl: inner 2N+2N, tip 1N                        round16 1.000 -> iter17 1.000
+curl light: inner 0.5+0.5, tip 0.3               round16 1.000 -> iter17 1.000
+tip only 3N                                      round16 0.500 -> iter17 0.150
+no contact                                       round16 0.000 -> iter17 0.000
+near-zero forces 0.01 each                       round16 0.100 -> iter17 0.100
+bounded [0,1]: True | never above round16: True
+tip->inner shift raises depth: True
+harder tip lowers depth: True

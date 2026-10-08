@@ -1,0 +1,6 @@
+{
+ "track": "rh_aglt_r",
+ "iter": 0,
+ "context": "tasks/rh_aglt_r/reward_context.py",
+ "prompt": "prompt.md"
+}

@@ -1,0 +1,38 @@
+{
+ "label": "t2r_rh4_i02m",
+ "iter": 2,
+ "cycle": 3,
+ "host": "server",
+ "gpu": 1,
+ "num_envs": 4096,
+ "task": "open-rh_b_pour_fab_mimic-lstm",
+ "python_pid": 995853,
+ "network": "관측 → LSTM 1024 → LayerNorm → MLP [512,512] → 명령 24 (before_mlp True, concat 끔) — DG-5F t2r2_i03m 과 동일",
+ "overrides": {
+  "horizon_length": 16,
+  "seq_length": 16,
+  "minibatch_size": 16384,
+  "save_frequency": 50,
+  "lr_schedule": "linear",
+  "learning_rate": "3e-4",
+  "central_value_config.learning_rate": "3e-4",
+  "network.rnn.before_mlp": true,
+  "network.rnn.concat_input": false,
+  "network.rnn.concat_output": false,
+  "config.clip_actions": false,
+  "env.enable_self_collisions": true
+ },
+ "reward": "iter_02 c1 (보상 변경 없음, sha 8b0546ca)",
+ "server_head": "6eae7795 (RH 코드는 08e2164f 와 동일 — diff 는 LOOP_STATE·launch.json 뿐)",
+ "checkpoint": null,
+ "started_local": "2026-09-27 15:35",
+ "launched_by": "session 146751a7, 사용자 '재시작 필요' 09-27",
+ "why": "i02(원래 LSTM yaml)는 관측 원본을 LSTM 입력·출력에 이어 붙여 명령이 포화된 채 시작(bounds_loss 2.27, e399 6.7)했고, 첫 epoch KL 1.17 로 adaptive lr 이 1.2e-5 까지 깎였다(critic 5e-5). 같은 설정을 쓰던 DG-5F 세션이 t2r2_i02l·i03l 에서 같은 증상으로 파지 0 을 겪고 i03m 으로 고쳤다",
+ "first_check": {
+  "bounds_loss_e0_11": "0.0 전부 (i02: 1.07~2.27)",
+  "last_lr": "3e-4 고정 (i02: 1.2e-5~1.3e-4)",
+  "kl_e1": "0.134 (i02: 1.17)",
+  "closure_e11": "src 0.206 · rcv 0.209 (i02: 0.070 · 0.114)"
+ },
+ "log": "server ~/rl_ws/hdgp/log/pour_fabric_mimic/t2r_rh4_i02m.log"
+}

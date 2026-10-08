@@ -1,0 +1,27 @@
+{
+ "selected": "c1r2",
+ "rule": "ingest PASS + 계획 준수(5-8 두 변경) + check_iter04 [1]~[63](은퇴 [25][31][57] 참고) + traj_ledger T1~T5·T4b",
+ "decided_by": "사용자 10-01 '진행'",
+ "tool_fix": "10-01 traj_ledger B 구간 참 궤적이 직선이라 엄지 끝이 컵 축 0.4 r(몸통 안)을 지나갔다 → 컵 둘레 원호로 수정(손끝 최소 1.67 r). c1r 의 T1 B −0.103 은 이 도구 오류였다. iter_03 c1 기준선은 수정 전후 모두 D −0.032 로 같음",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, prompt.md",
+   "gate": "PASS",
+   "deterministic_check": "check_c1.txt FAIL: [62] rcv 칸 +0.028, T1 B −0.093(도구 오류 구간), T4b 0.5>0.7 −0.057(prewrap −0.193)"
+  },
+  "c1r": {
+   "source": "재시도 1, prompt_c1_repair.md",
+   "gate": "PASS",
+   "deterministic_check": "(원호 수정 뒤) check_c1r.txt FAIL: [36] 2 8.65 > 3 8.58, T1 D −0.051"
+  },
+  "c1r2": {
+   "source": "재시도 2, prompt_c1_repair2.md(+원장 2·3 행 정의 원문)",
+   "gate": "PASS",
+   "plan": "5-8 1 편 손 배수만: shut 을 near_w 로 근처 볼록·먼 곳 오목 섞음, 근처 k_open 0.3, wrap 전용 k_wrap, 엄지 대향 부드러운 정규화·몫 0.25",
+   "deterministic_check": "check_c1r2.txt PASS: [62] 칸 최소 +0.058/+0.040 · [63] 칸 +0.13~0.16 · T4b 0.05>0.3 +0.110·0.3>0.5 +0.054·0.5>0.7 +0.069 · T1 −0.028 · T3 전부 손해 · T4 최소 +0.188 · T5 0 · [36] 단조 · [1] 53 %"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "fresh (보상 바뀜)",
+ "sha256_prefix": "07a55378"
+}

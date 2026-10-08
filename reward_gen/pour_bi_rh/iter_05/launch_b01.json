@@ -1,0 +1,21 @@
+{
+ "label": "t2r_rh5_b01",
+ "host": "local5090",
+ "gpu": 0,
+ "python_pid": 1880449,
+ "num_envs": 2048,
+ "commit": "522d93e9",
+ "reward": "iter_05 c1r (sha256 9b6494a9) 그대로 — env 시작 상태만 바뀐 라운드",
+ "start_bank": {
+  "path": "~/rl_ws/our_source/pour_handoff_bank/bank_i10_keep.npz",
+  "md5": "bba2d28b2ca1f59b0e56334599e67b21",
+  "n": 3333,
+  "frac": 1.0,
+  "source": "rh_aglt 우 aglt_r_i10_ep4600(비드 20 넣고 재생) · 좌 aglt_l_i10mir_ep4600 — 각 4096(쥠·들림 ≥ 5 cm·세움·비드 컵 안, 에피소드당 ≤ 4·60 스텝 간격) → 짝(컵 xy ≥ 12 cm·손바닥 ≥ 15 cm) 4096 → pour env 2 s 유지 검사 통과 3333(81 %)",
+  "probe": "유지 액션 120 스텝: 생존 0.96 · 소스 쥠 0.88 · 리시버 쥠 0.97 · 들림 중앙 13 cm · 비드 소스 안 0.999 · 손 목표 grip 구간 밖 0"
+ },
+ "why": "사용자 10.01 '파지는 i10, 붓기는 쥔 다음부터 — 둘로 나누고 100 % 뱅크 · aglt 할 때 비드 넣어 모으기'. f05 는 1724 epoch 동안 엄지 대향 0(파지 미해결)",
+ "overrides": "f05 와 같음(arm_joint_mode absolute, 지연 0, 손 속도 2.1/0.56, 편 손 하한 0.065, phys 종료) + env.start_bank_path·start_bank_frac=1.0, minibatch 8192",
+ "launched_by": "session 146751a7, 사용자 10.01 '둘로 나누고 100% 뱅크로 진행해'",
+ "first_epochs": "ep37: 에피소드 길이 6 → 553 · 소스 쥠 0.58 → 0.85 · 리시버 0.44 → 0.75 · 낙하 0"
+}

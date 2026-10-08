@@ -1,0 +1,21 @@
+{
+ "track": "cup_pick_l_manip",
+ "iter": 7,
+ "task": "Pick up an object with a five-fingered hand and hold it at a goal. This reward is applied to a policy that already reaches the object and closes an envelope grasp around it in most episodes (palm plus thumb, index, middle and pinky in contact), but rarely lifts it. Keep that grasp and teach the lift, the carry to the goal and the hold. The episode still begins with the hand raised away from the object, so reaching and closing must stay worth doing.\n\nWrite the reward so that it works for any object shape: use only the object's actual surface as the environment reports it (palm_surface_dist, link_surface_dist, link_surface_dir, link_surface_normal, palm_surface_dir, palm_surface_normal), the contact forces between the hand and the object (palm_cup_force, link_cup_force), the object pose and velocity, and the goal. Do NOT use ctx.approach_done or ctx.envelope_done, and do not use cup_radius, cup_axis, cup_half_height, or any pose template: there is no stage switch. Every term must be a smooth function of the current state.\n\nReach: pay for bringing the palm close to the object's surface (palm_surface_dist), with the palm facing the surface (palm_normal against palm_surface_normal). This must be worth clearly less than holding the object.\n\nGrasp: the closer the palm and the fingers are to the surface, the more closing the fingers onto it is worth. Pay for contact per digit (thumb, index, middle, ring, pinky; a digit is in contact when any of its links has contact force above about 0.1 N), counted separately and rising steeply with the number of digits: two digits must be worth little, and the fourth and fifth digit must each add clearly more than the first ones. Index, middle and ring contact must be paid at least as much as thumb and pinky. Pay for palm contact. Pay for opposition: the thumb's contact and the fingers' contacts should push on the object from opposite sides (use the surface normals at the nearest points of the touching links; opposing normals mean opposition). A fingertip poke from beside the object, with the palm far from the surface, must earn little.\n\nLift: once the object is held (palm contact plus opposing digits), pay for the height of the object above its spawn height (ctx.cup_pos[:, 2] - ctx.cup_spawn_pos[:, 2]), rising with height, and for upward motion while held. Holding the closed grasp on the table must not by itself be worth staying for; lowering the held object towards the table must be worth less than keeping it still and clearly less than raising it.\n\nGoal: carry the object to ctx.goal_pos and hold it there, upright and still, so the environment keeps counting successes (ctx.goal_dist <= ctx.success_tol for ctx.success_hold_steps steps). Coming to rest at the goal must be worth more than lifting repeatedly; putting the object down again must not re-earn the lift income. You may add a bonus on ctx.success.\n\nThroughout: keep the object upright, do not drop or knock it over, do not push the hand into the table, lift smoothly. Penalise fast arm motion and fast object motion while holding, but keep these small enough that a slow lift is always better than no lift.",
+ "task_file": "/tmp/claude-1000/-home-user-rl-ws/227884a1-6374-45ed-b991-5715273403ab/scratchpad/iter07_task.txt",
+ "variant": "rand_left",
+ "created": "2026-09-22T23:28:52.107077",
+ "context": "openarm.agnostic.tasks.manip_stages.object_context.ObjectRewardContext",
+ "prev_iter": "reward_gen/cup_pick_l_manip/iter_06",
+ "history_iters": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6
+ ],
+ "description": "reward_gen/cup_pick_l_manip/iter_06/observation.md",
+ "feedback": "reward_gen/cup_pick_l_manip/iter_06/improvement.md",
+ "events": null
+}

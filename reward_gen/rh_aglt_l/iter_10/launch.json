@@ -1,0 +1,17 @@
+{
+ "label": "aglt_l_i10",
+ "host": "arm5080",
+ "gpu": 0,
+ "num_envs": 2048,
+ "seed": 42,
+ "python_pid": 605075,
+ "commit": "fd422532",
+ "reward": "iter_10 c1 (sha256 9aadb48a4119)",
+ "overrides": [
+  "env.arm_cmd_delay_steps=[0,0]",
+  "env.hand_cmd_delay_steps=[0,0]"
+ ],
+ "stage": "1_no_delay",
+ "fresh": true,
+ "save_frequency": 200
+}

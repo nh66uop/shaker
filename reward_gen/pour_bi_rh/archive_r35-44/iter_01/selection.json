@@ -1,0 +1,17 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획 준수(notes_iter01: 입구 보상 전체에 손 수평 인자, 그 밖 그대로) + check_iter01 PASS + 원장",
+ "decided_by": "session 146751a7 (사용자 '1번, 2.a, 3번 진행' 09-28)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, iter_01/prompt.md",
+   "sha256_8": "1fd85d66",
+   "gate": "PASS",
+   "change": "level_fac = 0.3 + 0.7·(1 − (손가락 축·컵 축)²) 를 finger_dir·descend 에 곱함(근거리 level 은 그대로)",
+   "deterministic_check": "PASS — [34] 수직 손 재생 자세 mouth_src 0.642→0.250(수평 1.391 대비 0.18), [15] +0.101/+0.165, [24] 수평 +0.051·내림 +0.085, [25] +0.186/+0.372, [28] +0.223, [31] +0.732, [33] 0.028/0.079",
+   "ledger": "iter_00 과 같음(0 0.74 → 5 10.02, 3p·0p·1h 통과)"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "fresh — env(손 범위·힘 멈춤)와 보상이 바뀌었다"
+}

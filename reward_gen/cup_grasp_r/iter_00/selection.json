@@ -1,0 +1,31 @@
+{
+ "selected": "c2",
+ "rule": "gate PASS + AST plan compliance + ledger check_iter00.py all PASS for both; tie broken by the larger stay<advance margin at the lift boundary (L3 table->3 cm: c2 +2.298 vs c1 +1.785), because the m10 failure (grasp 0.81-0.99 without lift for 5000 epochs) is the costliest failure for an overnight fresh run; c1's stronger press penalty (L4 ratio 0.639 vs 0.717) only acts after lift and can be taken up next round",
+ "decided_by": "cup_pick session 227884a1 under the user's overnight automation instruction (09-26 15:0x: T2R + reward design agent, right local 5090, left arm4090, until 09-27 08:00); user to confirm",
+ "base_code": "reward_gen/cup_pick_l_manip/iter_20/compute_reward.py (per RoutingReview: user decision 13:5x applied to iter_20)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, hypothesis A, verbatim",
+   "hypothesis": "A",
+   "gate": "t2r_ms ingest PASS (validation_c1.json)",
+   "plan": "AST vs iter_20: added REACH_FAR/REACH_NEAR/W_OPEN/r_open/reach_near, removed OPEN_FLOOR/open_mul, changed W_REACH/r_reach/reach_far/r_palm_in/reward/components = hypothesis A only",
+   "deterministic_check": "check_iter00.py all PASS: L1 stand +0.750 approach +7.863; L2 0.350<0.603; L3 0.892<2.677<3.550; L4 press/roll 0.639",
+   "md5": "352b2fa7e885a590b8f91df101f62818"
+  },
+  "c2": {
+   "source": "kuku-reward-generator, hypothesis B, verbatim",
+   "hypothesis": "B",
+   "gate": "t2r_ms ingest PASS (validation_c2.json)",
+   "plan": "AST vs c1: only W_OPEN (0.04 vs 0.015), r_lift, r_rise (env_mult removed) = hypothesis B additions",
+   "deterministic_check": "check_iter00.py all PASS: L1 stand +1.138 approach +8.111; L2 0.350<0.603; L3 0.892<3.190<4.299; L4 press/roll 0.717",
+   "md5": "753cfb6c6a467f1676c336b4eeca1079"
+  }
+ },
+ "references": {
+  "iter_10 (learned approach fresh)": "L1 margin +6.82",
+  "iter_20 (m20 parked)": "L1 margin +0.89"
+ },
+ "warm_start": null,
+ "warm_start_why": "reward changed -> fresh (skill rule); no checkpoint",
+ "both_arms": "byte-identical compute_reward.py on cup_grasp_r and cup_grasp_l (user principle: same reward, mirrored env)"
+}

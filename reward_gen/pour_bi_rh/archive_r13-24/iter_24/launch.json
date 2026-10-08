@@ -1,0 +1,18 @@
+{
+ "label": "t2r_rh3_i24",
+ "iter": 24,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "commit": "23c3ce75",
+ "started": 1790379886.5531015,
+ "started_local": "2026-09-26 08:44",
+ "checkpoint": "~/rl_ws/ckpt_in/pour_bi_rh/grasp_stage_i07r3_ep400.pth (rh2_i07-r3 ep400, grasp stage — TaskSpec REQ-grasp-stage-warmstart)",
+ "reward": "iter_24 c1 (selection.json)",
+ "launched_by": "kuku-ai-55 main",
+ "log": "server ~/rl_ws/hdgp/log/pour_fabric_mimic/t2r_rh3_i24.log",
+ "launcher": "scripts/experiments/pour_t2r_rh_train.sh (CUDA_VISIBLE_DEVICES=0, RUN_LABEL=t2r_rh3_i24)",
+ "watch": "step cache sanity early (aim_lip/place_rcv nonzero and not huge in the first epochs; diag_open_rate from differences); first_out not latched -> tilt-back pump risk (+25/cycle) to watch; grasp finger count n_on; det eval every 100 epochs after the tilt signal",
+ "python_pid": 4064228
+}

@@ -1,0 +1,47 @@
+{
+ "selected": "c1",
+ "candidates": {
+  "c1": {
+   "source": "claude kuku-reward-generator (full prompt.md, rendered by t2r_ms.py reflect with the six surface fields)",
+   "gate": "PASS (t2r_ms ingest via isaaclab.sh python, cpu+cuda dry run, no warnings)",
+   "plan": "conforms: iter_18/improvement.md plans NO reward change and c1 keeps iter_18 whole. compute_reward_c1.py is byte-identical to iter_18/compute_reward.py (md5 743ca5d1 = iter_18 c1r), AST identical; validation_c1.json identical to iter_18/validation.json (md5 6f9473fe). Prose matches the plan: y_out is an environment bound (not named in the reward), no force floor, no speed-charge increase",
+   "deterministic_check": {
+    "script": "check_iter19.py (float64, CPU; reuses iter_18/check_curl.py make_ctx/layer_a/sizing/r17_trade/table_band/cycle)",
+    "result": "no changed term; every iter_18 c1r property reproduces exactly (tip press env_mult 0.586, curl 1.000, tip only 0.471; harder tip rise <= 1.4e-12; env_mult [0.10, 1.00]; permutation 2e-16; digit removed never raises env_mult; sizing today 0.690, +1 curled digit +0.083; table band 0 / 0.15 / 0.30 at 2 / 1.5 / <=1 cm; symmetric 0.1 m/s loop -13.66 / -5.30). max |iter_19 - iter_18| over the reward and all 26 terms on the validator's fake ObjectRewardContext (4 seeds x 256) = 0.0",
+    "rate_terms": "no rate term added or changed. Extended probe of the UNCHANGED goal_progress + pen_drift with legs at different speeds (iter_18 ran only 0.1 m/s both ways): slow in / fast out loops sum > 0 in 31/60 (max +52.8 on 0.13<->0.25 m, in 0.02 m/s, out 0.8 m/s), because both tanh terms saturate and the rate charge per metre of receding at 0.13 m falls 830 -> 105 from 0.05 to 0.8 m/s. The whole reward never beats staying still at the loop's inner point (0/60; margin -49 to -1198 per loop: near_goal and the still factor of the 10/step hold dominate). Same probe on lift_rise + pen_descend + pen_setdown below the 0.10 m latch: > 0 in 11/24 (max +8.2), whole reward beats staying at the loop top in 1/24 (+0.90 over 35 steps, 0.03<->0.08 m, up 0.10, down 0.60 m/s; continuing the lift past the latch pays more)"
+   },
+   "residual_risk": [
+    "pre-existing (iter_15+), not introduced here: the two rate terms are speed-saturated, so a fast excursion away from the goal is charged less per metre than a slow one. Not farmable as a whole reward, but it matches the unexplained fast (0.6-0.8 m/s) moves away from an inside goal that end in y_out (15/27 e800, 19/41 e1250). Any fix (e.g. a linear-in-speed signed progress/drift) is a reward change outside this round's plan and must not become a speed-charge increase (improvement.md item 3); left for the next round's diagnosis",
+    "palm contact still paid inside held and hold_grip (iter_18 residual): a tip press that buys palm contact still earns +8.5 % hold, a full curl of that digit +12.8 %"
+   ]
+  },
+  "q1": {
+   "source": "local qwen (condensed prompt_qwen.md)",
+   "gate": "FAIL SyntaxError line 248 (the comment line '# open-pose factor, rule (c): ...' lost its '#')",
+   "rejected": "gate FAIL. Apart from that one line it is iter_18 byte for byte, so nothing is lost by rejecting it"
+  },
+  "q2": {
+   "source": "local qwen (condensed prompt_qwen.md)",
+   "gate": "PASS (cpu+cuda dry run)",
+   "plan": "conforms: byte-identical to iter_18/compute_reward.py and to c1 (md5 743ca5d1)",
+   "rejected": "not rejected on substance: same file as c1. c1 is recorded as the selection because its response carries the diagnosis and the plan check; q2's response is the code block only"
+  },
+  "q3": {
+   "source": "local qwen (condensed prompt_qwen.md)",
+   "gate": "PASS (cpu+cuda dry run)",
+   "plan": "not identical by AST: one node differs, the compute_reward parameter annotation \"RewardContext\" (string) -> RewardContext (name). AST without annotations is identical; behaviour identical",
+   "rejected": "interface change with no benefit: the unquoted annotation is evaluated when the file is exec'd, so the file now needs RewardContext in its namespace. The env loader (grasp_fj_t2r/t2r/loader.py:39) and the validator inject it, but a bare exec does not: NameError in iter_18/check_curl.py-style loaders and in the fixed-tol diagnosis wrapper m18_term/tools/eval_term_reasons.py:103-104 (ns has only _DIAG and __name__). Plan asks for iter_18 identical by AST"
+  }
+ },
+ "rule": "gate PASS AND plan conformance (iter_18/improvement.md: no reward change, so iter_18/compute_reward.py identical by AST; no per-finger term, symmetric, no angle, no absolute force target, no speed/control relaxation, iter_16/18 structure kept) AND deterministic property check (iter_18 properties reproduce; no changed term; closed cycles of any CHANGED rate term <= 0 - none changed)",
+ "decided_by": "gate review subagent (recommendation; main confirms)",
+ "at": "2026-09-26T09:02",
+ "warm_start": "ckpt_in/cup_pick/cp_l_m18_e800.pth",
+ "warm_start_why": "best fixed-tol checkpoint (success 0.842, e1000 0.785 z+2.3; goal3 0.660; index inner share 0.338), trained under this exact reward, so the critic's value scale already matches (no reward-scale shock as in m18, whose critic came from iter_16). e1250 regressed (0.785, z-2.3 vs e800; grasp_q -0.072 z-4.0); e1000 predates the curl factor",
+ "notes": [
+  "a round-19 launch with this reward AND the unchanged environment is the m18 run continued from its peak: e800 -> e1250 under exactly this reward and bound already fell 0.842 -> 0.785 with after-lift y_out 0.105 -> 0.160. The only change the diagnosis supports is the left-arm object_out_y bound (y <= 0.25, the right-arm value; cups spawn to y 0.30, goals to 0.35, and at tol 0.0911 any goal above y 0.159 has part of its success region outside). That is user decision d_cup_l_out_y and is NOT assumed here; after-lift y_out share of all episodes: e800 0.105, e1250 0.160 (e1000 0.051), i.e. 30 % / 45 % of terminations (0.348 / 0.359)",
+  "user decision d_cup_l_curl_m18 (video verdict on whether e800 curls) is also pending; if it is 'still fingertip', the next reward candidates are CURL_FULL_SHARE / CURL_FLOOR, not this round",
+  "iter_19 prompt.md / prompt_qwen.md now list the six surface fields (render defect of iter_17/18 fixed)",
+  "launch: keep m18's tol_start (resume otherwise restarts success_tol at 0.1125); no launch or commit done by this review"
+ ]
+}

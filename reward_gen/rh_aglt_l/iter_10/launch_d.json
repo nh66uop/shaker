@@ -1,0 +1,12 @@
+{
+ "label": "aglt_l_i10d",
+ "host": "server",
+ "gpu": 1,
+ "num_envs": 4096,
+ "seed": 42,
+ "python_pid": 2621859,
+ "checkpoint": "our_source/policy/aglt_r_i10_ep4600_to_l (우 ep4600 거울, selftest 0, md5 ce9d5a8b)",
+ "reward": "iter_10 c1 (sha256 9aadb48a4119)",
+ "stage": "2_real_delay",
+ "delay": "env 기본값 arm 9~12 · hand 3~5 스텝"
+}

@@ -1,0 +1,1 @@
+Mirror of reward_gen/cup_grasp_l/iter_15 (byte-identical reward; env mirrored) = left iter_14 (baseline, user 09-29) + grasp/hold/transport incomes x palm_level (palm centre level with the object origin along the axis). Right lineage skips left iter_12-14 (not run on the right); starts fresh here with bounds_loss_coef 0.005.

@@ -1,0 +1,24 @@
+{
+ "selected": "c1r",
+ "rule": "ingest PASS + 계획 준수(5-10 한 가설·두 변경) + check_iter06 [1]~[66] + traj_ledger T1~T5·T4b",
+ "decided_by": "사용자 10-01 'b01 종료하고 iter_06 진행'",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, prompt.md (단위 고친 판)",
+   "hypothesis": "단일(5-10)",
+   "gate": "PASS",
+   "plan": "FAIL — 계획 밖 두 줄: grasp post 0.5+part³ → 0.5+0.5·part², cup_clash 계수 1.0 → 0.5 (생성기가 이전 함수를 흐린 렌더로 옮겨 적음, 보고 '주의' 절)"
+  },
+  "c1r": {
+   "source": "세션이 c1 의 계획 밖 두 줄(post, cup_clash)만 iter_05 c1r 원문으로 되돌림, 나머지 c1 원문",
+   "hypothesis": "단일(5-10)",
+   "gate": "PASS",
+   "plan": "PASS — AST 차이는 소스 lift_target(clear_src → LIFT_RCV 3r) · 조준(W_AIM 2.5→6, 선형 xy 20r, xy:hz 0.7:0.3) · 관절 여유(_limit_cost_hard 문턱 0.12 ×2.5 + 넓은 비용 0.8→0.3) 뿐",
+   "deterministic_check": "check_c1r.txt PASS: [65] 칸 최소 +0.137(기준선 iter_05 c1r +0.058) · 22 cm 더 들기 −1.08(기준선 +0.47) · [66] 한계 −1.709(기준선 −0.551) · 붓는 상태 여유 0.1 −0.173(기준선 −0.276) · T1 최대 하락 −0.030 · T4 +0.188 · T4b +0.110/+0.078/+0.069 · T5 0"
+  }
+ },
+ "baseline": "iter_06/check_iter05c1r_baseline.txt — iter_05 c1r 은 [65]·[66] FAIL(b01 재현)",
+ "warm_start": null,
+ "warm_start_why": "fresh (보상 바뀜), 인계 뱅크 100 % 시작",
+ "sha256_prefix": "d63b2ff4"
+}

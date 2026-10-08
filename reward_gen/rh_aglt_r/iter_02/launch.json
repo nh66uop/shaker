@@ -1,0 +1,12 @@
+{
+ "label": "aglt_r_i02",
+ "host": "local-5090",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-rh_r_aglt-lstm",
+ "python_pid": 1081784,
+ "commit": "d415a0d2",
+ "reward": "iter_02 c1 (sha256 0e9c072f935b)",
+ "checkpoint": null
+}

@@ -1,0 +1,24 @@
+{
+ "selected": "c1r",
+ "rule": "ingest PASS + 계획 준수(notes_iter07 1~4: 손끝 벽 바깥 기준·입구 안 접촉 제외·옆 접근(높이 기울기·높은 손바닥 근처 수입 감쇠)·손 방향(로컬 +z 수평·손가락 축 수평), 그 밖 iter_06 c1 그대로) + check_iter07 PASS + 원장 골 0",
+ "decided_by": "session 146751a7 (사용자 'B로 진행'·'옆으로 접근'·'로컬 +z 중력과 90도, 충분히 낮게 내려간 뒤 접근' 09-29; 시작점 fresh 사용자 선택)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, iter_07/prompt.md (가설 id 없음, 할 것 1~7 한 후보)",
+   "sha256_8": "d9727c64",
+   "gate": "PASS",
+   "plan": "준수",
+   "deterministic_check": "check_c1.txt FAIL — [23] 인벨롭 축 손 먼저 내림−대각선 +14.61 < 15 (iter_06 +20.58)"
+  },
+  "c1r": {
+   "source": "kuku-reward-generator, iter_07/prompt_c1_repair.md (Review items = check_c1 [23] 줄 원문). 변경: LOW_W 0.4→0.5 한 줄",
+   "sha256_8": "7c26b0e2",
+   "gate": "PASS",
+   "plan": "준수(AST 차이는 LOW_W 상수와 주석뿐)",
+   "deterministic_check": "check_c1r.txt PASS — [23] 인벨롭 축 손 +16.61, [45] +25.07, [46] 놓음 +2.83·다시 쥠 +4.69(골 없음), [47] 내림 +1.27/+1.29·수평까지 +2.84/+2.74, [48] 칸별 +0.29~+0.68, [49] 손가락 수평 +1.58/+1.45·법선 수평 대 17도 굴림 양수; ledger_c1r.txt 골 0"
+  }
+ },
+ "check_fixture_change": "check_iter07 make_ctx 손끝 고리를 컵 축 수직면으로(이전 월드 수평면은 70도 이상 기울면 손끝이 컵 몸통 안 0.34 r). 세운 컵은 이전과 같음. [23] 에 인벨롭 축 손 경로 판정 추가(손가락 아래 손 판정은 이전 기준 그대로)",
+ "warm_start": null,
+ "warm_start_why": "f05 ep500 도 위에서 덮는 접근(진입 순간 손바닥 입구 +4.8~+7.1 cm, 쥐기 전 오른손 끝 입구 위 0.44) — 사용자 선택 fresh"
+}

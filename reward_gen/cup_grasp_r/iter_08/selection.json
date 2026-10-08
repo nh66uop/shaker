@@ -1,0 +1,19 @@
+{
+ "selected": "c1",
+ "md5": "798d81c06da08bc58becc5385455091d",
+ "base": "iter_09 (= iter_02 + per-digit wrap envelope)",
+ "rule": "gate PASS + plan (AST vs iter_09: reach & palm_in origin-relative + their constants only) + check_iter10",
+ "decided_by": "main session; user 09-28 '종료하고 원점 기준 접근만 추가해서 보상 생성'",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator prompt.md, Hypothesis A",
+   "hypothesis": "A",
+   "gate": "PASS",
+   "plan": "PASS",
+   "deterministic_check": "check_iter10_c1.out: L15 side 0.19-0.21 vs above 0.09-0.11 (iter_09: above > side); L15b monotone 0.31 m -> side; L12/L13/L18 PASS; fails L10/L11b/L11c/L14 identical to iter_02/09"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "fresh, seed 42",
+ "at": "2026-09-28T16:04:15"
+}

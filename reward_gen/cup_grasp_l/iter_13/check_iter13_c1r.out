@@ -1,0 +1,31 @@
+== c1r
+  PASS  L1 return: approach-and-touch beats standing (curl 0.35): stand +5.603 approach +18.911 | one-step stand +0.0884 closer-moving +0.0661
+  PASS  L2 flat open hand on wall < one digit contact: flat +0.6603 one-digit +1.0341
+  PASS  L3 4-digit grasp: table < 3 cm < 8 cm: table +1.1955 3cm +3.3350 8cm +4.3606
+  PASS  L4 at goal: fingertip press < rolled: press +4.5742 roll +9.0698 ratio 0.504
+  PASS  L6 pinch < pinch+palm seated (object nudged): pinch +0.7853 seated +1.3945 margin +0.6092
+  PASS  L6b pinch+third digit < pinch+palm seated: third digit +0.7978 seated +1.3945
+  PASS  L7 at goal: segment wrap > fingertip press: press +4.5477 wrap +9.8547 ratio 0.461 (need < 0.87)
+  PASS  L8 tip-only -> segments near -> segments touching rises: far +0.9510 near +0.9999 touching +1.2962
+  PASS  L9 segments touching: table < 3 cm up: table +1.2962 3cm +3.3408
+  FAIL  L10 table: +ring and +ring+index raise reward: 2+thumb +1.2477 +ring +0.9699 +index +1.0048
+  PASS  L10b completed grasp: lift 3 cm >> stay (gain > 0.5): table +1.0048 lifted +2.6685 gain +1.6637
+  PASS  L11 above rim: close credit <= 30 % of side wall: close wall 0.0586 rim 0.0116
+  FAIL  L11b above rim: segment pull <= 30 % of side wall: pull wall 0.0240 rim 0.0240 | total wall +1.0686 rim +1.0039
+  FAIL  L11c touching on rim: segment pull <= 30 % of side wall: pull wall 0.0279 rim 0.0279
+  PASS  L12 park < closer < 1 touch < 2 touch < +palm (progress 0.3): +0.5619 +0.6144 +0.6890 +0.8877 +1.4491
+  PASS  L12 park < closer < 1 touch < 2 touch < +palm (progress 0.8): +0.5364 +0.5759 +0.6180 +0.7383 +1.1032
+  PASS  L13a first-touch force sweep monotone and smooth: min step +0.00000 max |step| 0.00253 0N +0.5759 1N +0.6181
+  PASS  L13b approach sweep 5 -> 1.2 cm monotone and smooth: min step +0.00053 max |step| 0.00258 5cm +0.4860 1.2cm +0.5872
+  PASS  L14 air flexion does not raise palm seating: open 0.0329 curled 0.0329
+  PASS  L18 held at goal: 3 digits (index+middle off) <= 0.80 x five wrapped: five +9.855 three +4.499 ratio 0.46
+  PASS  L18b held at goal: index+middle pad-press <= 0.75 x five wrapped: five +9.855 pad +7.244 ratio 0.74
+  FAIL  L15 same origin distance: beside origin > 1.3 x above object: 12cm side +0.451 above +0.369 | 9cm side +0.484 above +0.397 | 8cm side +0.497 above +0.409
+  PASS  L15b approach 0.31 m -> side of origin rises monotonically: min step +0.00066 start +0.337 end +0.533
+  PASS  L19 no contact: open hand >= measured hook + 0.08 at 10/7 cm: 10cm open +0.429 hook +0.094 | 7cm open +0.456 hook +0.294
+  PASS  L16c open approach to 1 cm then curl: monotone: min step +0.00064 start +0.4670 at1cm +0.5318 curled +0.6622
+  PASS  L20 near (5/4/3 cm) curling towards the wall never costs, pays at <=4 cm: 5cm min step +0.00054 open +0.478 curled +0.527 | 4cm min step +0.00075 open +0.490 curled +0.558 | 3cm min step +0.00105 open +0.503 curled +0.598
+  PASS  L21 far air flexion (15 cm) does not pay: open +0.3944 curled +0.0890
+  PASS  L22 open approach to 3 cm then curl: monotone: min step +0.00105 start +0.4290 at3cm +0.5033 curled +0.5980
+  PASS  L5 finite on fake contexts: range -1.601..+25.743
+SUMMARY {'c1r': False}

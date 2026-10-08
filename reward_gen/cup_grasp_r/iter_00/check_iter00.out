@@ -1,0 +1,25 @@
+== c1
+  PASS  L1 return: approach-and-touch beats standing (curl 0.35): stand +0.750 approach +7.863 | one-step stand +0.0118 closer-moving -0.0194
+  PASS  L2 flat open hand on wall < one digit contact: flat +0.3497 one-digit +0.6033
+  PASS  L3 4-digit grasp: table < 3 cm < 8 cm: table +0.8918 3cm +2.6772 8cm +3.5503
+  PASS  L4 at goal: fingertip press < rolled: press +6.2314 roll +9.7536 ratio 0.639
+  PASS  L5 finite on fake contexts: range -2.242..+30.210
+== c2
+  PASS  L1 return: approach-and-touch beats standing (curl 0.35): stand +1.138 approach +8.111 | one-step stand +0.0180 closer-moving -0.0133
+  PASS  L2 flat open hand on wall < one digit contact: flat +0.3497 one-digit +0.6033
+  PASS  L3 4-digit grasp: table < 3 cm < 8 cm: table +0.8918 3cm +3.1896 8cm +4.2994
+  PASS  L4 at goal: fingertip press < rolled: press +7.0988 roll +9.8987 ratio 0.717
+  PASS  L5 finite on fake contexts: range -2.242..+30.211
+== ref10
+  PASS  L1 return: approach-and-touch beats standing (curl 0.35): stand +0.517 approach +7.341 | one-step stand +0.0081 closer-moving -0.0231
+  PASS  L2 flat open hand on wall < one digit contact: flat +0.2306 one-digit +0.5229
+  PASS  L3 4-digit grasp: table < 3 cm < 8 cm: table +3.8790 3cm +4.2183 8cm +4.2779
+  PASS  L4 at goal: fingertip press < rolled: press +10.5528 roll +10.5995 ratio 0.996
+  PASS  L5 finite on fake contexts: range -7.086..+62.626
+== ref20
+  PASS  L1 return: approach-and-touch beats standing (curl 0.35): stand +0.194 approach +1.084 | one-step stand +0.0031 closer-moving -0.0320
+  PASS  L2 flat open hand on wall < one digit contact: flat +0.0978 one-digit +0.2909
+  PASS  L3 4-digit grasp: table < 3 cm < 8 cm: table +0.8918 3cm +2.6772 8cm +3.5503
+  PASS  L4 at goal: fingertip press < rolled: press +6.2314 roll +9.7536 ratio 0.639
+  PASS  L5 finite on fake contexts: range -2.255..+30.121
+SUMMARY {'c1': True, 'c2': True, 'ref10': True, 'ref20': True}

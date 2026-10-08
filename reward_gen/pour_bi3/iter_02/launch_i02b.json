@@ -1,0 +1,21 @@
+{
+ "label": "t2r3_i02b",
+ "track": "pour_bi3",
+ "iter": 2,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-short_b_pour_fab-lstm",
+ "commit": "32f5228e (contains 58224d92; later commits touch only reward_gen/pour_bi_rh)",
+ "python_pid": 3561031,
+ "checkpoint": null,
+ "fresh": true,
+ "network": "LSTM 1024 (before_mlp, no concat) -> MLP [512,512], horizon 16, seq 16, minibatch 16384, sigma_init default",
+ "env": "env.preset=i24 + obs_fabric_state (237/307) + fabric_velocity_ff_scale 0.0 + fabrics_damping_gain 20",
+ "reward": "pour_bi3 iter_02 (iter_01 + palm_lift_src/rcv)",
+ "agent_extra": "bounds_loss_coef 0.05, entropy_coef 0.0015",
+ "log": "~/logs/t2r/t2r3_i02b.log",
+ "started_local": "2026-09-29T10:55:51+09:00",
+ "why": "t2r3_i02 (entropy_coef 0.005) sigma inflation 26.6->38.4 by e624; 0.0015 = linear interpolation of early entropy drift (0.0005: -0.005/epoch, 0.005: +0.02/epoch)"
+}

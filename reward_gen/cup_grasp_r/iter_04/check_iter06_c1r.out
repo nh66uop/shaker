@@ -1,0 +1,24 @@
+== c1r
+  PASS  L1 return: approach-and-touch beats standing (curl 0.35): stand +3.419 approach +10.558 | one-step stand +0.0539 closer-moving +0.0344
+  PASS  L2 flat open hand on wall < one digit contact: flat +0.3784 one-digit +0.7507
+  PASS  L3 4-digit grasp: table < 3 cm < 8 cm: table +1.6488 3cm +3.4505 8cm +4.2966
+  PASS  L4 at goal: fingertip press < rolled: press +6.5326 roll +9.7786 ratio 0.668
+  PASS  L6 pinch < pinch+palm seated (object nudged): pinch +0.4875 seated +1.1006 margin +0.6131
+  PASS  L6b pinch+third digit < pinch+palm seated: third digit +0.5611 seated +1.1006
+  PASS  L7 at goal: segment wrap > fingertip press: press +6.5061 wrap +10.0383 ratio 0.648 (need < 0.87)
+  PASS  L8 tip-only -> segments near -> segments touching rises: far +1.4043 near +1.4532 touching +1.7495
+  PASS  L9 segments touching: table < 3 cm up: table +1.7495 3cm +3.4472
+  PASS  L10 table: +ring and +ring+index raise reward: 2+thumb +1.2831 +ring +1.3856 +index +1.4878
+  PASS  L10b completed grasp: lift 3 cm >> stay (gain > 0.5): table +1.4878 lifted +3.2375 gain +1.7498
+  FAIL  L11 above rim: close credit <= 30 % of side wall: close wall 0.0540 rim 0.0292
+  PASS  L11b above rim: segment pull <= 30 % of side wall: pull wall 0.0240 rim 0.0012 | total wall +0.7869 rim +0.7215
+  PASS  L11c touching on rim: segment pull <= 30 % of side wall: pull wall 0.0279 rim 0.0014
+  PASS  L12 park < closer < 1 touch < 2 touch < +palm (progress 0.3): +0.2393 +0.3096 +0.3894 +0.5933 +1.1759
+  PASS  L12 park < closer < 1 touch < 2 touch < +palm (progress 0.8): +0.2298 +0.2796 +0.3269 +0.4525 +0.8300
+  PASS  L13a first-touch force sweep monotone and smooth: min step +0.00000 max |step| 0.00287 0N +0.2796 1N +0.3270
+  PASS  L13b approach sweep 5 -> 1.2 cm monotone and smooth: min step +0.00050 max |step| 0.00188 5cm +0.1990 1.2cm +0.3041
+  PASS  L14 air flexion does not raise palm seating: open 0.0509 curled 0.0509
+  PASS  L15 same origin distance: beside origin > 1.3 x above object: 12cm side +0.207 above +0.093 | 9cm side +0.220 above +0.102 | 8cm side +0.225 above +0.115
+  PASS  L15b approach 0.31 m -> side of origin rises monotonically: min step +0.00078 start +0.084 end +0.249
+  PASS  L5 finite on fake contexts: range -1.795..+30.835
+SUMMARY {'c1r': False}

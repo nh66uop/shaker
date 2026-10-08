@@ -1,0 +1,13 @@
+{
+ "label": "t2r_i19",
+ "num_envs": 4096,
+ "gpu": 1,
+ "commit": "7a21ea34",
+ "server_pids": [
+  2270699,
+  2270706
+ ],
+ "started": 1789944757.821661,
+ "warm_start": "log/rl_games/open-short/both/pour-fab/t2r_i18/nn/last_open-short_b_pour_fab_ep_2500_rew_36408.105.pth",
+ "note": "iter_19: action-rate x10, act_flip, fill-tracking tilt peak (theta_rel+0.10), overtilt, flow cap 0.02 + flow_excess. env: palm cmd slew limit 0.03, EMA 0.25. User 09.21: rounds may be extended."
+}

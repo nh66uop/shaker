@@ -1,0 +1,17 @@
+{
+ "label": "t2r_rh3_i21",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "started": 1790322732.7801487,
+ "started_local": "2026-09-25 16:52",
+ "commit": "78aa651b",
+ "run_dir": "t2r_rh3_i21",
+ "server_pids": [
+  3379889,
+  3379897
+ ],
+ "checkpoint": "/tmp/grasp_stage_i07r3_ep400.pth (rh2_i07-r3 ep400)",
+ "deteval": "틸팅 신호 기준 도달 시에만 켠다(사용자 지시)"
+}

@@ -1,0 +1,17 @@
+{
+  "selected": "c1",
+  "rule": "gate PASS + plan compliance (section Q only) + deterministic checks; H absolute-scale failure accepted as in iter_05",
+  "decided_by": "main session; user pre-approved launch on generation (09-28 '보상함수 생성되면은 바로 실험 진행')",
+  "candidates": {
+    "c1": {
+      "source": "kuku-reward-generator, prompt.md",
+      "hypothesis": "none (single change Q)",
+      "gate": "PASS",
+      "plan": "PASS: vs iter_05 only action_rate, action_flip, arm_tremor, action_reg_adr (and unused adr/_rms) removed",
+      "deterministic_check": "check_iter06.py: P PASS (actions / joint velocity change total reward by 0 at adr 0 and 1), N and O PASS, H FAIL as iter_05 (75deg/12.3cm rotation income 0.889 < 1.5, natural-scale)",
+      "verdict": "selected"
+    }
+  },
+  "warm_start": null,
+  "warm_start_why": "fresh (user 09-28): old lineage carries the j7 wrist-roll pour posture; env now uses incremental palm commands"
+}

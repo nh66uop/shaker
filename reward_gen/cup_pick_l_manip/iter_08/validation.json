@@ -1,0 +1,139 @@
+{
+ "ok": true,
+ "errors": [],
+ "warnings": [],
+ "term_stats": {
+  "reach": {
+   "mean": 0.07015867034594218,
+   "abs_max": 0.3466571569442749
+  },
+  "close": {
+   "mean": 0.1005911628405253,
+   "abs_max": 0.35757148265838623
+  },
+  "grasp_count": {
+   "mean": 2.4707541465759277,
+   "abs_max": 2.5
+  },
+  "grasp_digit": {
+   "mean": 0.783191442489624,
+   "abs_max": 0.800000011920929
+  },
+  "grasp_links": {
+   "mean": 0.3859769900639852,
+   "abs_max": 0.4000000059604645
+  },
+  "grasp_ring": {
+   "mean": 0.3921161194642385,
+   "abs_max": 0.4000000059604645
+  },
+  "grasp_palm": {
+   "mean": 0.5921892325083414,
+   "abs_max": 0.6000000238418579
+  },
+  "grasp_oppose": {
+   "mean": 0.23613094290097553,
+   "abs_max": 0.89451003074646
+  },
+  "lift_height": {
+   "mean": 0.02446062598998348,
+   "abs_max": 2.477703809738159
+  },
+  "lift_rise": {
+   "mean": 0.0054160032789999,
+   "abs_max": 0.4793431758880615
+  },
+  "goal_reach": {
+   "mean": 0.012938905972987413,
+   "abs_max": 1.1581203937530518
+  },
+  "goal_hold": {
+   "mean": 0.007988907707234224,
+   "abs_max": 0.6564474105834961
+  },
+  "success_bonus": {
+   "mean": 1.3020833333333335,
+   "abs_max": 10.0
+  },
+  "pen_descend": {
+   "mean": -0.19716351727644604,
+   "abs_max": 1.0
+  },
+  "pen_stall": {
+   "mean": -0.21820640067259472,
+   "abs_max": 0.9933079481124878
+  },
+  "pen_setdown": {
+   "mean": -0.36299078663190204,
+   "abs_max": 1.5
+  },
+  "pen_drop": {
+   "mean": -0.1324399362007777,
+   "abs_max": 0.569864809513092
+  },
+  "pen_tilt": {
+   "mean": -0.4786535998185476,
+   "abs_max": 0.4999872148036957
+  },
+  "pen_shove": {
+   "mean": -0.272666851679484,
+   "abs_max": 0.5
+  },
+  "pen_squeeze": {
+   "mean": -0.019495020310084026,
+   "abs_max": 0.13608385622501373
+  },
+  "pen_table": {
+   "mean": -0.1046766166885694,
+   "abs_max": 0.7807720899581909
+  },
+  "pen_arm_vel": {
+   "mean": -0.08793201049168904,
+   "abs_max": 0.11467277258634567
+  },
+  "pen_arm_fast": {
+   "mean": 0.0,
+   "abs_max": 0.0
+  },
+  "pen_cup_vel": {
+   "mean": -0.11636534333229065,
+   "abs_max": 0.17906782031059265
+  },
+  "pen_action": {
+   "mean": -0.02344698645174503,
+   "abs_max": 0.026239264756441116
+  }
+ },
+ "total_stats": {
+  "mean": 4.3699595133463545,
+  "abs_max": 14.769536972045898
+ },
+ "fields_used": [
+  "actions",
+  "arm_qd",
+  "cup_ang_vel",
+  "cup_lin_vel",
+  "cup_pos",
+  "cup_spawn_pos",
+  "cup_tilt",
+  "episode_progress",
+  "goal_dist",
+  "goal_pos",
+  "hand_default_q_norm",
+  "hand_q_norm",
+  "hand_z_min",
+  "lifted",
+  "link_cup_force",
+  "link_surface_dist",
+  "link_surface_normal",
+  "palm_clearance",
+  "palm_cup_force",
+  "palm_normal",
+  "palm_surface_dir",
+  "palm_surface_dist",
+  "palm_surface_normal",
+  "prev_actions",
+  "success",
+  "table_z"
+ ]
+}

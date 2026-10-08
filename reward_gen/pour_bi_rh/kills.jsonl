@@ -1,0 +1,11 @@
+{"at":"2026-09-28 16:30:30","host":"server","pid":2060135,"label":"t2r_rh4_i09","signal":"TERM->KILL","why":"사용자 교체 결정(DEXTRAH 팔 지령 i09w), SIGTERM 60s 무응답 후 RUN_LABEL 재확인"}
+{"at":"2026-09-28 17:27:22","host":"server","pid":2122762,"label":"t2r_rh4_i09w","signal":"TERM","why":"사용자 '모두 종료'"}
+{"at":"2026-09-28 17:27:22","host":"server","pid":2153592,"label":"t2r_rh4_i09j","signal":"TERM->KILL","why":"사용자 '모두 종료', SIGTERM 60s 무응답 후 RUN_LABEL 재확인"}
+{"at":"2026-09-28 19:02:24","host":"server","pid":2264442,"label":"t2r_rh4_f00","signal":"TERM","why":"사용자 '종료 후 00 제거 후 다시 진행' — 접근 신호 없음(e470)"}
+{"at":"2026-09-28 20:18:52","host":"server","pid":2348371,"label":"t2r_rh4_f00b","signal":"TERM","why":"사용자 '1번' 종료"}
+{"at":"2026-09-29 00:04:34","host":"server","pid":2457785,"label":"t2r_rh4_f01","signal":"TERM","why":"사용자 '1번, 2.a, 3번 진행' — env·보상 변경으로 fresh 교체(e2335)"}
+{"at": "2026-09-29T00:30", "host": "server", "pid": 2723897, "label": "t2r_rh4_f02", "gpu": 1, "signal": "TERM→KILL", "why": "iter_02 교체(사용자 재검토후 진행), TERM 90 s 무응답 뒤 RUN_LABEL·CUDA 재확인 후 KILL", "by": "session 146751a7"}
+{"at": "2026-09-29T08:12", "host": "server", "pid": 2762075, "label": "t2r_rh4_f03", "gpu": 1, "signal": "TERM→KILL", "why": "사용자 학습 종료 지시(e5414), TERM 90 s 무응답 뒤 RUN_LABEL·CUDA 재확인 후 KILL", "by": "session 146751a7"}
+{"at": "2026-09-29T12:50", "host": "server", "pid": 3457919, "label": "t2r_rh4_f04", "gpu": 1, "signal": "TERM", "why": "사용자 'a로 진행' — iter_04 로 교체(e2256)", "by": "session 146751a7"}
+{"at": "2026-09-29T17:40", "host": "server", "pid": 3756709, "label": "t2r_rh4_f05", "gpu": 1, "signal": "TERM", "why": "사용자 iter_05 진행 — f06 교체", "by": "session 146751a7"}
+{"at": "2026-09-29T17:50", "host": "server", "pid": 3941613, "label": "t2r_rh4_f06", "gpu": 1, "signal": "TERM", "why": "사용자 b — iter_06 교체(e277)", "by": "session 146751a7"}

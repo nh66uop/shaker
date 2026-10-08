@@ -1,0 +1,11 @@
+Stage 1 of a two-stage task, and the only stage this reward is for: bring the hand to the cup and stop there in the pre-grasp pose, without touching the cup. A later policy, trained with a different reward, does the grasping and the lifting; this reward must not teach either.
+
+The cup stands upright on the table at a different position in every episode. Starting from the raised pose beside the table, go to wherever the cup has been placed and bring the hand beside it, on the cup's +y side, keeping the hand's start orientation (ctx.palm_normal along -y, towards the cup, and ctx.palm_finger_dir along +x) as closely as the reach allows; up to about 45 degrees of turn is acceptable when the cup's position requires it. Keep the hand in its default open pose (ctx.hand_default_q_norm) the whole time: the four fingers straight and the thumb straight and opposed, so the cup ends up between the extended thumb and the four fingers, with the palm close to the cup's side and the cup further along the fingers than the thumb. The environment sets ctx.approach_done on the first step on which that configuration holds.
+
+Then stop. Hold that pose, still, until the episode ends: the palm stays at the same place beside the cup, the hand stays in its default open pose, and the arm comes to rest. Reaching the pose early and holding it for the rest of the episode is the goal of this stage, and the reward for holding must not decay with time.
+
+Nothing may touch the cup. No finger link, no thumb link and no part of the palm may make contact with it (ctx.link_cup_force and ctx.palm_cup_force stay at zero), and the cup must stay exactly where it was placed: it must not be pushed, slid, rotated, tipped or knocked over. The cup standing untouched at the end of the episode is part of the task.
+
+Do not close the fingers around the cup, do not lift the cup, and do not move the hand to the goal position. ctx.goal_pos, ctx.goal_dist, ctx.success, ctx.num_successes, ctx.lifted and ctx.envelope_done belong to the later stage and must not be rewarded here; the environment still computes them, and a policy that grasps or lifts the cup has failed this stage.
+
+Do not put the hand or the palm on the table, and do not thrash: the arm should move smoothly on the way in and be still once the pose is reached.

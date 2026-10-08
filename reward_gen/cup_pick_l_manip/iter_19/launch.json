@@ -1,0 +1,20 @@
+{
+ "label": "cp_l_m19",
+ "host": "vision-3090",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "commit": "b4140657",
+ "checkpoint": "/home/usr/rl_ws/ckpt_in/cup_pick/cp_l_m18_e800.pth (md5 99c57ffb)",
+ "tol_start": 0.1,
+ "reward": "iter_19 c1 (= iter_18 c1r, md5 743ca5d1)",
+ "env_change": "object_out_y (-0.25, 0.60) + palm_anchor_offset/gui camera y mirrored (user decision d_cup_l_out_y = mirror_left)",
+ "launcher": "~/rl_ws/our_source/fj_t2r_runs/launch_l_m19.sh",
+ "log": "~/rl_ws/our_source/fj_t2r_runs/cp_l_m19.out",
+ "started_local": "2026-09-26 09:43",
+ "launched_by": "kuku-ai-55 main",
+ "watch": "post-lift y_out -> ~0; early termination vs e1000 0.248; fixed-tol success vs m18 e800 0.842; index inner share",
+ "python_pid": 830381,
+ "note": "first attempt 09:42 refused by cfg check (tol_start >= 0.10 required with goal_force_consecutive, kp_a8); relaunched with m18's curriculum start so only the y bound differs",
+ "grasp_wrap_start": "default (0.15, same as m18)"
+}

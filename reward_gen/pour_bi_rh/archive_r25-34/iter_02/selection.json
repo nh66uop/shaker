@@ -1,0 +1,76 @@
+{
+ "selected": "c1",
+ "rule": "게이트 PASS + check_iter02 [1]~[13] PASS (경고 [5][8])",
+ "decided_by": "session 146751a7 (추천), 사용자 기동 승인 대기",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator 원문 그대로(response_c1.md)",
+   "hypothesis": null,
+   "gate": {
+    "ingest": "PASS",
+    "terms": 31
+   },
+   "plan": "파지 블록 = rh2_i03 원문(reach·close·grasp·lift·교란 벌점) + 과들기 세금, 리시버 진행도 게이트(바닥 0.25)로 소스 들기 이후 수입 게이트(rh2_i04), 리시버 근처 벌점 ×0.5, 파지 전 흘림 3/알·쥔 뒤 40/알, 붓기 = iter_01 c5 구조",
+   "deterministic_check": {
+    "script": "check_iter02.py",
+    "verdict": "PASS",
+    "grasp_path_src": [
+     1.29,
+     1.34,
+     1.64,
+     2.12,
+     2.22,
+     3.91,
+     4.54
+    ],
+    "grasp_path_rcv": [
+     1.29,
+     1.34,
+     1.64,
+     2.12,
+     2.24,
+     4.41,
+     6.72
+    ],
+    "rcv_while_src_held": {
+     "far": 3.91,
+     "one_sided": 4.85,
+     "grasped": 7.02
+    },
+    "pre_grasp_spill_cost_vs_gain": [
+     3.0,
+     0.82
+    ],
+    "step_income": {
+     "park": 12.97,
+     "tilt_only": 18.03,
+     "pouring": 48.03,
+     "holding": 33.56
+    },
+    "release_slope_per_deg": 0.054,
+    "start_state_by_gap_r": {
+     "14": 9.49,
+     "10": 9.78,
+     "6": 10.63,
+     "3": 13.71
+    },
+    "warnings": [
+     "[5] 기울였다 되돌리기가 정지보다 스텝당 2 이상 — 회전 수입이 상태형(DG-5F L1)",
+     "[8] 유지/기울이기 1.86배(<2) — 파지·들기 상태 수입 13/스텝이 두 상태에 공통으로 붙어 비율이 줄었다. 차이는 +15.5/스텝"
+    ]
+   }
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "LSTM 이라 MLP ckpt 불가, 사용자 지시: fresh 에서 접근·파지·들기가 되어야 한다",
+ "launch_plan": {
+  "task": "open-rh_b_pour_fab_mimic-lstm",
+  "horizon_length": 16,
+  "minibatch": 16384,
+  "save_frequency": 50,
+  "env": {
+   "enable_self_collisions": true
+  },
+  "gpu": 1
+ }
+}

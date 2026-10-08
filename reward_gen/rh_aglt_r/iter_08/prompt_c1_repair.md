@@ -1,0 +1,705 @@
+You are an expert in robotics, reinforcement learning and code generation.
+
+We control one 7-DOF OpenArm robot arm (the right arm) carrying a five-finger Inspire RH56F1 hand, standing at a table (+x points from the robot toward the table, +z up, the table top is at ctx.table_z). The RH56F1 is under-actuated: six motors drive the thumb abduction (thumb_1), the thumb flexion (thumb_2) and one flexion joint per finger (index_1, middle_1, ring_1, pinky_1); the second link of each finger (and the thumb's last two links) follows its motor through a fixed mechanical coupling, so every finger curls as one unit. The fingers are short: the gap between thumb tip and finger tips is 105 mm fully open and 47 mm fully closed.
+
+Every episode starts FAR from the object: the palm is just above the front edge of the table (0.08 m in x, 0.30 m to the side, 0.45 m high), 0.20-0.42 m (mean 0.30 m) from the cup, the whole hand above the top of the cup, the hand open. The palm normal (ctx.palm_axes[:, 0:3], the palm sensor's local +z) is horizontal and faces the body's centre line (+y for this right arm), the fingers point forward (+x) and 10 deg down, and the thumb is 7 cm above the little finger. The other arm stands still in the mirror-image pose. One cup (a 57 mm diameter cylinder, 0.114 m tall, 0.134 kg, friction 1.5-2.5, mass x0.8-1.25) stands upright on the table at a random position 0.10-0.40 m in x and 0.10-0.30 m to the side. The cup tips over when one side is pushed with only 0.3-0.4 N before something supports its other side.
+
+The action space is a normalized `Box(-1, 1, (13,), float32)` with direct joint control. There is no grasp primitive:
+    actions[0:7]  = arm joint INCREMENTS: each arm joint target moves by 0.05 * a rad per step, then passes a low-pass filter (factor 0.1), so each joint moves at most about 0.3 rad/s.
+    actions[7:13] = hand motor targets in the order (thumb_1, thumb_2, index_1, middle_1, ring_1, pinky_1), each mapped linearly onto its open-to-grip interval: lo + 0.5 (a + 1)(hi - lo) with lo/hi = min/max(open, grip), so a = 0 is a HALF-closed hand (for thumb_1 a = +1 is the open side). The target is low-pass filtered (factor 0.1) and moves at most one full range per second. A finger whose links touch the cup with more than 1 N stops closing (it can still open), exactly like the real hand's force stop.
+
+Now I want you to help me write a reward function for reinforcement learning.
+
+The reward function receives a single argument `ctx`, an instance of this class (all positions env-local, metres; angles rad; forces N):
+
+```python
+@dataclass
+class RewardContext:
+    # ---- 상수 기하 ----
+    table_z: float                 # 상판 윗면 z
+    cup_radius: float              # 컵 바깥 반지름(가장 넓은 곳)
+    cup_mouth_z: float             # 컵 원점 기준 입구 높이(+)
+    cup_bottom_z: float            # 컵 원점 기준 바닥 높이(−)
+    lift_latch_m: float            # 들기 래치 높이(스폰 대비)
+    goal_tol: float                # 현재 성공 허용오차(키포인트 최대거리)
+    goal_max: int                  # 에피소드 목표 수 상한
+    # ---- 손·팔 ----
+    palm_pos: torch.Tensor         # (N,3)
+    palm_lin_vel: torch.Tensor     # (N,3)
+    palm_axes: torch.Tensor        # (N,6) [법선, 손가락 길이]
+    tips_pos: torch.Tensor         # (N,5,3)
+    hand_closure: torch.Tensor     # (N,) 구동 관절 평균 폐쇄도 [0,1]
+    hand_q_target_closure: torch.Tensor   # (N,6) 관절별 목표 폐쇄도 [0,1]
+    finger_force: torch.Tensor     # (N,5) 손가락별 자기 컵 접촉력 합(첫마디 + 손끝)
+    finger_prox_force: torch.Tensor   # (N,5) 첫마디(_1) 컵 접촉력
+    finger_tip_force: torch.Tensor    # (N,5) 손끝(_sensor) 컵 접촉력
+    palm_force: torch.Tensor       # (N,) 손바닥 패드 컵 접촉력
+    hand_foreign_force: torch.Tensor   # (N,) 손이 컵 아닌 것(테이블·몸)에 닿는 힘
+    grasped: torch.Tensor          # (N,) bool — 엄지 AND (다른 손가락 하나 이상) 컵 접촉 > 1 N
+    hand_min_z: torch.Tensor       # (N,) 손 링크 원점 최저 z
+    arm_q: torch.Tensor            # (N,7)
+    arm_qd: torch.Tensor           # (N,7)
+    arm_limit_margin: torch.Tensor # (N,7) 1 = 범위 중앙, 0 = 한계
+    # ---- 컵 ----
+    cup_pos: torch.Tensor          # (N,3) 원점
+    cup_quat: torch.Tensor         # (N,4)
+    cup_up: torch.Tensor           # (N,3) 컵 축(+z)
+    cup_tilt: torch.Tensor         # (N,) rad
+    cup_lin_vel: torch.Tensor      # (N,3)
+    cup_ang_vel: torch.Tensor      # (N,3)
+    cup_spawn_pos: torch.Tensor    # (N,3)
+    lifted: torch.Tensor           # (N,) bool 래치 — 한 번이라도 lift_latch_m 넘게 들렸다
+    # ---- 목표 ----
+    goal_pos: torch.Tensor         # (N,3)
+    goal_kp_dist: torch.Tensor     # (N,) 키포인트 최대거리(컵 ↔ 목표)
+    near_goal: torch.Tensor        # (N,) bool kp_dist ≤ goal_tol
+    goal_success: torch.Tensor     # (N,) bool 이 스텝에 목표 하나를 달성(쥔 채)
+    goal_successes: torch.Tensor   # (N,) 이번 에피소드 달성 수(이 스텝 포함)
+    # ---- 시간·액션 ----
+    episode_progress: torch.Tensor # (N,) [0,1]
+    actions: torch.Tensor          # (N,13) [팔 7, 손 6]
+    prev_actions: torch.Tensor     # (N,13)
+```
+
+Additional knowledge:
+1. Everything is BATCHED: every tensor field has a leading dimension N. Return a reward tensor of shape (N,) and a dict of named component tensors, each of shape (N,). Use only `torch` and `math`; do not import anything else. Do not keep any state between calls (no globals).
+2. Write staged rewards with tensor masks (`torch.where`), not `if`/`else` on tensors.
+3. Prefer bounded, smooth shaping (`torch.exp(-k * d)`, `1 - torch.tanh(k * d)`) so no single term dominates.
+4. Finger order everywhere is (thumb, index, middle, ring, pinky). `finger_force` = `finger_prox_force` (the finger's first link) + `finger_tip_force` (the fingertip pad link), all measured against the cup only. `ctx.grasped` is the environment's grasp flag: the thumb AND at least one other finger touch the cup with more than 1 N.
+5. `ctx.palm_axes[:, 0:3]` is the unit palm normal (pointing out of the palm, towards a held object) and `ctx.palm_axes[:, 3:6]` the unit direction along the fingers. Cylinder geometry: for a point p, `v = p - ctx.cup_pos`, axial coordinate `h = (v * ctx.cup_up).sum(-1)`, radial vector `v - h.unsqueeze(-1) * ctx.cup_up`; the side wall is at radius `ctx.cup_radius`, the mouth at `h = ctx.cup_mouth_z` and the bottom at `h = ctx.cup_bottom_z`.
+6. Height: `ctx.cup_pos[:, 2] - ctx.cup_spawn_pos[:, 2]` is how far the cup has been raised (0 on the table). `ctx.lifted` becomes True once that exceeds `ctx.lift_latch_m` and stays True for the rest of the episode, even if the cup is dropped.
+7. Goal and success are computed by the environment and cannot be redefined by the reward. The first goal of an episode is 0.10-0.18 m above the cup's start position and at most 5 cm away horizontally; after each success the next goal is up to 8 cm away from the previous one. `ctx.goal_kp_dist` is the largest distance between four points on the cup axis and the same points at the goal pose (0 = exactly at the goal, upright). A success is counted when the cup has spent `goal_success_steps` = 10 steps with `goal_kp_dist <= ctx.goal_tol` and, on that step, is near the goal AND `ctx.grasped`. `ctx.goal_tol` starts at 0.10 m and shrinks to 0.02 m as the policy improves. The episode ends after 5 successes.
+8. An episode lasts at most 900 steps (15 s). It ends early when the cup falls off the table, leaves the work area, tilts more than 60 degrees, any hand link goes 5 mm below the table top (`ctx.hand_min_z`), an arm joint moves faster than 20 rad/s, the cup moves faster than 3 m/s or 30 rad/s, or a hand contact exceeds 200 N. Do not add penalty terms for these terminations.
+9. Name components meaningfully (e.g. "approach", "lift", "success_bonus"); each one is logged during training and shown back to you after training.
+
+I want it to fulfil the following task: reach a cup from far away, grasp it, lift it and carry it to the goal, and hold it there against disturbances, repeatedly. The policy starts from RANDOM WEIGHTS: this one continuous reward, with no stage switch and no checkpoint, has to teach the whole task - travel to the cup with an open hand, bring the palm beside its side wall with the thumb on the far side and the fingers on the near side, close the fingers around it, lift it straight up, carry it to ctx.goal_pos, and stay at rest there.
+
+THE GRASP WE WANT (measured on this hand and this cup): the palm normal and the finger direction both horizontal; the palm about 1.5 cup radii from the cup axis (1.4 cm from the wall), at the height of the cup origin plus 0.15 x the mouth height; the horizontal direction from the palm to the cup axis about 0.67 x palm normal + 0.73 x finger direction; the thumb on the opposite side of the cup from the fingers. The grasp we do NOT want: a vertical pinch from above (fingers pointing down), and a two-finger pinch - both slipped out when lifted.
+
+Per-step ceilings:
+- travelling to the cup with the hand open: about 0.6, fading to near zero once the cup is held.
+- closing and keeping the grasp (more fingers on the cup is better, thumb opposing the fingers, palm oriented as above): about 1.2, and at least twice what the step just before the grasp earns.
+- lifting the held cup: about 2.5, rising with height up to the height the goal needs (ctx.goal_pos[:, 2] - ctx.cup_spawn_pos[:, 2]).
+- moving towards the goal: about 2.5, gated on the cup being off the table.
+- at rest at the goal, upright, really held: about 10, the dominant income, gated on the cup being off the table.
+- success: a large bonus for the first success of an episode; later successes worth little.
+
+Keep the cup upright by multiplying the lift, transport and hold income by uprightness from ctx.cup_tilt. Knocking the cup over before it is held must cost a short-lived, bounded amount charged only while it is actually tipping (its tilt or angular speed rising), never a state penalty that keeps charging after the push. Losing a lifted cup must cost a bounded amount only while it is actually falling, never an amount proportional to `lifted`. Lowering a held cup must be worth less than keeping it still. Penalise fast arm and cup motion while holding, small enough that lifting and carrying always beat standing still.
+
+Use no cup dimension, no scene coordinate, no joint index and no per-finger weight: use ctx.cup_radius, ctx.cup_mouth_z, ctx.table_z and ctx.goal_pos, and treat the four fingers alike. About 15 terms.
+1. Please think step by step and tell me what this task means and which stages the robot must go through.
+2. Then write a function with exactly this signature:
+```python
+def compute_reward(ctx: RewardContext) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    ...
+    return reward, {"component_name": component_tensor, ...}
+```
+3. Take care of tensor shapes and types; never access a field that is not listed in the class definition above.
+4. Put the final code in ONE ```python fenced block that starts with `import torch` and `import math` and contains only the function (plus small helper functions if needed). Add short comments explaining the weights.
+
+The deterministic check that will be run on your code evaluates these states of one episode and requires each row to earn MORE per step than the one before: start (far, open) < halfway (open) < just before the grasp (open, 4 cm from the grasp pose) < grasped on the table < lifted 5 cm < lifted to goal height < at the goal held. It also requires: a closed fist at the pre-grasp spot < the open hand there; an open hand that is tipping the cup (tilt 20 deg, spinning) < the open hand at the pre-grasp spot; a vertical two-finger pinch on the table < the horizontal grasp on the table; a cup dropped after lifting (falling) < grasped on the table; a resting cup that only jitters (0.094 rad/s, no tilt) within +-0.01 of the same state without jitter; and NEW: the same horizontal grasp on the table but touching with the fingertip pads only (first links 0 N), with the thumb tip over the cup's rim on the fingers' side, or with the held cup tilted 20 deg, must each earn less than 90 % of the envelope grasp on the table; and NEW: the halfway state with the palm turned up (normal z 0.8), the halfway state with the thumb tip below the little-finger tip, and the pre-grasp state with the palm facing away from the cup must each earn less than 90 % of the correctly oriented state, and the table grasp with the thumb tip below the little-finger tip less than 90 % of the upright-hand grasp. NEW: a sloppy first grasp (grasp flag on, only thumb and index tips at 1.2 N, first links 0 N, thumb on the fingers' side, hand half closed) must earn at least 2x the parked state (open hand at the pre-grasp spot, half closed).
+
+# Design brief (verified facts from the sibling tracks and this track; Korean)
+
+# rh_aglt 보상 설계 브리프 (2026-09-29 판 — iter_00 전)
+
+확인된 사실만 적는다. 추정은 [가설] 로 표시한다. **이 문서는 매 라운드 생성기 프롬프트 맨 앞에 통째로 들어간다**
+(메모리 `reward-design-uses-full-history`: 직전 런만 패치하지 말고 전 이력을 종합한다). 좌우 트랙(`rh_aglt_r`·`rh_aglt_l`)이
+이 한 파일을 쓴다(`reward_gen/rh_aglt_l/DESIGN_BRIEF.md` 는 이 파일로의 링크). 좌우 보상은 바이트 동일로 시작한다.
+
+## 1. 과제와 고정 조건 (보상이 바꿀 수 없다)
+
+- RH56F1 한 팔이 먼 출발(손바닥이 상판 앞 가장자리 위 (0.08, ∓0.30, 0.45), 손바닥이 반대 손 쪽·수평, 엄지가 새끼보다 위, 손은 모든 컵 윗면 위)에서 테이블 위 57 mm 컵(0.134 kg)에 다가가
+  잡고, 들어서 `ctx.goal_pos` 로 옮기고, 거기서 쥔 채 유지한다. 목표는 에피소드당 최대 5개(달성마다 ±8 cm 이동).
+- 성공(env): 키포인트 최대거리 ≤ `ctx.goal_tol` 인 스텝 10 누적 **그리고 그 스텝에 목표 근처에서 쥐고 있음**(엄지 AND 다른 손가락 > 1 N).
+  첫 목표는 스폰보다 0.10~0.18 m 위라 들지 않고는 닿지 않는다. tol 0.10 → 0.02 커리큘럼.
+- 액션 13 = [팔 관절 증분 7(0.05 rad/스텝 → EMA 0.1, 0.3 rad/s), 손 구동 6(편 자세~쥔 자세 구간 선형, a = 0 은 반쯤 쥔 손, 1 N 넘게 닿은 손가락은 닫기 정지)] — 09.29 2차 사용자 결정(cup_grasp 팔 · pour_bi_rh 손).
+- 컵 소환 x 0.10–0.40 · y 폭 0.20 · 손·컵 마찰 1.5–2.5 · 컵 질량 ×0.8–1.25(ADR ×0.5–2.5).
+- 종료(env, 벌점 항 두지 않는다): 컵 낙하·상자 이탈·60° 넘게 기울어짐 · 팔 qd > 20 · mimic 폭주 · 손이 상판 5 mm 아래 ·
+  컵 > 3 m/s·30 rad/s · 손 접촉 > 200 N 2스텝.
+- 제어 주기 1/60 s, 에피소드 900 스텝(hold 10 스텝은 보상 0).
+
+## 2. 단계 원칙
+
+접근 → 편 손으로 컵 옆 → 감싸 쥐기 → 들기 → 목표로 이송 → 유지. **한 단계 앞으로 가는 것이 그 자리에 머무는 것보다 항상 스텝당
+이득**이어야 하고, 머물기만 해도 벌리는 자리(주차)가 없어야 한다. 파지를 하고 들려고 할 때 보상이 떨어지면 안 된다(pour_bi_rh 사용자 원칙 09-28).
+
+## 3. 측정으로 확정된 사실 — 형제 트랙 두 개
+
+### 3-1. cup_grasp (DG5F-M-S, 같은 구조의 먼 출발 무작위 컵 → 목표 이송, 처음부터 완주)
+출처 `reward_gen/cup_grasp_r/DESIGN_BRIEF.md` 1~14, `CUP_GRASP_REWARD_LEDGER.json`, LOOP_STATE.
+| # | 사실 |
+|---|---|
+| G1 | 처음부터 학습해 완주한 보상(r_iter_00): 접근 수입이 `(1−held)` 로 사라지고 `held` 뒤에 들기 2.5 · 이송 2.5 · 목표 유지 10 · 첫 성공 60 을 얹는 구조. 우 grasp 0.91 lift 0.89 성공 0.48(tol 0.023), 좌(l_iter_01) 성공 0.60(tol 0.031) |
+| G2 | 먼 거리 접근은 **곱셈 인자 없는** 단순 손바닥 거리(0.35 × (0.6 far + 0.4 near))일 때 배웠다. 접근 수입을 줄이는 인자(옆벽 인자, 편 손 인자 바닥 0.15)를 곱하면 물러나거나 주차했다(손바닥 간격 0.22 → 0.37 m, 접촉 36 → 1.5) |
+| G3 | 편 손 신호가 없으면 쥔 손으로 도착했다(파지 에피소드 0.008) |
+| G4 | 손가락 접촉 없이 지불되는 편 손·손바닥 근접 수입은 벽에 평평한 손을 눌러 붙였다(+0.195/스텝, 손가락 접촉 0, 1,400 epoch) |
+| G5 | 물체가 테이블 위에 있는 동안 목표형 수입이 나오면 테이블에 둔 채 머물렀다(0.54~0.69/스텝, 들기 0.007) |
+| G6 | 에피소드 내내 서는 래치에 비례한 낙하 벌점이 가장 큰 항(−0.75/스텝)이 되어 들기를 잊었다. 떨어지는 동안만 물리면 붕괴가 없었다 |
+| G7 | 하류 게이트가 4지에서 포화하면 4지 파지가 최적이었다(5번째 손가락 가치 < 하류 수입 1 %) |
+| G8 | 하류 수입에 인벨롭 품질을 곱하면 우팔 인벨롭 0.86, 좌팔은 접촉력 ×2.6·팔 폭주 종료 5 → 42 %·파지 0.86 → 0.38 |
+| G9 | 사용자 판정(09-27): 4번 관절 과굽힘 손끝 파지, 좌팔은 급하게 들어 올림. 파지 중 가운데 마디 접촉 0.00·손끝 패드 0.90~1.00 |
+| G10 | 같은 보상이 거울 팔에서 다른 파지를 냈다(좌 손바닥 0.38 전체 파지, 우 손바닥 0.001 세 손가락 집기) |
+
+### 3-2. pour_bi_rh (RH56F1, 같은 손·같은 컵·같은 제어)
+출처 `reward_gen/pour_bi_rh/DESIGN_BRIEF.md` 3·4절, pour_fabric_mimic CLAUDE.md.
+| # | 사실 |
+|---|---|
+| R1 | 컵은 한쪽 접촉 0.3~0.4 N 에 넘어진다(바닥 지름 3.8 cm 테이퍼) — 반대편이 받치기 전에 한 손가락이 밀면 쓰러진다 |
+| R2 | 인벨롭 파지 기하(이 손·이 컵, 34k 스텝 중앙): 손바닥-컵 축 1.5 r(표면에서 1.4 cm), 높이 원점 +0.15 × 입구, 손바닥 법선·손가락 축 수평, 손바닥→컵 축 수평 방향 = 0.67 × 법선 + 0.73 × 손가락 축, 손바닥 접촉 0 |
+| R3 | 관절 제어에서 손바닥 **속도 차분** 접근은 신호가 되지 않았다(f00: 접근 −0.001~−0.018, 손바닥-컵 21~43 cm 왕복). 접근·편 손은 상태형으로 |
+| R4 | 닫기·파지 수입이 손 방향과 무관하면 위에서 세로 집기를 산다(f03: 손가락 축 z −0.95). 두 손가락 집기는 들 때 10곳 중 9곳 미끄러졌다(힘 2~3.5 → 0.3~0.8 N), 쥔 채 든 곳은 2.6 → 3.0 N |
+| R5 | 파지 직전 상태 수입이 크면(파지/직전 1.38 배) 파지 판정 전에 머문다 |
+| R6 | 상태형 밀림 벌점(`(1−lifted)·tanh(밀린 거리)`)은 한 번 민 컵에서 매 스텝 비용을 내 파지 시도를 포기하게 했다(i09 파지 0.11 → 0.02) |
+| R7 | 상태형 "편 손" 가산이 컵 12 cm 앞 주차 자리를 만들었다(i08, 0.13~0.16/스텝) |
+| R8 | 손 마찰 2.0 에서만 직립·양쪽 파지가 들기로 이어졌다(쌍 마찰 0.97: 1/73, 2.0: 25/86) — env 에 반영됨 |
+| R9 | 관절 한계에 직접 강벌점을 주면 안 된다(i15, corr +0.90). 증분 팔은 한계 96 % 에 갇혔다(f03) — 이 트랙은 사용자 결정으로 증분 팔(cup_grasp 법칙) + bounds_loss 0.005 |
+
+### 3-3. 이 트랙 실측
+| # | 사실 |
+|---|---|
+| A1 | 서 있는 컵(손 접촉 없음, 반발 0)의 솔버 떨림: 각속도 p50 0.017 · p99 0.094 rad/s, 선속도 p50 0.6 mm/s, 기울기 < 0.04° (probe_rh_aglt_cup_rest 256 env). 반발 1.0 이면 0.10 rad/s·2.7 cm/s |
+| A3 | 사용자 영상 판정(09.29, aglt_r_i00b ep1600 · aglt_l_i00b ep850): 두 팔 모두 컵까지 접근은 확실히 잘 한다. 왼팔은 컵을 들었지만 **인벨롭 파지가 아니다**. [관찰] 두 팔 모두 컵이 20° 이상 기울고(왼팔은 들면서 거의 수평), 엄지로 보이는 손가락이 컵 윗가장자리 쪽에 있다. 로그(쥔 스텝 근사): 닿은 손가락 3.1/3.8 개 중 첫마디까지 닿은 손가락 0.9/0.8 개, 손 폐쇄도 0.33/0.37, 전 스텝 평균 컵 기울기 12–13° |
+| A2 | aglt_r_i00(반발 1.0, e0–202): `tip_penalty`(각속도 노름 기반) −0.115/스텝이 접촉 없이 첫 epoch 부터, `approach` +0.03 — 손바닥↔컵 0.36 → 0.42 m |
+
+### 3-4. 워크스페이스 공통 원칙(메모리)
+- 보상은 보편적이고 단순하게: 자산 고유 각도·치수 하드코딩 금지, 항 15개 내외.
+- 곱 사다리는 앞 인자가 작으면 뒤 칸 기울기가 0 — 끈끈한 단계 지불의 합 + 게이트 없는 얕은 쉐이핑.
+- 물체별 하드코딩 단계 래치 금지 — 가까우면 손가락을 닫는 연속 신호.
+- 상태 비례 조밀 보상은 "자세 잡고 가만히 있기"를 최적해로 만든다 — 다음 단계 자리가 늘 더 비싸야 한다.
+- 최솟값 기준 항은 동률이면 평평하다 — 평균 램프로.
+
+## 4. 이 트랙이 앞 두 트랙과 다른 점 (보상 설계에 영향)
+
+| 항목 | cup_grasp | pour_bi_rh | rh_aglt |
+|---|---|---|---|
+| 손 | DG5F 20 관절 | RH56F1 구동 6 | RH56F1 구동 6 (pour_bi_rh 와 같은 사상) |
+| 시작 | 먼 출발 0.15–0.49 m | 근거리 16 cm | 먼 출발, 손이 컵 위 9 cm 이상 |
+| 컵 | 8종 105–161 mm | 57 mm | 57 mm |
+| 목표 | keypoint 5개 | 붓기 | keypoint 5개(cup_grasp 와 같은 구조) |
+| 성공 파지 조건 | wrap_frac 커리큘럼 | 두 컵 파지 | env grasp 플래그(엄지 AND 다른 손가락 > 1 N) |
+| ctx 표면 필드 | 링크별 표면 거리 | 없음 | 없음 — 컵이 원통 하나라 원점·축·반지름으로 계산 |
+
+## 5. iter_00 요구
+
+1. 뼈대는 G1 구조: 접근(상태형, 곱셈 인자 없음, `(1−held)` 로 소멸) → 파지 유지 → 들기(들린 높이, 목표 높이까지) →
+   이송(테이블에서 떨어졌을 때만, 목표 거리) → 목표 유지(쥔 채·직립·정지, 가장 큰 수입) → 첫 성공 큰 보너스.
+2. 편 손 접근: 손이 펴져 있을 때 접근 수입이 조금 더 크되 **곱셈으로 접근을 줄이지 않는다**(G2·G3·R7).
+3. 파지 수입은 손 방향과 묶는다: 손바닥 법선(`palm_axes[:, 0:3]`)이 컵 축을 수평으로 향할 때(R2·R4). 세로 집기에는 작게.
+4. 파지 판정 `ctx.grasped` 뒤 수입이 직전 상태 수입의 2배 이상(R5).
+5. 컵 전도 방지는 **짧게 물리는** 벌점: 컵이 들리기 전 기울어지는 각속도·기울기 증가에만(R1·R6·G6). 상태형 밀림 벌점 금지.
+6. 테이블 위 컵에는 목표형 수입 없음(G5). 들기 래치 비례 벌점 없음(G6).
+7. 5개 손가락을 같게 다룬다: 손가락별 가중치·관절 인덱스·컵 치수 상수 금지(`ctx.cup_radius` 등 ctx 값만).
+8. 팔·컵 빠른 움직임 벌점은 작게 — 들고 옮기는 것이 가만히 있는 것보다 늘 이득.
+9. 항 15개 내외.
+
+
+## The previous reward function (iter_07, selected c1r)
+
+```python
+import torch
+import math
+
+
+def _unit(v: torch.Tensor) -> torch.Tensor:
+    return v / v.norm(dim=-1, keepdim=True).clamp(min=1e-6)
+
+
+def _axial_radial(p: torch.Tensor, cup_pos: torch.Tensor, up: torch.Tensor):
+    # cylinder coordinates of point(s) p around the cup axis (broadcasts over a finger dim)
+    v = p - cup_pos
+    h = (v * up).sum(-1)
+    rv = v - h.unsqueeze(-1) * up
+    return h, rv
+
+
+def _horizontal(v: torch.Tensor) -> torch.Tensor:
+    # world-horizontal part of a (N,3) vector (z component removed)
+    return torch.stack([v[:, 0], v[:, 1], torch.zeros_like(v[:, 0])], dim=-1)
+
+
+def compute_reward(ctx: RewardContext) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    up = _unit(ctx.cup_up)
+    held = ctx.grasped.float()
+    free = 1.0 - held                                   # approach income fades once held
+    rad = max(float(ctx.cup_radius), 1e-3)
+    mouth = max(float(ctx.cup_mouth_z), 1e-3)
+
+    # ---------------- palm vs. the measured grasp ring ----------------
+    h_p, rv_p = _axial_radial(ctx.palm_pos, ctx.cup_pos, up)
+    r_p = rv_p.norm(dim=-1)
+    h_target = 0.15 * ctx.cup_mouth_z                   # grasp height: origin + 0.15 x mouth
+    d_ring = torch.sqrt((r_p - 1.5 * rad) ** 2 + (h_p - h_target) ** 2 + 1e-12)
+
+    far_k = 1.0 - torch.tanh(d_ring / 0.25)             # long-range pull from the far start
+    near_k = 1.0 - torch.tanh(d_ring / 0.05)            # last few cm
+    at_pose = torch.exp(-d_ring / 0.015)                # essentially at the grasp pose
+
+    # ---------------- hand orientation quality (average ramp, not a min/product) ----------------
+    n = _unit(ctx.palm_axes[:, 0:3])
+    f = _unit(ctx.palm_axes[:, 3:6])
+    n_ax = (n * up).sum(-1)
+    f_ax = (f * up).sum(-1)
+    horiz = ((1.0 - n_ax ** 2) * (1.0 - f_ax ** 2)).clamp(0.0, 1.0)   # both axes horizontal
+    w = 0.67 * n + 0.73 * f                              # measured palm->axis direction
+    w_h = _unit(w - (w * up).sum(-1, keepdim=True) * up)
+    to_axis = _unit(-rv_p)
+    align = 0.5 * (1.0 + (to_axis * w_h).sum(-1))
+    pos_q = torch.exp(-d_ring / 0.02)
+    pose_q = (horiz + align + pos_q) / 3.0               # vertical pinch from above scores low
+
+    # palm-plane level factor for the held grasp quality.
+    # s = combined out-of-plane component of palm normal and finger direction (vs the cup axis).
+    # Full credit up to s = 0.2 (e.g. fingers ~10 deg down); 25 deg tilt of both axes
+    # (s ~ 0.59) -> ~0.21; fingers pointing straight down (s >= 0.7) -> 0.
+    s_tilt = torch.sqrt(n_ax ** 2 + f_ax ** 2 + 1e-12)
+    plane_q = (1.0 - (s_tilt - 0.2) / 0.5).clamp(0.0, 1.0)
+
+    # steeper ramp on the same measure s_tilt: 1 up to s = 0.2 (fingers ~10 deg down),
+    # 0 at s = 0.5; fingers 23 deg down (s ~ 0.39) -> ~0.37.
+    # also used as part (b) of the grasp-shape factor.
+    plane_level = (1.0 - (s_tilt - 0.2) / 0.3).clamp(0.0, 1.0)
+    # near-cup level factor: floor 0.5, full credit up to s = 0.2
+    level_pre = 0.5 + 0.5 * plane_level
+
+    # thumb tip above the little-finger tip (world z).
+    # 1 once the thumb tip is >= 2 cm above, 0 once it is 1 cm below ("a few centimetres").
+    thumb_dz = ctx.tips_pos[:, 0, 2] - ctx.tips_pos[:, 4, 2]
+    thumb_up = ((thumb_dz + 0.01) / 0.03).clamp(0.0, 1.0)
+
+    # ---------------- fingertips in cup cylinder coordinates ----------------
+    h_t, rv_t = _axial_radial(ctx.tips_pos, ctx.cup_pos.unsqueeze(1), up.unsqueeze(1))
+    r_t = rv_t.norm(dim=-1)                              # (N,5) distance of each tip from the axis
+    r_thumb = r_t[:, 0]
+    h_thumb = h_t[:, 0]
+
+    # "thumb tip inside the mouth" weight (unchanged from iter_06):
+    # radially: 1 at r <= 1.0 x cup_radius, 0 at r >= 1.1 x cup_radius (continuous ramp);
+    # height: 0 at h <= 0.4 x mouth height, 1 at h >= 0.7 x mouth height.
+    in_r = ((1.1 * rad - r_thumb) / (0.1 * rad)).clamp(0.0, 1.0)
+    in_h = ((h_thumb - 0.4 * mouth) / (0.3 * mouth)).clamp(0.0, 1.0)
+    thumb_inside = in_r * in_h
+    thumb_out = 1.0 - thumb_inside                       # outside-only factor
+
+    # ---------------- contacts (all five fingers treated by the same rule) ----------------
+    c = (ctx.finger_force / 1.0).clamp(0.0, 1.0)        # 1 N = env grasp threshold
+    # the thumb's contact counts only in proportion to (1 - inside)
+    thumb_c = c[:, 0] * thumb_out
+    fing_c = c[:, 1:].mean(-1)                           # four fingers alike, more is better
+    wrap = thumb_c * fing_c                              # needs both sides -> no one-sided push income
+
+    # first-link contact of the four fingers, treated alike.
+    # 0.5 N counts a first link as touching (a finger's links share the ~1 N force stop).
+    pc = (ctx.finger_prox_force / 0.5).clamp(0.0, 1.0)
+    envelope = pc[:, 1:].mean(-1)                        # 0 = fingertip pads only, 1 = all first links on the cup
+
+    u = _unit(rv_t)
+    u_thumb = u[:, 0]
+    u_fing = _unit(u[:, 1:].mean(1))
+    oppose = 0.5 * (1.0 - (u_thumb * u_fing).sum(-1))   # 1 = thumb on the far side of the fingers
+    # the thumb tip must be on the side wall, not over the rim.
+    # ramps to 0 over the top 20 % of the mouth height (ctx value, no cup constant)
+    below_rim = ((mouth - h_thumb) / (0.2 * mouth)).clamp(0.0, 1.0)
+    # thumb-tip band centred on the outer-wall tip position (unchanged from iter_06)
+    wall_tip_r = 1.18 * rad
+    on_wall_band = (1.0 - ((r_thumb - wall_tip_r).abs() - 0.10 * rad) / (0.12 * rad)).clamp(0.0, 1.0)
+    on_wall = on_wall_band * thumb_out
+    oppose_q = oppose * below_rim * on_wall              # thumb outside, on the wall, opposite
+
+    # ---------------- thumb-placement target box (iter_07) ----------------
+    # Target box from the measured good grasps: outer wall 1.15-1.45 cup radii from the axis,
+    # 0.45-0.8 of the mouth height. d_box = 0 inside the box, grows with the distance outside it.
+    dr_box = (r_thumb - 1.45 * rad).clamp(min=0.0) + (1.15 * rad - r_thumb).clamp(min=0.0)
+    dh_box = (h_thumb - 0.8 * mouth).clamp(min=0.0) + (0.45 * mouth - h_thumb).clamp(min=0.0)
+    d_box = torch.sqrt(dr_box ** 2 + dh_box ** 2 + 1e-12)
+    # smooth attraction to the box (length scale 1 cup radius): 1 in the box, > 0 everywhere,
+    # increasing toward the box from any position (over the rim, inside the wall included)
+    box_attract = torch.exp(-d_box / rad)
+
+    # grasp-side placement (unchanged from the previous response): additionally exactly 0 for a
+    # thumb tip radially inside the wall (0 at r <= 1.0 r, 1 at r >= 1.15 r) or above the rim.
+    outer_wall = ((r_thumb - 1.0 * rad) / (0.15 * rad)).clamp(0.0, 1.0)
+    thumb_place = outer_wall * below_rim * box_attract   # [0,1], no opposition term here
+
+    # grasp-side thumb factor with a LOW floor (0.25): a grasp flag made by the thumb on/over the
+    # rim or inside the mouth keeps only a quarter of the grasp and post-grasp income. (unchanged)
+    thumb_f = 0.25 + 0.75 * thumb_place
+
+    # ---------------- one grasp-shape factor ----------------
+    # (a) all four fingers touching, weighted towards the weakest finger (mean/min blend)
+    fc = c[:, 1:]
+    fingers_all = 0.5 * fc.mean(-1) + 0.5 * fc.min(-1).values
+    # (b) finger direction level: plane_level
+    # (c) thumb outside and opposite: oppose_q
+    parts = torch.stack([fingers_all, plane_level, oppose_q], dim=-1)
+    shape = 0.5 * parts.mean(-1) + 0.5 * parts.min(-1).values
+    # floored at 0.6 so the gradient to lift and carry never vanishes
+    shape_f = 0.6 + 0.4 * shape
+
+    # thumb-inside weight (unchanged): 1 outside, 0.5 fully inside
+    inside_f = 1.0 - 0.5 * thumb_inside
+    # post-grasp income also scaled by the thumb-placement factor (iter_07 item 2, unchanged)
+    post_f = shape_f * inside_f * thumb_f
+
+    closure = ctx.hand_closure.clamp(0.0, 1.0)
+    open_ = 1.0 - closure
+
+    # uprightness (same factor as lift / transport / hold)
+    upright = torch.cos(ctx.cup_tilt).clamp(min=0.0) ** 2
+
+    # ---------------- travel (far pull never multiplied, G2) ----------------
+    approach = free * 0.35 * (0.6 * far_k + 0.4 * level_pre * near_k)
+    open_hand = free * level_pre * 0.08 * open_ * near_k        # only near the cup -> no far parking spot
+    pre_pose = free * level_pre * 0.07 * near_k * pose_q
+    close_at_pose = free * level_pre * 0.10 * closure * at_pose * pose_q   # closing is not a loss at the pose
+
+    # approach orientation, added (never multiplied onto the far approach, G2)
+    level = 1.0 - n[:, 2].abs()                          # 1 = horizontal palm normal
+    to_cup_h = _unit(_horizontal(ctx.cup_pos - ctx.palm_pos))
+    face_cos = (_horizontal(n) * to_cup_h).sum(-1)       # >0 facing the cup, <0 facing away
+    facing = 0.5 * (1.0 + torch.tanh(face_cos / 0.2))
+    orient_fade = 1.0 - 0.5 * near_k
+    approach_orient = free * level_pre * orient_fade * (0.04 * level + 0.06 * facing + 0.04 * thumb_up)
+
+    # CHANGED (repair, review item 1): pre-grasp thumb steering uses the plain box attraction,
+    # NOT the inside / over-rim ramps, so it is non-zero and rises toward the box from the hat
+    # (thumb over the rim) and thumb-inside positions too. Still inside the near-cup income
+    # (x near_k, x level_pre, x free), same ceiling 0.04 (< the 0.14 near part of approach),
+    # so it never outweighs getting closer. Opposite side of the four fingers weighted up
+    # (0.4 floor keeps a gradient).
+    thumb_steer = free * level_pre * 0.04 * near_k * box_attract * (0.4 + 0.6 * oppose)
+
+    # no flipped grasp; 1 with the thumb >= 2 cm above the little finger, floor 0.25 below
+    hand_up = 0.25 + 0.75 * thumb_up
+
+    # ---------------- grasp (>= 2x the pre-grasp step) ----------------
+    # x thumb_f (thumb pressing the rim from above earns 0.25 of it) - unchanged
+    grasp_contact = 0.10 * upright * hand_up * wrap * thumb_f
+    grasp_quality = 0.08 * wrap + 0.10 * pose_q + 0.20 * oppose_q + 0.20 * envelope
+    # base 1.05 x post_f (includes thumb_f)
+    grasp_hold = held * upright * post_f * (1.05 + hand_up * plane_q * grasp_quality)
+
+    # ---------------- lift / transport / hold (post_f includes thumb_f) ----------------
+    latch = max(float(ctx.lift_latch_m), 1e-3)
+    height = ctx.cup_pos[:, 2] - ctx.cup_spawn_pos[:, 2]
+    off = (height / latch).clamp(0.0, 1.0)               # cup off the table
+    goal_h = (ctx.goal_pos[:, 2] - ctx.cup_spawn_pos[:, 2]).clamp(min=latch)
+
+    # lowering a held cup lowers this state income -> worth less than keeping still
+    lift = 2.5 * held * upright * post_f * (height.clamp(min=0.0) / goal_h).clamp(max=1.0)
+
+    carry_gate = held * off * upright                    # no goal income while on the table
+    kp = ctx.goal_kp_dist
+    transport = 2.5 * carry_gate * post_f * (0.6 * torch.exp(-kp / 0.10) + 0.4 * torch.exp(-kp / 0.03))
+
+    tol = max(float(ctx.goal_tol), 1e-3)
+    prox = torch.exp(-kp / tol)                          # sharpens as the curriculum shrinks tol
+    cup_v = ctx.cup_lin_vel.norm(dim=-1)
+    still = torch.exp(-cup_v / 0.05)
+    goal_hold = 10.0 * carry_gate * post_f * prox * (0.5 + 0.5 * still)   # dominant income
+
+    first = (ctx.goal_success & (ctx.goal_successes <= 1)).float()
+    later = (ctx.goal_success & (ctx.goal_successes > 1)).float()
+    success_bonus = 60.0 * first + 3.0 * later
+
+    # ---------------- short-lived, bounded penalties (unchanged) ----------------
+    cup_w = ctx.cup_ang_vel.norm(dim=-1)
+    tilt = ctx.cup_tilt
+    tilt_gate = torch.tanh((tilt - 0.05).clamp(min=0.0) / 0.1)        # ~3 deg deadband
+    axis_dot = torch.cross(ctx.cup_ang_vel, up, dim=-1)               # d(cup axis)/dt
+    axis_rate = axis_dot.norm(dim=-1)
+    axis_move = torch.tanh((axis_rate - 0.2).clamp(min=0.0) / 0.3)    # above resting jitter
+    tilt_rate = -axis_dot[:, 2] / torch.sin(tilt).clamp(min=1e-3)
+    rising = torch.tanh(tilt_rate.clamp(min=0.0) / 0.3)
+    tip_penalty = -0.6 * free * (1.0 - off) * tilt_gate * axis_move * (0.5 + 0.5 * rising)
+    fall_speed = (-ctx.cup_lin_vel[:, 2]).clamp(min=0.0)
+    drop_penalty = -1.0 * ctx.lifted.float() * free * torch.tanh(fall_speed / 0.5)
+    motion_penalty = -held * (0.10 * torch.tanh(cup_v / 0.5)
+                              + 0.05 * torch.tanh(cup_w / 2.0)
+                              + 0.10 * torch.tanh(ctx.arm_qd.norm(dim=-1) / 1.0))
+    action_rate = -0.01 * ((ctx.actions - ctx.prev_actions) ** 2).mean(-1)
+    foreign_contact = -0.10 * torch.tanh(ctx.hand_foreign_force / 5.0)
+
+    comps = {
+        "approach": approach,
+        "open_hand": open_hand,
+        "pre_pose": pre_pose,
+        "close_at_pose": close_at_pose,
+        "approach_orient": approach_orient,
+        "thumb_steer": thumb_steer,
+        "grasp_contact": grasp_contact,
+        "grasp_hold": grasp_hold,
+        "lift": lift,
+        "transport": transport,
+        "goal_hold": goal_hold,
+        "success_bonus": success_bonus,
+        "tip_penalty": tip_penalty,
+        "drop_penalty": drop_penalty,
+        "motion_penalty": motion_penalty,
+        "action_rate": action_rate,
+        "foreign_contact": foreign_contact,
+    }
+    reward = torch.zeros_like(approach)
+    for v in comps.values():
+        reward = reward + v
+    return reward, comps
+```
+
+## What happened when the policy was trained with it
+
+iter_07 trained c1 and then c1r (reward_gen/rh_aglt_r/iter_07/selection.json); no competing hypothesis. Right arm only; the left arm kept training the iter_05 reward.
+
+Runs:
+- aglt_r_i07 (c1, epochs 0-714, stopped): palm within 10 cm from epoch ~480 (0.78-0.82), reward/thumb_steer exactly 0.000 the whole run (the steering was multiplied by the below-rim and outer-wall ramps, so it was 0 wherever the thumb was above the rim or inside the wall).
+- aglt_r_i07b (c1r, epochs 0-1660 at this note): palm within 10 cm from ~420 (0.82-0.84), thumb_steer rising 0.002 -> 0.010, hand closure near the cup falling 0.54 -> 0.17 (hovering with an open hand), grasp flag 0.000-0.013 for ~1200 epochs, lifted 0.000.
+
+Ledger facts (deterministic, new rows):
+- A first grasp with the thumb tip near the rim (1.25 cup radii, 0.9 of the mouth height — where real first grasps have the thumb, e.g. right i07b rare grasps 1.23-1.45 r at 0.98-1.18 of the mouth height) earns 1.25x the level hover under iter_07 (needs >= 2x to leave hovering; the same row earns 2.25x under iter_05). The grasp-side thumb factor (0.25 floor) cuts it because below_rim is already small at 0.9 of the mouth height.
+
+Grasp-shape facts:
+- User principle: the best grasp brings the cup as deep into the palm as possible so that the cylinder is caught geometrically (form closure); all finger links closing is NOT required; pressing with fingertips is worse.
+- The left arm's iter_05 grasp (the best so far, trace good_mirror, held and lifted steps, medians): palm 2.08 cup radii from the axis at 0.59 of the mouth height; fingertips wrap past the cup axis on the far side from the palm (azimuth from the palm-to-axis direction: index -28 deg, middle -33, ring -45, little -73; thumb +58); first-link force 0 N on all four fingers (thumb first link 5 N); fingertip forces 1.2-1.5 N. So the fingers already wrap, but the cup sits far from the palm and only fingertips carry it. Fraction of held steps with each fingertip past the axis: good 1.00/1.00/0.99/0.92; rim grasp 0.97/0.96/0.11/0.00; thumb-inside 0.02/0.92/0.90/0.00; hat 0.65/0.58/0.00/0.30.
+- Scripted probes (IK to a palm place beside the cup, then close the hand with the same 1 N stop, right env, 4-8 envs per setting): with the palm driven to 1.3-1.5 cup radii at 0.15 of the mouth height, after closing the palm settles 1.6-1.8 radii from the axis, all four fingertips past the axis (0.75-1.0), grasp flag 1.0, thumb and index first links touching, middle/ring/little by fingertips. With the palm at 2.0 radii only half the settings grasp. A palm placed at 0.45 of the mouth height pushes the cup away (no grasp). Thumb "opposition" as measured (thumb tip vs mean fingertip direction around the axis) is 0.0-0.2 in these good wrapped grasps and 0.04 in the left grasp: when the fingertips wrap past the axis their mean direction swings toward the thumb side, so that measure does not identify a good grasp.
+- Deterministic ledger with the measured fingertip layout: a lifted cup held at the goal with the palm far (2.08 r, 0.59 mouth height, first links 0 N) earns 0.99x of the same fingertip layout with the palm at the grasp ring (iter_05 and iter_07 alike) — the reward pays nothing for bringing the cup into the palm.
+- Left arm iter_05 over the last ~3000 epochs: goal successes 1.37 -> 0.43 per episode with grasp 0.80 and lifted 0.76 unchanged, no drops (done/dropped 0), cup tilt in the hand 7.8 -> 13.2 deg, thumb opposition 0.12 -> 0.02; the keypoints lie on the cup axis, so a tilted cup fails the 2 cm goal test.
+
+## Required changes for this iteration
+
+Two changes, nothing else:
+
+1. Pay for the cup sitting deep in the palm, caught by the wrapped fingers, instead of the thumb-opposition measure. Build the grasp-shape factor from (a) the palm being close to the cup axis (measured: good deep grasps 1.6-1.8 cup radii after closing; the left arm's fingertip grasp 2.08; the bad grasps 2.1-2.4), (b) the four fingertips lying past the cup axis on the far side from the palm (measured fractions above), (c) the existing finger-count and palm-level parts, and drop the thumb-opposition part (it is ~0 in good wrapped grasps). First-link contact may stay as a bonus but must not be required. This factor must scale the post-grasp income (grasp_hold, lift, transport, goal_hold) strongly enough that the ledger rows "3m / 6m far-palm fingertip grasp" earn less than 75 % of the same fingertip layout with the palm at the grasp ring, on the table and held at the goal; keep a floor so lifting and carrying always have a gradient. Everything continuous, lengths as multiples of ctx.cup_radius and ctx.cup_mouth_z.
+
+2. Make the first grasp worth leaving the hover even when the thumb tip is near the rim. The grasp-side thumb factor must only cut a thumb tip that is ABOVE the rim or radially INSIDE the wall (hat, thumb-in-mouth), not a thumb tip below the rim on the outer wall near the mouth height. Ledger: "3n first grasp, thumb tip 1.25 r at 0.9 of the mouth height" at least 2x the level hover (iter_07: 1.25x), and the sloppy first grasp at least 2x "2k hover with the thumb tip already in the target box" (so the pre-grasp thumb steering and open-hand income never make hovering a parking spot). Keep the hat row below the hover and the thumb-inside rows below 60 % of the grasp, and the real-trace checks (bad traces below 60 % of good_mirror, hat held-steps below the hover, thumb steering gradient on the bad traces).
+
+Keep every other part of the previous reward; change only what the two items require.
+
+## Previous response
+
+```python
+import torch
+import math
+
+
+def _unit(v: torch.Tensor) -> torch.Tensor:
+    return v / v.norm(dim=-1, keepdim=True).clamp(min=1e-6)
+
+
+def _axial_radial(p: torch.Tensor, cup_pos: torch.Tensor, up: torch.Tensor):
+    # cylinder coordinates of point(s) p around the cup axis (broadcasts over a finger dim)
+    v = p - cup_pos
+    h = (v * up).sum(-1)
+    rv = v - h.unsqueeze(-1) * up
+    return h, rv
+
+
+def _horizontal(v: torch.Tensor) -> torch.Tensor:
+    # world-horizontal part of a (N,3) vector (z component removed)
+    return torch.stack([v[:, 0], v[:, 1], torch.zeros_like(v[:, 0])], dim=-1)
+
+
+def compute_reward(ctx: RewardContext) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    up = _unit(ctx.cup_up)
+    held = ctx.grasped.float()
+    free = 1.0 - held                                   # approach income fades once held
+    rad = max(float(ctx.cup_radius), 1e-3)
+    mouth = max(float(ctx.cup_mouth_z), 1e-3)
+
+    # ---------------- palm vs. the measured grasp ring ----------------
+    h_p, rv_p = _axial_radial(ctx.palm_pos, ctx.cup_pos, up)
+    r_p = rv_p.norm(dim=-1)
+    h_target = 0.15 * ctx.cup_mouth_z                   # grasp height: origin + 0.15 x mouth
+    d_ring = torch.sqrt((r_p - 1.5 * rad) ** 2 + (h_p - h_target) ** 2 + 1e-12)
+
+    far_k = 1.0 - torch.tanh(d_ring / 0.25)             # long-range pull from the far start
+    near_k = 1.0 - torch.tanh(d_ring / 0.05)            # last few cm
+    at_pose = torch.exp(-d_ring / 0.015)                # essentially at the grasp pose
+
+    # ---------------- hand orientation quality (average ramp, not a min/product) ----------------
+    n = _unit(ctx.palm_axes[:, 0:3])
+    f = _unit(ctx.palm_axes[:, 3:6])
+    n_ax = (n * up).sum(-1)
+    f_ax = (f * up).sum(-1)
+    horiz = ((1.0 - n_ax ** 2) * (1.0 - f_ax ** 2)).clamp(0.0, 1.0)   # both axes horizontal
+    w = 0.67 * n + 0.73 * f                              # measured palm->axis direction
+    w_h = _unit(w - (w * up).sum(-1, keepdim=True) * up)
+    to_axis = _unit(-rv_p)                               # radial direction palm -> cup axis
+    align = 0.5 * (1.0 + (to_axis * w_h).sum(-1))
+    pos_q = torch.exp(-d_ring / 0.02)
+    pose_q = (horiz + align + pos_q) / 3.0               # vertical pinch from above scores low
+
+    # palm-plane level factors (unchanged)
+    s_tilt = torch.sqrt(n_ax ** 2 + f_ax ** 2 + 1e-12)
+    plane_q = (1.0 - (s_tilt - 0.2) / 0.5).clamp(0.0, 1.0)
+    plane_level = (1.0 - (s_tilt - 0.2) / 0.3).clamp(0.0, 1.0)
+    level_pre = 0.5 + 0.5 * plane_level
+
+    # thumb tip above the little-finger tip (world z), unchanged
+    thumb_dz = ctx.tips_pos[:, 0, 2] - ctx.tips_pos[:, 4, 2]
+    thumb_up = ((thumb_dz + 0.01) / 0.03).clamp(0.0, 1.0)
+
+    # ---------------- fingertips in cup cylinder coordinates ----------------
+    h_t, rv_t = _axial_radial(ctx.tips_pos, ctx.cup_pos.unsqueeze(1), up.unsqueeze(1))
+    r_t = rv_t.norm(dim=-1)                              # (N,5) distance of each tip from the axis
+    r_thumb = r_t[:, 0]
+    h_thumb = h_t[:, 0]
+
+    # "thumb tip inside the mouth" weight (unchanged)
+    in_r = ((1.1 * rad - r_thumb) / (0.1 * rad)).clamp(0.0, 1.0)
+    in_h = ((h_thumb - 0.4 * mouth) / (0.3 * mouth)).clamp(0.0, 1.0)
+    thumb_inside = in_r * in_h
+    thumb_out = 1.0 - thumb_inside
+
+    # ---------------- contacts (all five fingers treated by the same rule) ----------------
+    c = (ctx.finger_force / 1.0).clamp(0.0, 1.0)        # 1 N = env grasp threshold
+    thumb_c = c[:, 0] * thumb_out
+    fing_c = c[:, 1:].mean(-1)                           # four fingers alike, more is better
+    wrap = thumb_c * fing_c                              # needs both sides -> no one-sided push income
+
+    # first-link contact of the four fingers: a bonus only, never required
+    pc = (ctx.finger_prox_force / 0.5).clamp(0.0, 1.0)
+    envelope = pc[:, 1:].mean(-1)
+
+    # thumb vs mean fingertip direction: used ONLY for the pre-grasp thumb steering (unchanged)
+    u = _unit(rv_t)
+    u_thumb = u[:, 0]
+    u_fing = _unit(u[:, 1:].mean(1))
+    oppose = 0.5 * (1.0 - (u_thumb * u_fing).sum(-1))
+
+    # thumb-placement target box: used ONLY for the pre-grasp thumb steering (unchanged)
+    dr_box = (r_thumb - 1.45 * rad).clamp(min=0.0) + (1.15 * rad - r_thumb).clamp(min=0.0)
+    dh_box = (h_thumb - 0.8 * mouth).clamp(min=0.0) + (0.45 * mouth - h_thumb).clamp(min=0.0)
+    d_box = torch.sqrt(dr_box ** 2 + dh_box ** 2 + 1e-12)
+    box_attract = torch.exp(-d_box / rad)
+
+    # ---------------- CHANGED (item 2): grasp-side thumb factor ----------------
+    # Cuts ONLY a thumb tip radially inside the wall (0 at r <= 1.0 r, 1 at r >= 1.1 r) or above
+    # the rim (1 at h <= mouth, 0 at h >= 1.1 x mouth). A tip below the rim on the outer wall
+    # (e.g. 1.25 r at 0.9 of the mouth height) keeps the full factor. Low floor 0.25 kept for
+    # the hat / thumb-in-mouth grasps.
+    outer_wall = ((r_thumb - 1.0 * rad) / (0.1 * rad)).clamp(0.0, 1.0)
+    not_above = ((1.1 * mouth - h_thumb) / (0.1 * mouth)).clamp(0.0, 1.0)
+    thumb_place = outer_wall * not_above
+    thumb_f = 0.25 + 0.75 * thumb_place
+
+    # ---------------- CHANGED (item 1): grasp-shape factor = cup deep in the palm ----------------
+    # (a) palm close to the cup axis: 1 up to 1.8 cup radii (measured deep grasps settle at
+    #     1.6-1.8 r), 0 at 2.3 r (fingertip grasp at 2.08 r -> 0.44, bad grasps 2.1-2.4 r -> 0.4..0)
+    deep = ((2.3 * rad - r_p) / (0.5 * rad)).clamp(0.0, 1.0)
+    # (b) four fingertips past the cup axis on the far side from the palm (treated alike):
+    #     projection of each tip's radial vector on the palm->axis direction, in cup radii;
+    #     0.5 at the axis, 1 once 0.25 r past it, 0 once 0.25 r short of it
+    proj = (rv_t[:, 1:] * to_axis.unsqueeze(1)).sum(-1)
+    past = (0.5 + proj / (0.5 * rad)).clamp(0.0, 1.0).mean(-1)
+    # (c) existing finger-count and palm-level parts; the thumb-opposition part is dropped
+    fc = c[:, 1:]
+    fingers_all = 0.5 * fc.mean(-1) + 0.5 * fc.min(-1).values
+    parts = torch.stack([fingers_all, plane_level, past], dim=-1)
+    blend = 0.5 * parts.mean(-1) + 0.5 * parts.min(-1).values
+    # depth scales strongly (floor 0.3), the rest keeps the old 0.6 floor -> lift/carry gradient never 0
+    shape_f = (0.3 + 0.7 * deep) * (0.6 + 0.4 * blend)
+
+    inside_f = 1.0 - 0.5 * thumb_inside                  # unchanged
+    post_f = shape_f * inside_f * thumb_f                # scales grasp_hold, lift, transport, goal_hold
+
+    closure = ctx.hand_closure.clamp(0.0, 1.0)
+    open_ = 1.0 - closure
+
+    upright = torch.cos(ctx.cup_tilt).clamp(min=0.0) ** 2
+
+    # ---------------- travel (far pull never multiplied, G2), unchanged ----------------
+    approach = free * 0.35 * (0.6 * far_k + 0.4 * level_pre * near_k)
+    open_hand = free * level_pre * 0.08 * open_ * near_k
+    pre_pose = free * level_pre * 0.07 * near_k * pose_q
+    close_at_pose = free * level_pre * 0.10 * closure * at_pose * pose_q
+
+    level = 1.0 - n[:, 2].abs()
+    to_cup_h = _unit(_horizontal(ctx.cup_pos - ctx.palm_pos))
+    face_cos = (_horizontal(n) * to_cup_h).sum(-1)
+    facing = 0.5 * (1.0 + torch.tanh(face_cos / 0.2))
+    orient_fade = 1.0 - 0.5 * near_k
+    approach_orient = free * level_pre * orient_fade * (0.04 * level + 0.06 * facing + 0.04 * thumb_up)
+
+    thumb_steer = free * level_pre * 0.04 * near_k * box_attract * (0.4 + 0.6 * oppose)
+
+    hand_up = 0.25 + 0.75 * thumb_up
+
+    # ---------------- grasp (>= 2x the pre-grasp step) ----------------
+    grasp_contact = 0.10 * upright * hand_up * wrap * thumb_f
+    # CHANGED (item 1): the 0.20 opposition bonus is replaced by the deep-in-palm measure (deep x past)
+    grasp_quality = 0.08 * wrap + 0.10 * pose_q + 0.20 * deep * past + 0.20 * envelope
+    grasp_hold = held * upright * post_f * (1.05 + hand_up * plane_q * grasp_quality)
+
+    # ---------------- lift / transport / hold (unchanged, via post_f) ----------------
+    latch = max(float(ctx.lift_latch_m), 1e-3)
+    height = ctx.cup_pos[:, 2] - ctx.cup_spawn_pos[:, 2]
+    off = (height / latch).clamp(0.0, 1.0)
+    goal_h = (ctx.goal_pos[:, 2] - ctx.cup_spawn_pos[:, 2]).clamp(min=latch)
+
+    lift = 2.5 * held * upright * post_f * (height.clamp(min=0.0) / goal_h).clamp(max=1.0)
+
+    carry_gate = held * off * upright
+    kp = ctx.goal_kp_dist
+    transport = 2.5 * carry_gate * post_f * (0.6 * torch.exp(-kp / 0.10) + 0.4 * torch.exp(-kp / 0.03))
+
+    tol = max(float(ctx.goal_tol), 1e-3)
+    prox = torch.exp(-kp / tol)
+    cup_v = ctx.cup_lin_vel.norm(dim=-1)
+    still = torch.exp(-cup_v / 0.05)
+    goal_hold = 10.0 * carry_gate * post_f * prox * (0.5 + 0.5 * still)   # dominant income
+
+    first = (ctx.goal_success & (ctx.goal_successes <= 1)).float()
+    later = (ctx.goal_success & (ctx.goal_successes > 1)).float()
+    success_bonus = 60.0 * first + 3.0 * later
+
+    # ---------------- short-lived, bounded penalties (unchanged) ----------------
+    cup_w = ctx.cup_ang_vel.norm(dim=-1)
+    tilt = ctx.cup_tilt
+    tilt_gate = torch.tanh((tilt - 0.05).clamp(min=0.0) / 0.1)
+    axis_dot = torch.cross(ctx.cup_ang_vel, up, dim=-1)
+    axis_rate = axis_dot.norm(dim=-1)
+    axis_move = torch.tanh((axis_rate - 0.2).clamp(min=0.0) / 0.3)
+    tilt_rate = -axis_dot[:, 2] / torch.sin(tilt).clamp(min=1e-3)
+    rising = torch.tanh(tilt_rate.clamp(min=0.0) / 0.3)
+    tip_penalty = -0.6 * free * (1.0 - off) * tilt_gate * axis_move * (0.5 + 0.5 * rising)
+    fall_speed = (-ctx.cup_lin_vel[:, 2]).clamp(min=0.0)
+    drop_penalty = -1.0 * ctx.lifted.float() * free * torch.tanh(fall_speed / 0.5)
+    motion_penalty = -held * (0.10 * torch.tanh(cup_v / 0.5)
+                              + 0.05 * torch.tanh(cup_w / 2.0)
+                              + 0.10 * torch.tanh(ctx.arm_qd.norm(dim=-1) / 1.0))
+    action_rate = -0.01 * ((ctx.actions - ctx.prev_actions) ** 2).mean(-1)
+    foreign_contact = -0.10 * torch.tanh(ctx.hand_foreign_force / 5.0)
+
+    comps = {
+        "approach": approach,
+        "open_hand": open_hand,
+        "pre_pose": pre_pose,
+        "close_at_pose": close_at_pose,
+        "approach_orient": approach_orient,
+        "thumb_steer": thumb_steer,
+        "grasp_contact": grasp_contact,
+        "grasp_hold": grasp_hold,
+        "lift": lift,
+        "transport": transport,
+        "goal_hold": goal_hold,
+        "success_bonus": success_bonus,
+        "tip_penalty": tip_penalty,
+        "drop_penalty": drop_penalty,
+        "motion_penalty": motion_penalty,
+        "action_rate": action_rate,
+        "foreign_contact": foreign_contact,
+    }
+    reward = torch.zeros_like(approach)
+    for v in comps.values():
+        reward = reward + v
+    return reward, comps
+```
+
+## Validation errors
+
+주차: 3o_thumb_overshoots_wall 1.727 ≥ 기준 1.555 (3_grasped_on_table 1.727)
+주차: 3h_hat_thumb_over_rim 0.776 ≥ 기준 0.372 (2h_hover_half_closed 0.372)
+
+## Review items
+
+1. Thumb tip far outside the wall is no longer penalised: row 3o (thumb tip overshooting the wall to 2.2 cup radii, not holding the wall; the right iter_02 video) now earns exactly the full grasp (1.727 = row 3). The new grasp-side thumb factor only looks at "inside the wall" and "above the rim"; a thumb tip far out from the wall must also be cut (full credit on the outer wall band, measured good grasps 1.18-1.39 r; down to the floor by about 1.8 r).
+2. The hat is a parking spot again: row 3h (thumb tip 1.48 r at 1.05 of the mouth height, only index and little finger touching) earns 0.776 vs the level hover 0.372. The "not above the rim" ramp only reaches its floor at 1.1 x the mouth height, so a thumb at 1.05 keeps half. It must reach the floor at the rim height (a thumb tip at or above the mouth height gets the floor) while a thumb tip at 0.9 of the mouth height (row 3n) keeps full credit. Everything else in the candidate passed: 3m/3 0.51, 6m/6 0.60, 3n/2h 2.89, 3s/2k 2.80, thumb-inside rows 0.11-0.12, all real-trace checks (bad traces 0.05-0.07 of good_mirror, steering gradient 1.00 on all bad traces) — keep those.

@@ -1,0 +1,17 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획 준수(notes_iter02: K7 인벨롭 방향 점수·옆 목표 1.5r·push_in 벽 근처만, 그 밖 그대로 — AST diff 확인) + check_iter02 PASS([35] 인벨롭 3.752 > 손끝 겨눔 2.880 > 수직 손 2.203) + 원장 단조(2f·2v < 2)",
+ "decided_by": "session 146751a7 (사용자 '재검토후 진행' 09-29)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, iter_02/prompt.md (가설 id 없음 → prompt 전체 한 후보)",
+   "sha256_8": "a586fc81",
+   "gate": "PASS",
+   "change": "dir_dot → env_score = hand_level·(0.25·normal_level + 0.75·dir_env(cos(손바닥→축, 0.67n+0.73f))), orient_fac = 0.3+0.7·env_score 를 finger_dir·descend 에 곱함; SIDE_K 2.5→1.5r; push_in 1.25r→1.0r; 편 손 해제·hover 반경은 2.5r 유지",
+   "deterministic_check": "PASS — iter_02/check_c1.txt. [35] +0.872/+1.549, [34] 비 0.18, [32] +0.048, [15] +0.094/+0.155, [31] +0.659",
+   "ledger": "iter_02/ledger_c1.txt — 0 0.69 → 2 3.75 → 5 9.96, 2f 2.88·2v 2.20 < 2, 3p·0p·1h 통과"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "fresh — 보상이 새 접근 자세(인벨롭)를 요구한다"
+}

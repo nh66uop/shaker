@@ -1,0 +1,14 @@
+{
+ "label": "aglt_l_i09d",
+ "host": "vision-3090",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "python_pid": 129811,
+ "reward": "iter_09 c1 (sha256 0afe307e5661)",
+ "stage": "2_real_delay",
+ "delay": "env 기본값 arm 9~12 · hand 3~5 스텝",
+ "warm_start": "aglt_l_i09/nn/last_open-rh_l_aglt-lstm_ep_3400_rew_2309.0864.pth",
+ "warm_start_why": "사용자 10.01 2단계 결정: 보상 같음, dynamics(지연)만 바뀜 — hdgp 단계 커리큘럼 예외",
+ "note": "tol 커리큘럼·ADR 은 체크포인트에 없어 0.10·0 에서 다시 시작"
+}

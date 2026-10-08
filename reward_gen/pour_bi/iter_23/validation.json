@@ -1,0 +1,282 @@
+{
+ "ok": true,
+ "errors": [],
+ "warnings": [],
+ "term_stats": {
+  "approach_src": {
+   "mean": 0.15182902912298837,
+   "abs_max": 0.5457525849342346
+  },
+  "approach_rcv": {
+   "mean": 0.15257562696933746,
+   "abs_max": 0.5659885406494141
+  },
+  "reach_src": {
+   "mean": 0.03354259952902794,
+   "abs_max": 0.30000001192092896
+  },
+  "reach_rcv": {
+   "mean": 0.03450876598556837,
+   "abs_max": 0.30000001192092896
+  },
+  "grasp_src": {
+   "mean": 0.6104030211766561,
+   "abs_max": 1.2996753454208374
+  },
+  "grasp_rcv": {
+   "mean": 0.6541005969047546,
+   "abs_max": 1.2912245988845825
+  },
+  "both_grasped": {
+   "mean": 0.3635568718115489,
+   "abs_max": 0.800000011920929
+  },
+  "posture_src": {
+   "mean": 1.2005810737609863,
+   "abs_max": 4.613784313201904
+  },
+  "posture_rcv": {
+   "mean": 0.35292090972264606,
+   "abs_max": 1.1647446155548096
+  },
+  "tip_only_src": {
+   "mean": -0.877299964427948,
+   "abs_max": 2.4000000953674316
+  },
+  "tip_only_rcv": {
+   "mean": -0.6087100108464559,
+   "abs_max": 1.2000000476837158
+  },
+  "palm_slip_src": {
+   "mean": -0.23543214301268262,
+   "abs_max": 1.3487110137939453
+  },
+  "lift_src": {
+   "mean": 0.5972976088523865,
+   "abs_max": 3.7499027252197266
+  },
+  "lift_rcv": {
+   "mean": 0.12815365195274353,
+   "abs_max": 0.750016450881958
+  },
+  "both_lifted": {
+   "mean": 0.027653105867405735,
+   "abs_max": 0.800000011920929
+  },
+  "converge": {
+   "mean": 3.8062218838465994e-05,
+   "abs_max": 0.0071712094359099865
+  },
+  "bring_together": {
+   "mean": 1.8534217929300212e-06,
+   "abs_max": 0.0002560100401751697
+  },
+  "aim": {
+   "mean": 1.5793348514610745e-05,
+   "abs_max": 0.00148615927901119
+  },
+  "pour_dir": {
+   "mean": 0.0033221054181922227,
+   "abs_max": 0.2065410614013672
+  },
+  "pour_dir_pen": {
+   "mean": -0.022264325991272926,
+   "abs_max": 1.0
+  },
+  "home_rcv": {
+   "mean": 6.829692078084519e-11,
+   "abs_max": 6.245160388829163e-09
+  },
+  "side_margin": {
+   "mean": -1.0381712118784587,
+   "abs_max": 2.0
+  },
+  "tilt_pre": {
+   "mean": 5.181459736528874e-06,
+   "abs_max": 0.0009719985537230968
+  },
+  "tilt_main": {
+   "mean": 0.0,
+   "abs_max": 0.0
+  },
+  "pour_pose": {
+   "mean": 0.0,
+   "abs_max": 0.0
+  },
+  "overtilt": {
+   "mean": -0.17055012782414752,
+   "abs_max": 4.969127655029297
+  },
+  "upright_src": {
+   "mean": -0.995150625705719,
+   "abs_max": 2.5
+  },
+  "premature_latch": {
+   "mean": -0.052083333333333336,
+   "abs_max": 1.0
+  },
+  "rot_speed": {
+   "mean": -0.014077729855974514,
+   "abs_max": 0.10005177557468414
+  },
+  "pour_delta": {
+   "mean": -2.039955933888753,
+   "abs_max": 11.924821853637695
+  },
+  "flow_excess": {
+   "mean": -0.2590055962403615,
+   "abs_max": 1.5343427658081055
+  },
+  "transferred": {
+   "mean": 0.7896590828895569,
+   "abs_max": 4.116888046264648
+  },
+  "spill_delta": {
+   "mean": -1.2952032089233398,
+   "abs_max": 4.8793864250183105
+  },
+  "hold_src": {
+   "mean": 0.2762850324312846,
+   "abs_max": 1.4240362644195557
+  },
+  "hold_rcv": {
+   "mean": 0.03443165806432565,
+   "abs_max": 0.43658390641212463
+  },
+  "upright_rcv": {
+   "mean": -0.7090895374615988,
+   "abs_max": 2.0
+  },
+  "rcv_still": {
+   "mean": -0.250160609682401,
+   "abs_max": 0.993620753288269
+  },
+  "drop": {
+   "mean": -0.65625,
+   "abs_max": 1.0
+  },
+  "cup_contact": {
+   "mean": -1.4735943476359048,
+   "abs_max": 1.9732043743133545
+  },
+  "cup_hit": {
+   "mean": -4.474382718404135,
+   "abs_max": 5.300000190734863
+  },
+  "hand_foreign_src": {
+   "mean": -0.3190478285153707,
+   "abs_max": 0.9956628084182739
+  },
+  "hand_foreign_rcv": {
+   "mean": -0.32069020469983417,
+   "abs_max": 0.9959998726844788
+  },
+  "closing_speed": {
+   "mean": 0.0,
+   "abs_max": 0.0
+  },
+  "nested": {
+   "mean": -0.0703125,
+   "abs_max": 0.5
+  },
+  "prelift_near": {
+   "mean": -0.025226588050524395,
+   "abs_max": 2.0
+  },
+  "palm_rate_src": {
+   "mean": -0.06608473633726437,
+   "abs_max": 0.4473819434642792
+  },
+  "palm_rate_rcv": {
+   "mean": -0.06910911823312442,
+   "abs_max": 0.5053889155387878
+  },
+  "hand_rate": {
+   "mean": -0.0290983517964681,
+   "abs_max": 0.17393720149993896
+  },
+  "act_flip": {
+   "mean": -0.22661789258321124,
+   "abs_max": 2.6763718128204346
+  },
+  "hand_flip": {
+   "mean": -0.25751084089279175,
+   "abs_max": 0.9966911673545837
+  },
+  "palm_sat_src": {
+   "mean": -0.023449014872312546,
+   "abs_max": 0.07353188842535019
+  },
+  "palm_sat_rcv": {
+   "mean": -0.022715286041299503,
+   "abs_max": 0.08860961347818375
+  },
+  "src_speed": {
+   "mean": -0.14372883240381878,
+   "abs_max": 0.9999997615814209
+  },
+  "src_spin": {
+   "mean": 0.0,
+   "abs_max": 0.0
+  },
+  "rcv_motion": {
+   "mean": -0.05530907462040584,
+   "abs_max": 0.7967679500579834
+  },
+  "success": {
+   "mean": 0.34962014357248944,
+   "abs_max": 7.6572265625
+  }
+ },
+ "total_stats": {
+  "mean": -11.039779980977377,
+  "abs_max": 34.30729293823242
+ },
+ "fields_used": [
+  "actions",
+  "adr_progress",
+  "bead_fill_level",
+  "bead_in_source_frac",
+  "bead_in_target_frac",
+  "cup_cup_force",
+  "cup_hit",
+  "cup_mouth_z",
+  "cups_nested",
+  "d_in_target",
+  "d_spill",
+  "episode_progress",
+  "pour_dir_xy",
+  "premature_tilt",
+  "premature_tilt_limit",
+  "prev_actions",
+  "rcv_cup_ang_vel",
+  "rcv_cup_lin_vel",
+  "rcv_cup_mouth_pos",
+  "rcv_cup_pos",
+  "rcv_cup_spawn_pos",
+  "rcv_cup_tilt",
+  "rcv_finger_force",
+  "rcv_grasped",
+  "rcv_hand_closure",
+  "rcv_hand_foreign_force",
+  "rcv_palm_force",
+  "rcv_palm_pos",
+  "rcv_side_margin",
+  "rcv_wrap_count",
+  "src_cup_ang_vel",
+  "src_cup_lin_vel",
+  "src_cup_pos",
+  "src_cup_spawn_pos",
+  "src_cup_tilt",
+  "src_finger_force",
+  "src_grasped",
+  "src_hand_closure",
+  "src_hand_foreign_force",
+  "src_palm_force",
+  "src_palm_pos",
+  "src_pour_lip_pos",
+  "src_tilt_toward_rcv",
+  "src_wrap_count",
+  "success"
+ ]
+}

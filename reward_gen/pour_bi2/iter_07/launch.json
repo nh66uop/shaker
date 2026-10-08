@@ -1,0 +1,40 @@
+{
+ "label": "t2r2_i07",
+ "track": "pour_bi2",
+ "iter": 7,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "task": "open-short_b_pour_fab-lstm",
+ "commit": "56ea4205",
+ "python_pid": 1863681,
+ "checkpoint": null,
+ "fresh": true,
+ "seed": 42,
+ "network": "관측 224 → LSTM 1024 → LayerNorm → MLP [512,512] → 명령 18",
+ "overrides": {
+  "horizon_length": 16,
+  "seq_length": 16,
+  "minibatch_size": 16384,
+  "save_frequency": 50,
+  "lr_schedule": "linear",
+  "central_value_config.learning_rate": "3e-4",
+  "network.rnn.before_mlp": true,
+  "network.rnn.concat_input": false,
+  "network.rnn.concat_output": false,
+  "config.clip_actions": false,
+  "env.pour_target_schedule": [
+   1.0,
+   0.8,
+   0.5,
+   0.2
+  ],
+  "palm_action_mode": "increment",
+  "sigma_init": -1.0
+ },
+ "reward": "pour_bi2 iter_07 c1r",
+ "log": "~/logs/t2r/t2r2_i07.log",
+ "started_local": "2026-09-28T13:21:30+09:00",
+ "started": 1790569290.7859628,
+ "env_commit": "9d300ef4 (increment palm command, velocity caps src 0.6 m/s 180 deg/s rcv 0.4 m/s 120 deg/s, leash src 6 cm 30 deg rcv 5 cm 15 deg, receiver box x -0.05..0.15 y -0.12..0.04)"
+}

@@ -1,0 +1,33 @@
+{
+ "selected": "c1",
+ "candidates": {
+  "c1": {
+   "source": "claude kuku-reward-generator (full prompt.md)",
+   "gate": "PASS (t2r_ms ingest, cpu+cuda dry run)",
+   "plan": "only env_depth changed: link-count depth weighted per digit by the share of its RAW cup force on inner links (k=0,1) vs tip; floor 0.3 for tip-only; trust tanh(F/0.3N) so near-zero force falls back to the round-16 count; squeeze unchanged",
+   "deterministic_check": {
+    "script": "check_depth.py",
+    "result": "tip press 5N + inner brush 0.3N: 0.982 -> 0.372; curl 2+2N/tip 1N: 1.000 -> 1.000; tip only 3N: 0.50 -> 0.15; no contact 0; bounded [0,1]; never above round 16; tip->inner shift raises depth; harder tip lowers depth"
+   }
+  },
+  "q1": {
+   "source": "local qwen3.6 (condensed prompt_qwen.md, 30K tokens)",
+   "gate": "PASS",
+   "rejected": "share computed on SATURATED soft contacts (link_c), not forces: a 5 N tip and a 0.3 N inner brush both saturate, so a tip press still scores as a wrap; no smooth fallback"
+  },
+  "q2": {
+   "source": "local qwen3.6",
+   "gate": "PASS",
+   "rejected": "same saturated-contact share; depth = share x inner count only (tip-only drops from 0.5 to 0), changes semantics beyond the plan; removed RewardContext string annotation"
+  },
+  "q3": {
+   "source": "local qwen3.6",
+   "gate": "PASS",
+   "rejected": "same saturated-contact share, averaged over digits before multiplying (mixes digits)"
+  }
+ },
+ "rule": "gate PASS AND plan conformance (iter_16 whole, only the wrap-depth change of iter_16/improvement.md) AND deterministic property check",
+ "decided_by": "kuku-ai-55 main",
+ "at": "2026-09-25T22:55",
+ "warm_start": "e1000 (fixed-tol: e1250 success 0.707 < e1000 0.811, z -4.7)"
+}

@@ -1,0 +1,14 @@
+{
+ "label": "aglt_l_i08",
+ "host": "vision-3090",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-rh_l_aglt-lstm",
+ "python_pid": 4057204,
+ "commit": "130f09f2",
+ "reward": "iter_08 c1r (sha256 37e58f7f90fc)",
+ "physx": "gpu_collision_stack_size 2**30",
+ "save_frequency": 200,
+ "checkpoint": null
+}

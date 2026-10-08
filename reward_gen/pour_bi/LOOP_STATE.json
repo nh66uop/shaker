@@ -1,0 +1,1117 @@
+{
+ "iter": 28,
+ "label": "t2r_i28f",
+ "round": 28,
+ "round10_note": "env 수정 b3a07d0e(래치를 접촉 기반 소스 파지 성립 시에만) 뒤 재학습. 보상 iter_09(37항, raise_src 추가). 그 외 env 는 라운드 9 와 동일. 틱 예약 은 아래 launch_i09.cron",
+ "launch_i09": {
+  "label": "t2r_i09",
+  "num_envs": 4096,
+  "gpu": 1,
+  "commit": "48e098c8",
+  "server_pids": [
+   1931511,
+   1931518
+  ],
+  "started": 1789572499.0,
+  "started_local": "2026-09-17 00:28",
+  "cron": "b60ea453 (2h, :23)",
+  "note": "1차 기동(PID 1926763/1926770, 25865920)은 fabric FK 게이트 5.43 mm > 5 mm 로 초기화 실패 → 허용치 10 mm(48e098c8) 후 재기동"
+ },
+ "round9_note": "env 라운드 9(사용자 결정 09.16 권장안 A): 비드 30 mm·스폰 20·활성 6~20(ADR 상한 12→20)·파킹, 채움 정도 obs(actor·critic +1 → 223/293), 조준 전 틸트 래치(30°·입구 xy 0.10 m → 성공 무효), hold 45, 바닥 판정 여유 3 mm. 보상 iter_08(36항, upright_src·premature_latch·rcv_still 추가, tilt_premature 제거). MAX_ROUNDS 8→12. 프로브: 게이트 3종 PASS, 흘림 가득 69°/조금 89°(iter_08 prompt 는 95° 표기, 5° 차이 방향 동일)",
+ "ended_i08": {
+  "epoch": 159,
+  "hours": 1.3,
+  "reason": "사용자 결정 09.17 '수정후 재시작': 소스 파지 0.000 — 조준 전 틸트 래치에 파지 조건이 없어 탐색이 넘어뜨린 컵까지 래치(첫 epoch 19.8 %, 파지 0) → 정책이 소스 컵 회피(이물 15→2 %, 기울기 16.6→0.1°). 리시버 쪽은 파지 0.78·들기 0.22 m 로 정상",
+  "fix": "b3a07d0e — 래치를 그 스텝의 접촉 기반 소스 파지 성립 시에만(리시버 규칙과 같은 원칙). 게이트 프로브 PASS(정착 0.951)",
+  "server_pids_killed": [
+   1873810,
+   1873817
+  ],
+  "final_ckpt": "last_open-short_b_pour_fab_ep_150_rew_2020.0004.pth",
+  "reward_terms_at_159": "lift_rcv +1.44 · grasp_rcv +0.90 · approach_rcv +0.66 · approach_src +0.44 · grasp_src +0.02 (총 2.8; i07 e160 8.0, i05 10.2)"
+ },
+ "launch_i08": {
+  "label": "t2r_i08",
+  "num_envs": 4096,
+  "gpu": 1,
+  "commit": "c8dedf04",
+  "server_pids": [
+   1873810,
+   1873817
+  ],
+  "started_local": "2026-09-16 22:44",
+  "note": "GPU1 단독(기동 전 21 MiB), 라벨·로그 폴더 중복 없음 확인 후 기동"
+ },
+ "best": {
+  "iter": 5,
+  "label": "t2r_i05",
+  "epoch": 2765,
+  "episode_success_last": 0.8086,
+  "episode_success_max": 0.8232,
+  "in_target_last": 0.7787,
+  "spill_last": 0.0458,
+  "nested_rate": 0.0,
+  "cup_collision_rate": 0.0108,
+  "hand_foreign_src": 0.0211,
+  "hand_foreign_rcv": 0.042,
+  "adr_progress": 1.0,
+  "time": 1789464906.1567261,
+  "note": "라운드3 env(DR·ADR·지각노이즈·충돌신호)에서 달성, 영상 게이트 ep800 pass"
+ },
+ "started": 1790089523.7137067,
+ "success_ticks": 0,
+ "restart": "09.13 nesting hacking 수정 후 같은 iter_00 보상으로 재학습",
+ "prev": {
+  "iter": 25,
+  "label": "t2r_i25j",
+  "commit": "e34d8e35"
+ },
+ "round3_note": "env 변경(hand_qd 제거·지각 지연/노이즈·물리 DR+ADR·충돌 신호) 후 iter_02 (notes_round3.md)",
+ "round4_note": "iter_03: pouring-lip 기하 aim/tilt 재정의 (notes_round4.md)",
+ "success_tick_log": [],
+ "round5_note": "iter_04: wrap 품질·손 이물 게이트·중앙선 벌점 (notes_round5.md)",
+ "round6_note": "iter_05: tilt 방향·붓기 자세 보너스·closure 램프 정정 (notes_round6.md)",
+ "video_check": {
+  "label": "t2r_i05",
+  "ckpt": "last_open-short_b_pour_fab_ep_800_rew_19825.951.pth",
+  "epoch": 800,
+  "time": 1789411895.0980866,
+  "result": "pass",
+  "findings": [
+   "끼워넣기 아님: 소스 컵 몸통은 리시버 밖, 입구 끝만 리시버 입구 위(왼쪽 위 시점 step 210~500)",
+   "양손 인벨롭 유지: 오른손 네 손가락이 소스 컵 몸통을 감싼 채 틸트, 왼손은 리시버 직립 파지",
+   "손-손 접촉 안 보임(오른손 엄지가 리시버 림 근처까지 옴)",
+   "주의: 소스 입구 끝이 리시버 림에 약 1 cm 이하로 근접 — cup_collision 0.6% 는 가벼운 림 접촉으로 해석",
+   "테이블 비드 2~3개(spill 4%)"
+  ],
+  "files": {
+   "left_top": "/home/user/rl_ws/our_source/pour_t2r_i05_ep800_0915_0344_left_top.mp4",
+   "right": "/home/user/rl_ws/our_source/pour_t2r_i05_ep800_0915_0344_right.mp4",
+   "frames": "/home/user/rl_ws/our_source/pour_t2r_i05_ep800_0915_0344_frames/"
+  }
+ },
+ "best_prev": {
+  "iter": 1,
+  "label": "t2r_i01",
+  "epoch": 413,
+  "episode_success_last": 0.7287,
+  "episode_success_max": 0.7507,
+  "in_target_last": 0.6945,
+  "spill_last": 0.0708,
+  "nested_rate": 0.0099,
+  "time": 1789321439.155391
+ },
+ "termination_met": {
+  "time": 1789421707.536861,
+  "epoch": 1194,
+  "detail": "success ≥0.5 두 틱 연속(ep810 0.66, ep1194 0.75) ∧ nested 0 ∧ cup_coll 0.8% ∧ 영상 pass(ep800)",
+  "action": "hold 상태 — 사용자 지시로 종료하지 않고 계속 학습·보고만"
+ },
+ "hold_released": {
+  "label": "t2r_i16",
+  "time": 1789840872.5161366,
+  "reason": "user 09.20: video rejected (4 defects), analyse and relaunch"
+ },
+ "stopped": {
+  "label": "t2r_i05",
+  "time": 1789470236.6035817,
+  "final_ckpt": "last_open-short_b_pour_fab_ep_2950_rew_23967.287.pth",
+  "converged_ckpt": "last_open-short_b_pour_fab_ep_2750_rew_23587.35.pth",
+  "server_pids_killed": [
+   3826003,
+   3826010
+  ],
+  "cron_deleted": "31e22bfe",
+  "reason": "성공률·총보상 평탄(수렴) + 손 유효 액션 노이즈 증가(null 22/42 차원) — 수정 후 재학습",
+  "next": "영상 추출(ADR 최대) → null 액션 차원 등 수정 → 재학습"
+ },
+ "round7_note": "env: grip3(액션 18)·palm EMA 0.25·리시버 ≤20° 성공 조건(ccb09a6d) · 보상 iter_06(4858b307) · 처음부터 학습",
+ "cron": "6b037cb5 (30m, :07/:37)",
+ "round8_note": "iter_07: upright_rcv·직립 배율을 리시버 파지·들기 이후(rcv_carry)로 한정(운영자 요구, notes_round8) · env 는 라운드 7 과 동일 · 루프 상한 라운드 8",
+ "trace_i07_ep350": {
+  "time": 1789492964.1760862,
+  "file": "log/server_mirror/pour-fab/t2r_i07/trace_i07_latest_adr0.npz",
+  "facts": [
+   "step 200~890 양팔 palm y 액션이 바깥쪽 끝에 고정(소스 −1.00, 리시버 +1.00, 부호 교대 0), palm y ±0.334(델타 한계)",
+   "두 컵 거리 0.66~0.68 m(8 env 모두), 소스 약 40 cm·리시버 약 23 cm 들기, 소스 기울기 80~85°, 비드 이동 0",
+   "벌점 무관: closing_speed −0.0003·meet 0·cup_contact −0.0005 · 들기 보상 약 3.1, tilt+tilt_dir 약 0.7(떨어져도 지급), bring_together 0.12(exp(−3·거리) 평탄)",
+   "리시버 팔 관절속도 RMS 0.4~0.56 rad/s(소스 약 5배), 리시버 회전 두 칸 17~23 % 부호 교대",
+   "작업공간 한계 아님: 소스 palm y 최대 +0.166, 리시버 최소 −0.166 까지 도달 가능"
+  ],
+  "note": "라운드 8 상한 — 자동 advance 없음, 다음 결정은 사용자"
+ },
+ "loop_ended": {
+  "time": 1789497825.996861,
+  "reason": "round ≥ 8 (MAX_ROUNDS) 에서 advance 판정 — LOOP_PROMPT 종료 조건",
+  "last_tick": {
+   "label": "t2r_i07",
+   "epoch": 558,
+   "hours": 4.43,
+   "episode_success": 0.0,
+   "src_grasped": 0.883,
+   "rcv_grasped": 0.879,
+   "src_lift": 0.333,
+   "rcv_lift": 0.195,
+   "src_tilt_deg": 70.3,
+   "aim_dist": 0.507,
+   "spill_recent": 0.021,
+   "spill_max": 0.058,
+   "cup_collision": 0.0007,
+   "hand_foreign_src_rcv": [
+    0.033,
+    0.028
+   ]
+  },
+  "best": "t2r_i05 (성공 max 0.823, 액션 42 · 옛 성공 정의)",
+  "server_run": "t2r_i07 PID 1051431/1051438 GPU1 계속 학습 중 — 중단 여부 사용자 결정",
+  "cron_deleted": "6b037cb5",
+  "next_options": [
+   "라운드 상한 올리고 iter_08 (trace_i07_ep350 사실 + 흘림 증가 notes)",
+   "t2r_i07 계속",
+   "학습 종료"
+  ]
+ },
+ "monitoring": {
+  "since": 1789515587.02707,
+  "interval": "2h (:23)",
+  "label": "t2r_i07",
+  "scope": "지표 보고만 — 라운드 상한 8 이라 보상 재생성·재기동·종료는 사용자 승인 후",
+  "state_at_resume": {
+   "epoch": 1071,
+   "hours": 8.39,
+   "episode_success": 0.7,
+   "in_target": 0.66,
+   "spill": 0.075,
+   "aim_dist": 0.11,
+   "src_tilt_deg": 96,
+   "rcv_tilt_deg": 8.0,
+   "cup_collision": 0.009,
+   "hand_foreign_src_rcv": [
+    0.016,
+    0.044
+   ],
+   "adr": 0.2,
+   "reward_total": 23.8
+  },
+  "breakout": "epoch 720 에 컵 거리 0.30 m 아래 → 799 첫 성공 → 836 성공률 0.5 (loop_ended 기록은 epoch 558 시점이라 낡음)",
+  "ended": {
+   "time_note": "09.16 사용자 지시 '리시버 개선 완료. 학습종료'",
+   "label": "t2r_i07",
+   "epoch_last_ckpt": 2800,
+   "hours": 21.6,
+   "final_ckpt": "last_open-short_b_pour_fab_ep_2800_rew_22890.537.pth",
+   "server_pids_killed": [
+    1051431,
+    1051438
+   ],
+   "kill": "SIGTERM 만으로 10 초 내 종료 — kill -9 불필요",
+   "cron_deleted": "6da64236 (2h 모니터링)",
+   "reason": "수렴(adr 1.0 후 두 틱 |Δ| ≤ 0.02, epoch 2767) + 궤적 계측으로 i05 문제 3종 해소 확인",
+   "converged_metrics": {
+    "episode_success": 0.7689,
+    "in_target": 0.7371,
+    "spill": 0.059,
+    "rcv_tilt_deg": 5.4,
+    "cup_collision": 0.0066,
+    "nested": 0.0,
+    "adr": 1.0
+   },
+   "adr0_replay": {
+    "success": "8/8",
+    "in_target": 0.963,
+    "spill": 0.038
+   },
+   "note": "GPU0 의 fj_stage_i07 은 다른 트랙이라 건드리지 않음"
+  },
+  "cron": "6da64236 (2h, :23) — 09.16 i07 종료 시 삭제 · 라운드 9 루프 틱 3c90783d (2h, :23, LOOP_PROMPT 전체 절차)",
+  "video_i07_adr0": {
+   "ckpt": "last_open-short_b_pour_fab_ep_2750_rew_23410.004.pth",
+   "epoch": 2750,
+   "adr": 0,
+   "envs": 8,
+   "steps": 900,
+   "files": {
+    "left_top": "/home/user/rl_ws/our_source/pour_t2r_i07_ep2750_adr0_left_top.mp4",
+    "right": "/home/user/rl_ws/our_source/pour_t2r_i07_ep2750_adr0_right.mp4"
+   },
+   "findings": [
+    "리시버 자세 개선 확인: step 245~817 리시버 컵이 거의 직립한 채 소스를 받음(계측 rcv_tilt 5.4°, i05 는 46°)",
+    "두 컵이 만나는 높이가 i05 보다 높음",
+    "오른손 손가락 말림·팔 진동은 영상으로 판정 불가 — 붓기 구간 내내 로봇 몸통·팔이 손을 가리고, 진동 4~5 Hz 는 프레임 간격 밖",
+    "테이블 비드 1~2개(계측 흘림 5.9 %)"
+   ],
+   "note": "학습은 중단하지 않고 계속(사용자 지시 09.16 '더 학습하면서, 난이도 0 영상 추출')"
+  },
+  "trace_i07_converged": {
+   "ckpt": "last_open-short_b_pour_fab_ep_2800_rew_22890.537.pth",
+   "epoch": 2800,
+   "out": "log/rl_games/open-short/both/pour-fab/t2r_i07/trace_ep2750_adr0.npz",
+   "note": "★파일명은 trace_ep2750 이지만 실제 계측 체크포인트는 ep_2800 — 런처가 기동 시점 최신 last_*.pth 를 고르는데 그 사이 학습이 ep_2800 을 저장했다. 영상(ep_2750)과 한 epoch 구간 차이.",
+   "local": "log/server_mirror/pour-fab/t2r_i07/trace_i07_ep2800_adr0.npz",
+   "result": "i05 문제 3종 모두 해소 (step 300~880, 8 env 평균)",
+   "facts": [
+    "오른손 파지 붕괴 해소: 4지 평균 목표 _2 0.688→0.734 · _3 0.860→0.923 · _4 0.818→0.852 로 세 관절이 같은 방향(더 감김). i05 의 역패턴(_2 1.07→0.49 펴고 _3 1.26→1.48 굽힘)이 사라졌다 — grip3 에서 4지 _2/_3/_4 가 같은 명령을 받아 구조적으로 불가능",
+    "손바닥 접촉력 7.59→8.97 N 로 상승(i05 는 7.0→2.2 N 로 이탈), 끝마디 f_dist 2.22→2.13 N 유지 · f_tip 0.64→1.02 N",
+    "팔 진동 해소: 소스 palm 회전 3칸 부호 교대율 0.000 (i05 는 84 %·81 %). palm 목표 변화 1.57 mm·0.66°/step (i05 65 mm·68°), 소스 팔 관절속도 RMS 0.047 rad/s (i05 0.10~0.18)",
+    "리시버 자세 해소: 소스>80° 인 동안 리시버 기울기 중앙값 3.5° · p90 6.2° · 최대 22.4° (i05 45.9/51.0/54.7°)",
+    "난이도 0 재생 결과: 성공 8/8 · in_target 96.3 % · spill 3.8 % · 소스 기울기 구간평균 118.6°(최대 134°)",
+    "잔여 관찰: 소스 4지 닫힘 액션(src_4f) 부호 교대율 0.441 — palm EMA 는 손 명령에 걸리지 않는다. 접촉 동결로 관절 실측은 안정(위 _2/_3/_4 추이)이라 현 시점 실害는 확인되지 않음",
+    "리시버 팔 관절속도 RMS 0.105 rad/s 로 소스의 2.2배 · palm 목표 3.45 mm/step (소스 1.57)"
+   ]
+  },
+  "ticks": [
+   {
+    "epoch": 1480,
+    "hours": 11.53,
+    "episode_success": 0.7284,
+    "in_target": 0.6931,
+    "spill": 0.0623,
+    "aim_dist": 0.11,
+    "src_tilt_deg": 99.4,
+    "rcv_tilt_deg": 5.1,
+    "nested": 0.0,
+    "cup_collision": 0.0055,
+    "hand_foreign_src_rcv": [
+     0.0125,
+     0.0369
+    ],
+    "adr": 0.5,
+    "reward_total": 25.07,
+    "note": "adr 0.20→0.50 상승 중에도 성공 0.70→0.73·흘림 0.075→0.062·리시버 기울기 8→5° — 난이도 상승 하에서 개선. 성공 ≥0.5 두 틱 연속 ∧ nested 0 ∧ cup_collision 0.6 % → play 영상 확인 제안(승인 대기)"
+   },
+   {
+    "epoch": 1739,
+    "hours": 13.52,
+    "episode_success": 0.7476,
+    "in_target": 0.7113,
+    "spill": 0.0671,
+    "aim_dist": 0.1087,
+    "src_tilt_deg": 100.6,
+    "rcv_tilt_deg": 5.3,
+    "nested": 0.0,
+    "cup_collision": 0.0094,
+    "hand_foreign_src_rcv": [
+     0.0161,
+     0.0523
+    ],
+    "adr": 0.6667,
+    "reward_total": 25.36,
+    "note": "adr 0.50→0.67 에서도 성공 0.728→0.748·리시버 비드 69→71 % 상승. 손 이물 리시버 3.7→5.2 %·컵 충돌 0.55→0.94 % 는 소폭 증가(난이도 상승과 동반). play 영상 확인 제안은 유지 — 승인 대기"
+   },
+   {
+    "epoch": 1999,
+    "hours": 15.52,
+    "episode_success": 0.7612,
+    "in_target": 0.7264,
+    "spill": 0.0634,
+    "aim_dist": 0.1096,
+    "src_tilt_deg": 101.2,
+    "rcv_tilt_deg": 4.7,
+    "nested": 0.0,
+    "cup_collision": 0.0073,
+    "hand_foreign_src_rcv": [
+     0.0219,
+     0.0523
+    ],
+    "adr": 0.8667,
+    "reward_total": 25.36,
+    "note": "adr 0.67→0.87 에서 성공 0.748→0.761·리시버 비드 71→73 %·흘림 6.7→6.3 %. 지난 틱에 올랐던 컵 충돌은 0.94→0.73 % 로 복귀, 소스 손 이물만 1.6→2.2 % 소폭 상승. adr 1.0 임박 → 수렴 판정(adr 1.0 후 두 틱 |Δ|≤0.02) 시작점 곧 도달"
+   },
+   {
+    "epoch": 2260,
+    "hours": 17.52,
+    "episode_success": 0.7663,
+    "in_target": 0.7321,
+    "spill": 0.0616,
+    "aim_dist": 0.1085,
+    "src_tilt_deg": 100.2,
+    "rcv_tilt_deg": 5.2,
+    "nested": 0.0,
+    "cup_collision": 0.0067,
+    "hand_foreign_src_rcv": [
+     0.0291,
+     0.0409
+    ],
+    "adr": 1.0,
+    "reward_total": 25.77,
+    "note": "adr 1.0 도달(최초 epoch 2169) — 수렴 판정 기준점(Δ 카운트 0). 성공 0.761→0.766·리시버 비드 73 %·흘림 6.2 %·총보상 25.4→25.8 로 계속 개선. 소스 손 이물 2.2→2.9 % 상승은 관찰 지속"
+   },
+   {
+    "epoch": 2508,
+    "hours": 19.52,
+    "episode_success": 0.7658,
+    "in_target": 0.7224,
+    "spill": 0.0725,
+    "aim_dist": 0.1107,
+    "src_tilt_deg": 99.6,
+    "rcv_tilt_deg": 5.2,
+    "nested": 0.0,
+    "cup_collision": 0.005,
+    "hand_foreign_src_rcv": [
+     0.0251,
+     0.0453
+    ],
+    "adr": 1.0,
+    "reward_total": 25.73,
+    "note": "adr 1.0 유지 첫 틱 — 성공 0.7663→0.7658(Δ −0.0005) 로 평탄, 수렴 안정 1/2. 리시버 비드 73.2→72.2 %·흘림 6.2→7.3 % 는 소폭 역행, 컵 충돌 0.67→0.50 %·소스 손 이물 2.9→2.5 % 는 개선"
+   },
+   {
+    "epoch": 2767,
+    "hours": 21.52,
+    "episode_success": 0.7689,
+    "in_target": 0.7371,
+    "spill": 0.059,
+    "aim_dist": 0.105,
+    "src_tilt_deg": 100.9,
+    "rcv_tilt_deg": 5.4,
+    "nested": 0.0,
+    "cup_collision": 0.0066,
+    "hand_foreign_src_rcv": [
+     0.028,
+     0.0437
+    ],
+    "adr": 1.0,
+    "reward_total": 25.88,
+    "note": "성공 0.7658→0.7689(Δ +0.0031) — 안정 2/2 로 수렴 성립. 지난 틱 역행했던 리시버 비드 72.2→73.7 %·흘림 7.3→5.9 % 가 되돌아와 틱 간 흔들림이었음이 확인됨. i05 는 epoch 2765·21.25 h 에 수렴(성공 0.807) — i07 은 epoch 2767·21.52 h 로 거의 같은 지점, 성공률 차 0.04 는 리시버 20° 성공 조건 추가분 포함"
+   }
+  ],
+  "convergence": {
+   "rule": "adr/progress == 1.0 이후 두 틱 연속 episode_success recent10 변화 |Δ| ≤ 0.02",
+   "on_converged": "보고만 하고 런 유지 — 중단 여부는 사용자 결정",
+   "adr_full_epoch": 2169,
+   "stable_ticks": 2,
+   "converged": true,
+   "converged_at": {
+    "epoch": 2767,
+    "hours": 21.52
+   },
+   "history": [
+    {
+     "epoch": 2260,
+     "recent10": 0.7663,
+     "adr": 1.0,
+     "note": "adr 1.0 최초 관측 틱 — 기준점"
+    },
+    {
+     "epoch": 2508,
+     "recent10": 0.7658,
+     "adr": 1.0,
+     "delta": -0.0005,
+     "stable": true
+    },
+    {
+     "epoch": 2767,
+     "recent10": 0.7689,
+     "adr": 1.0,
+     "delta": 0.0031,
+     "stable": true,
+     "note": "수렴 성립 — 런은 유지, 중단·eval·영상은 사용자 결정 대기"
+    }
+   ]
+  }
+ },
+ "ended_i09": {
+  "epoch": 546,
+  "hours": 4.42,
+  "reason": "루프 규칙 advance(4 h, 성공 0). 소스 파지 0.002(e177)→0.20(e292)→0.86(e546) 늦게 회복, 들기 S/R 0.056/0.098 m 저조, 리시버 이물 19 %. 계측(ep150): 소스 팔 바깥 포화(py −0.99, palm–cup 0.25 > 게이트 0.22), 리시버 컵–컵 144 N",
+  "server_pids_killed": [
+   1931511,
+   1931518
+  ],
+  "trace": "log/server_mirror/pour-fab/t2r_i09/trace_i09_ep150_adr0.npz"
+ },
+ "launch_i10": {
+  "label": "t2r_i10",
+  "num_envs": 4096,
+  "gpu": 1,
+  "commit": "a188e154",
+  "server_pids": [
+   2079372,
+   2079379
+  ],
+  "started": 1789588904.0,
+  "started_local": "2026-09-17 04:55",
+  "cron": "b60ea453 (2h, :23) — 프롬프트 라벨은 i10 으로 갱신",
+  "reward": "iter_10 41항(reach_src/rcv·palm_sat_src/rcv 추가)"
+ },
+ "server_pids": [
+  3622868
+ ],
+ "commit": "9f0bab0f",
+ "note": "round 26: iter_25 (9abdccdf) FRESH 4096 env GPU1. New task = pour the requested amount (+-1 bead) then stand the cup back up holding both cups. Env: 24 mm beads (fill 0.48/0.69/0.85 at 8/14/20 active), tapered-aware bead spawn (addace1c), release angles 90 deg + 8 deg span. Reward rewritten general and simple: 22 terms, no absolute angle constants, pouring paid by flow.",
+ "round13_note": "iter_12 42항(ingest PASS), t2r_i11 ep_550 체크포인트 웜스타트, 4096 env GPU1, MAX_ROUNDS 20",
+ "ended_i12": {
+  "epoch": 332,
+  "hours": 2.4,
+  "reason": "사용자 지시(09.18): env 틸트 래치 수정 후 체크포인트 재학습 — 재기동 전에 미리 종료. 입구 간 거리 0.283→0.17~0.25 m(비단조), 소스 틸트 7°, success 0",
+  "server_pids_killed": [
+   2629525,
+   2629532
+  ],
+  "last_ckpt": "log/rl_games/open-short/both/pour-fab/t2r_i12/nn/last_open-short_b_pour_fab_ep_300_rew_13444.071.pth"
+ },
+ "round14_note": "env 048c5669: 틸트 래치를 채움 비례 한계각(첫 유출각−20°: 가득 52°·반 69°) + 붓는 림 점(src_pour_lip_pos)이 리시버 입구 xy 0.081 m 밖일 때만으로 변경, ctx 신규 src_pour_lip_pos·src_tilt_toward_rcv·premature_tilt_limit. 보상 iter_13(42항, ingest PASS, pretilt 신설·tilt_dir 제거·림 점 기하). t2r_i12 ep_300 웜스타트, 4096 env GPU1. 프로브(64 env): 한계 54.1°(12개)/66.6°(6개), 파지·리프트 래치 0, 원거리 82° 틸트 래치 100 %",
+ "ended_i13": {
+  "epoch": 640,
+  "ckpt": "log/rl_games/open-short/both/pour-fab/t2r_i13/nn/last_open-short_b_pour_fab_ep_600_rew_16662.383.pth",
+  "episode_success": 0.0,
+  "in_target": 0.0,
+  "src_tilt_deg": 26.0,
+  "pour_lip_dist": 0.099
+ },
+ "round15_note": "env 048c5669 unchanged. iter_14 reward: contact gate keeps 50% income, pretilt scaled by lip proximity (w 4), APPR_FULL 0.08. warm start i13 ep_600. tick 2h.",
+ "ended_i14": {
+  "epoch": 557,
+  "ckpt": "log/rl_games/open-short/both/pour-fab/t2r_i14/nn/last_open-short_b_pour_fab_ep_550_rew_17531.258.pth",
+  "episode_success": 0.0,
+  "in_target": 0.0,
+  "src_tilt_deg": 32.2,
+  "pour_lip_dist": 0.053,
+  "cup_collision_rate": 0.064
+ },
+ "round16_note": "env 048c5669 unchanged. iter_15 reward: pretilt+tilt merged into one continuous tilt income (w 10), new safe gate (lip < 0.045 m full, 0 at 0.07), grasp-dependent income uses held=max(grasp flag, carry phase). warm start i14 ep_550. tick 2h.",
+ "ended_i15": {
+  "epoch": 812,
+  "ckpt": "log/rl_games/open-short/both/pour-fab/t2r_i15/nn/last_open-short_b_pour_fab_ep_800_rew_18987.973.pth",
+  "episode_success": 0.0,
+  "in_target": 0.0,
+  "src_tilt_deg": 45.2,
+  "pour_lip_dist": 0.052,
+  "reward_tilt": 3.75
+ },
+ "round17_note": "env 048c5669 unchanged. iter_16 reward: height allowance grows with lip drop r*sin(theta), lip_above soft (floor 0.35), tilt income split 6 up to theta_pre / 20 to release / 2 overshoot, carry plateau halved, pour_pose 3->8, transferred level term 5, pour_delta 120, success 20, latch 1.0, safe 5.0/7.5 cm. warm start i15 ep_800. tick 2h.",
+ "launch": {
+  "label": "t2r_i28f",
+  "iter": 28,
+  "host": "server",
+  "gpu": 1,
+  "num_envs": 4096,
+  "minibatch": 32768,
+  "commit": "149c2f51",
+  "started": 1790396998.3695428,
+  "started_local": "2026-09-26 13:29",
+  "server_pids": [
+   54837,
+   54877,
+   54884
+  ],
+  "python_pid": 54884,
+  "checkpoint": null,
+  "fresh": true,
+  "reward": "iter_28 c1 (selection.json)",
+  "launcher": "~/logs/t2r/launch_t2r.sh",
+  "log": "~/logs/t2r/t2r_i28f.log",
+  "launched_by": "pour_bi session (user decision FRESH)",
+  "prior": "t2r_i28 warm i27 ep800 12:56-13:31, stopped e56 (grip_src_ref_valid 0.04: tilted-lift dodge carried over; notes_iter28 had recommended ep300)",
+  "gate_300": "notes_iter28: grip_src_ref_valid>=0.8, src tilt at 3 cm lift p50<20, out-of-plane lean at peak p50<15, spout offset at peak p50<2r, peak tilt toward receiver p50>50 or first bead, rcv fingers at lift>=4.5/5 and rcv 5-finger carry>=0.5 (fresh: judge vs expected epochs, grasp-lift ~e300)"
+ },
+ "fresh": true,
+ "fresh_note": "09.23 user: restart iter_24 FRESH (no checkpoint) - the i23 warm start carried the body-side pour arrangement.",
+ "fresh_ticks": {
+  "t2r_i18": [
+   {
+    "epoch": 324,
+    "src_cup_lift": 0.198,
+    "cups_center_dist": 0.385,
+    "pour_lip_dist": 0.337,
+    "src_tilt_deg": 7.4,
+    "in_target": 0.0,
+    "episode_success": 0.0
+   },
+   {
+    "epoch": 602,
+    "src_cup_lift": 0.202,
+    "cups_center_dist": 0.265,
+    "pour_lip_dist": 0.181,
+    "src_tilt_deg": 5.6,
+    "in_target": 0.0,
+    "episode_success": 0.0,
+    "cup_collision_rate": 0.029
+   },
+   {
+    "epoch": 879,
+    "src_cup_lift": 0.198,
+    "cups_center_dist": 0.182,
+    "pour_lip_dist": 0.069,
+    "src_tilt_deg": 14.5,
+    "in_target": 0.0,
+    "episode_success": 0.0,
+    "cup_collision_rate": 0.029
+   },
+   {
+    "epoch": 1147,
+    "src_cup_lift": 0.211,
+    "cups_center_dist": 0.183,
+    "pour_lip_dist": 0.055,
+    "src_tilt_deg": 27.6,
+    "in_target": 0.0,
+    "episode_success": 0.0,
+    "cup_collision_rate": 0.015
+   },
+   {
+    "epoch": 1418,
+    "src_cup_lift": 0.291,
+    "cups_center_dist": 0.233,
+    "pour_lip_dist": 0.06,
+    "src_tilt_deg": 77.0,
+    "in_target": 0.492,
+    "episode_success": 0.17,
+    "cup_collision_rate": 0.013,
+    "spill": 0.039
+   },
+   {
+    "epoch": 1700,
+    "src_cup_lift": 0.329,
+    "cups_center_dist": 0.252,
+    "pour_lip_dist": 0.057,
+    "src_tilt_deg": 95.8,
+    "in_target": 0.63,
+    "episode_success": 0.481,
+    "cup_collision_rate": 0.004,
+    "spill": 0.066,
+    "premature_tilt_rate": 0.076,
+    "adr": 0.2
+   },
+   {
+    "epoch": 1981,
+    "src_cup_lift": 0.336,
+    "cups_center_dist": 0.269,
+    "pour_lip_dist": 0.06,
+    "src_tilt_deg": 99.8,
+    "in_target": 0.686,
+    "episode_success": 0.591,
+    "cup_collision_rate": 0.002,
+    "spill": 0.037,
+    "premature_tilt_rate": 0.065,
+    "adr": 0.4
+   },
+   {
+    "epoch": 2253,
+    "src_cup_lift": 0.34,
+    "cups_center_dist": 0.262,
+    "pour_lip_dist": 0.061,
+    "src_tilt_deg": 104.8,
+    "in_target": 0.715,
+    "episode_success": 0.546,
+    "cup_collision_rate": 0.003,
+    "spill": 0.029,
+    "premature_tilt_rate": 0.068,
+    "adr": 0.59,
+    "note": "numeric exit condition met 2 ticks; play/trace check pending (ADR still rising)"
+   },
+   {
+    "epoch": 2771,
+    "src_cup_lift": 0.338,
+    "cups_center_dist": 0.281,
+    "pour_lip_dist": 0.059,
+    "src_tilt_deg": 112.1,
+    "in_target": 0.701,
+    "episode_success": 0.543,
+    "cup_collision_rate": 0.002,
+    "adr": 0.963,
+    "premature_tilt_rate": 0.053
+   }
+  ]
+ },
+ "play_check_i18": {
+  "ckpt": "ep_2500",
+  "adr_level": 30,
+  "trace": "log/server_mirror/pour-fab/t2r_i18/trace_i18_ep2500_adr30_64env.npz",
+  "success_ever": 0.828,
+  "in_target_max": 0.907,
+  "spill": 0.07,
+  "min_cup_dist_med": 0.181,
+  "pour_dir_x_le0": 0.9999,
+  "src_tilt_med_peak": 150.8,
+  "src_xy_travel": 0.33,
+  "note": "cup collision/pour direction/receiver stays: pass. open: over-tilt ~145deg, source crosses to receiver side; awaiting user video verdict"
+ },
+ "i19_ticks": [
+  {
+   "epoch": 80,
+   "success": 0.489,
+   "src_tilt_deg": 104.2,
+   "in_target": 0.696,
+   "spill": 0.046,
+   "act_flip": -0.466,
+   "overtilt": -0.818,
+   "adr": 0.033
+  },
+  {
+   "epoch": 363,
+   "success": 0.427,
+   "src_tilt_deg": 101.0,
+   "in_target": 0.725,
+   "spill": 0.042,
+   "act_flip": -0.365,
+   "overtilt": -0.586,
+   "adr": 0.233
+  }
+ ],
+ "warm_start": null,
+ "rounds_note": {
+  "round20": "t2r_i19 ended ep545: success 0.456, act_flip -0.34 unchanged, peak tilt 144-150 all fills; user rejected"
+ },
+ "i20_ticks": [
+  {
+   "epoch": 86,
+   "success": 0.578,
+   "grasp": [
+    0.875,
+    0.866
+   ],
+   "in_target": 0.729,
+   "flip_rate_pour": 0.409,
+   "peak_tilt": [
+    142.2,
+    145.5,
+    145.6
+   ],
+   "rcv_palm_speed": 0.454,
+   "adr": 0.033
+  }
+ ],
+ "ended_i21": {
+  "reason": "killed at ~epoch 26: control penalties applied at full weight from step 0 of a fresh run (memory: action-penalty-gate-on-adr-for-fresh)",
+  "label": "t2r_i21"
+ },
+ "i22_ticks": [
+  {
+   "t": 1789970018.3963137,
+   "epoch": 42,
+   "hours": 0.46,
+   "src_grasped": 0.765,
+   "rcv_grasped": 0.696,
+   "lift": [
+    0.017,
+    0.017
+   ],
+   "success": 0.0,
+   "adr": 0.0,
+   "flip_rate": 0.585,
+   "total": 4.41
+  }
+ ],
+ "ended_i22": {
+  "epoch": 2413,
+  "hours": 18.48,
+  "src_tilt_deg": 22.3,
+  "in_target": 0.0,
+  "episode_success": 0.0,
+  "reason": "structural block: tilt_main is identically 0 below theta_pre (50.4 deg) because the full bell was subtracted; tilt stalled at 19-22 deg for 1180 epochs while entropy fell 12.0->8.0"
+ },
+ "trace_i23_ep850": {
+  "file": "log/server_mirror/pour-fab/t2r_i23/trace_i23_ep850_adr0_64env.npz",
+  "gpu": 0,
+  "adr_level": 0,
+  "rcv_foreign_rate": {
+   "all": 0.504,
+   "pour_window": 0.744,
+   "steps_300_900": 0.674
+  },
+  "i18_ep2500_same_metric": 0.029,
+  "finding": "source cup lowest point sits 7.6 cm BELOW the receiver mouth at 22-30 deg tilt (i18: 6.4 cm above, at 90+ deg). The lip is already at the mouth (lip 0.025 m) while the cup is still near upright, so the source cup body hangs beside the receiver cup/hand. Nearest candidate = source cup in 93% of contacts, but tips/palm are 5.7 cm away -> contact is on finger links/knuckles, not tips/palm. Not grip-force artefact (corr +0.05), not finger self-contact (tip-tip 0.023 vs 0.024), not fingers splayed (tips 5-10 mm from own cup). Tilt RATE during pour 0.28 rad/s (slow sweep ok); the diag 1.34 rad/s is total cup angular speed incl. spin.",
+  "decision": "user chose A (GPU0 trace); after trace: continue training, watch whether contact falls as tilt rises"
+ },
+ "bottleneck_i23": "palm contact collapses as the cup is tilted at the mouth (ep850: 2.67 N at 0-20 deg -> 0.73 N at 20-35 -> 0 N at 35-50). Tilt income is gated on grasp quality (grip floor 0.15) and palm_slip x3.3 / tip_only x2 in the pour phase, so tilting pays little until a grasp that keeps the palm on the cup through rotation is found.",
+ "ended_i23": {
+  "epoch": 1574,
+  "hours": 11.9,
+  "src_tilt_deg": 36.9,
+  "in_target": 0.0001,
+  "episode_success": 0.0,
+  "reason": "rotation >5x slower than i18 after reaching the mouth; reward coupled grasp and tilt the wrong way (wrap-dominated grip gate ~0.83 regardless of palm; palm_slip x3.3 / tip_only x2 in pour phase). Grasp itself comparable to i18 by mean palm force."
+ },
+ "grasp_geometry_i23_ep1500": "During tilt 20-90 deg the palm is on the LOWER (gravity) side of the source cup by +5.6..+6.2 cm, the 4 fingers on the UPPER side by -4.2..-4.3 cm, 0 fingers supporting from below. The policy moves the source cup forward so the receiver is toward the body (receiver dir xy (-0.98,-0.18)) and tips the mouth toward the body (-0.96,-0.29), i.e. toward the palm side (-0.65,-0.76). At pickup the receiver is to the left (-0.51,+0.86). i18 ep2500: palm roughly at the side (+0.5..+1.2 cm), 4 fingers slightly above, 0.14-0.27 fingers below.",
+ "deleted_iters_0922": "iter_24 (palm-force gate), iter_25 (unloaded palm on top), iter_26 (palm press, absolute force) were superseded within minutes and deleted at the operator's request (09.22); their commits stay in git history. The new iter_24 below replaces them.",
+ "i24_warm_attempt": {
+  "stopped_epoch": 194,
+  "hours": 1.43,
+  "why": "user 09.23 chose FRESH: warm start from i23 ep1500 showed the i23 habit backing off (episode peak tilt 57.5->43.6 deg, pour_side 0.13->0.07, pour_dir_x unchanged -0.93, grip drift in pour 4.4->5.2 cm, force 5-7x)"
+ },
+ "ended_i24": {
+  "stopped": 1790133606.1983123,
+  "epoch": 1614,
+  "hours": 12.6,
+  "reason": "09.23 사용자 지시로 학습 종료 후 결정론 평가",
+  "eval_best_adr30": {
+   "transfer_ge_0.5": 0.938,
+   "env_success": 0.719,
+   "in_target_med": 1.0,
+   "spill_med": 0.0,
+   "spill_p90": 0.111,
+   "peak_tilt_med": 116.0
+  },
+  "eval_best_adr0": {
+   "transfer_ge_0.5": 0.984,
+   "env_success": 0.562,
+   "peak_tilt_med": 123.2
+  },
+  "fill_modulation": "없음 — corr(채움, 최고각) -0.05(adr30)/-0.19(adr0). 구조적 원인: 비드 30 mm·활성 6~20 개라 채움량이 0.6~1.0 에만 분포(adr30 p10 0.63), 낮은 채움 자체가 만들어지지 않는다",
+  "keep_adr30": {
+   "20-50": [
+    1.08,
+    0.27,
+    2.4
+   ],
+   "50-90": [
+    1.46,
+    0.25,
+    2.56
+   ],
+   "90-160": [
+    1.56,
+    0.25,
+    2.46
+   ]
+  },
+  "tremor_adr30": {
+   "src_arm_flip": 0.294,
+   "rcv_arm_flip": 0.445,
+   "rms_src": 0.252,
+   "rms_rcv": 0.341
+  },
+  "workspace": {
+   "src_y": [
+    -0.162,
+    0.156
+   ],
+   "rcv_y": [
+    0.161,
+    0.222
+   ]
+  },
+  "success_gap": "옮김 성공 60건 중 14건이 env 성공 아님 — 조기틸트 래치 21 %, 컵 xy 거리 초과 14 %, 리시버 기울기는 정상(6°)"
+ },
+ "round26_note": "bead 30 -> 24 mm after measuring that 30 mm saturates the fill signal (0.94 at 12 active); the bead spawn ring used the RIM radius on a tapered cup so small beads were ejected while settling - solver iterations, cup SDF resolution and bead contact offset all changed nothing. Gates after the change: random PASS, grasp PASS, scripted pour PASS (cup emptied at 104 deg).",
+ "boot_retry": {
+  "why": "1차 기동(9abdccdf)은 fabric FK 부팅 게이트 회전 2.21° > 고정 한계 2.0° 로 죽었다",
+  "fix": "18f1ac68 — 회전 허용치를 cfg fabric_fk_rot_tol_deg=5.0 으로 분리",
+  "measured_rot_deg": {
+   "probe_32env": 0.52,
+   "i24_4096env": 0.94,
+   "i25_first_try": 2.21,
+   "i25_relaunch": 0.24
+  }
+ },
+ "ended_i25a": {
+  "epoch": 2350,
+  "reason": "회전 정체 — 조준은 끝났는데(림 2 cm) 기울기가 43° 중앙값에서 멈춰 한 알도 못 부었다",
+  "measured": {
+   "reward_aim": 3.3,
+   "reward_lift_src": 2.55,
+   "reward_posture_src": 2.07,
+   "reward_tilt_aimed": 0.14,
+   "reward_pour_flow": 0.0,
+   "reward_total": 12.83,
+   "rot_action_z_mean": 0.003,
+   "palm_N_25_35deg": 15.7,
+   "palm_N_35_55deg": 2.4,
+   "peak_tilt_median_deg": 43.2,
+   "amount_abs_err_beads": 5.49
+  },
+  "i24_reference": {
+   "palm_N_100_130deg": 6.8,
+   "mid_N_100_130deg": 4.1,
+   "note": "같은 손·컵으로 깊은 회전에서 파지 유지 — 물리 한계가 아니다"
+  },
+  "fix": "94123265 TILT_W 3 -> 15 (사용자 결정 1번), grip_gate 는 그대로 곱해 파지를 버리면 30 % 만 지급",
+  "revert_rule": "src_grasped < 0.6 또는 done/drop > 0.05 이면 되돌린다"
+ },
+ "ended_i25b": {
+  "epoch": 280,
+  "reason": "웜스타트로는 회전이 안 살아난다 — TILT_W 3->15 로 회전 수입이 0.14->0.70 으로 5배가 됐는데도 기울기는 28° / 에피소드 최고 42~45° 로 직전 런과 같았다",
+  "not_the_cause": {
+   "above_gate": "붓는 림이 입구보다 8~9 cm 위, above 계수 0.93~1.00 — 회전 수입은 실제로 지급된다",
+   "grasp": "파지 0.958, 컵 낙하 0.0000, posture_src 2.49 — 파지를 버리지도 않았다"
+  },
+  "cause": "탐색 분포가 이미 좁다. i25 는 2350 에포크 동안 losses/entropy 25.5 -> 9.3 으로 떨어졌고 웜스타트한 i25b 는 280 에포크 내내 8.2~8.5 로 평평했다. 보상 지형은 바뀌었는데 정책이 큰 회전을 뽑지 않는다.",
+  "decision": "사용자 09.24: TILT_W 15 로 FRESH 재학습(t2r_i25f)"
+ },
+ "stopped_i25j_0925": {
+  "at": "2026-09-25T20:57",
+  "by": "kuku-ai-55 (user approved in main session: \"종료하고 trace 진행\")",
+  "pid": 3054105,
+  "signal": "SIGTERM",
+  "reason": "e1350 이후 열화(e1723 spill 0.53, amount_err -4.6, in_target 0.069, upright 0.0004). critic: (A) 원칙 위반·(B) 고착 위험 → ep1500 결정론 trace 로 원인 판별 후 iter_26",
+  "note": "SIGTERM 뒤 종료 중 정지(16.6 GB) → 사용자 승인으로 신원 재확인 뒤 SIGKILL, GPU1 해제 확인",
+  "trace": "server ~/rl_ws/hdgp/log/rl_games/open-short/both/pour-fab/t2r_i25j/trace_i25j_ep1500_adr0_64env.npz (GPU1)"
+ },
+ "driver": "pour_bi session (user approver, launch on permission only)",
+ "status": "stopped",
+ "awaiting": "t2r_i28f fresh: e300 grasp-lift + grip_src_ref_valid>=0.8, then e800 rotation past 60 deg, e1200 first pour",
+ "hold_released_0925": {
+  "hold": {
+   "label": "t2r_i25j",
+   "since_epoch": 1026,
+   "set_at": "2026-09-25 15:47",
+   "reason": "09.26 user decision (A): rotation >90 done, amount err ramp -5.5->-1.4 still live; keep training until amount converges, then fix finish handover (upright_held 0.000) and warm-start from the best i25j checkpoint. No advance, no reward edit until then.",
+   "release_when": "abs_err_beads flat (<0.3 change) over ~200 epochs OR on_target > 0.6, then report and wait for user"
+  },
+  "released_at": "2026-09-25T21:22",
+  "by": "user decision in kuku-ai main session: stop i25j (degrading), trace diagnosis, approve iter_26 changes 1-5, warm start ep1250 + 300-epoch gate"
+ },
+ "ticks": [
+  "2026-09-25T22:50 i26r e45(fresh): 파지 0.62/0.77, 흘림 0.001, 세우기 0.04, tilt_rate 평균 -0.27(무작위 회전은 청구가 커서 음수 — e800 기울기 이정표에서 확인). 크래시 없음",
+  "2026-09-25T23:15 i26r e101: 파지 0.80/0.85(하위 세션 e84), 기울기 최고 52~57°, 흘림 거의 0, 붓기 0(정상, fresh e1200 기대). 계속. Nemotron: hold(일치)",
+  "2026-09-25T23:35 i26r e146: 파지 0.83/0.85, 흘림 0, 붓기 0, 세우기 0.013. 크래시 없음. 계속(Nemotron 은 모델 점검 중이라 생략)",
+  "2026-09-26T00:15 i26r e236: 파지 0.85/0.81(하위 세션 e227), 최고 기울기 ~55° e84 이후 정체, tilt_rate 평균 -0.25, 붓기 0. 크래시 없음. 계속(fresh, hold). ep200 결정론 trace 는 watcher 시험으로 GPU1 에서 진행 중. 주시: 55° 정체가 e500~800 까지 가면 tilt_rate 청구 구조 점검",
+  "2026-09-26T00:35 i26r e279(fresh, hold). 크래시 없음. ep300 체크포인트 생기면 파지·리프트 이정표 결정론 trace(GPU0, GPU1 play 금지)",
+  "2026-09-26T01:20 i26r e366: e300 이정표 결정론 trace(64env, GPU0) — 양손 파지 끝 0.98, 소스 5지 93%·리시버 5지 73%, 최대 기울기 p50 41°(p90 50°), 끝 기울기 37°, 붓기 0(under2_held_tilted 0.98). 파지·리프트 이정표 충족. 학습 곡선 최고 기울기 55°→45~47° 하락, tilt_rate 평균 -0.25(무작위 회전 순청구). 판정: 계속(fresh, e1200 전 끊지 않음). 대비: e600 에서 최고 기울기 <45° 면 tilt_rate 탐색 억제 구조를 고친 iter_27 후보를 미리 만든다(기동은 규칙대로)",
+  "2026-09-26T01:50 i26r e419(fresh, hold). 크래시 없음. 다음 이정표 ep600 결정론 trace",
+  "2026-09-26T02:00 i26r e464(fresh, hold). 크래시 없음",
+  "2026-09-26T02:40 i26r e555(fresh, hold). 크래시 없음. ep600 결정론 trace 는 다음 틱(이정표)",
+  "2026-09-26T03:00 i26r e601. ep600 이정표 trace 대기열(GPU0 잠금 풀리면, WAIT 2400 s)",
+  "2026-09-26T03:20 i26r ep600 이정표 trace(GPU0): 최대 기울기 p50 48°(p10 45, p90 52), 끝 기울기 45°, 붓기 0, 양손 파지 0.94, 소스 5지 0.98. 규칙상 <45° 가 아니므로 iter_27 준비 없음 → e800 기울기 이정표까지 계속(hold). 하위 세션 관찰: 평균 기울기 28→23 하락·upright_held 상승(보상 finish 는 0 — 세우기 수입 아님)",
+  "2026-09-26T03:34 i26r e693 hold 유지(fresh 1200 전). traceback 0. Nemotron 조언 hold(일치). 다음 e800 기울기 이정표 결정론 trace(GPU0, ~04:40 추정)",
+  "2026-09-26T03:53 i26r e737 hold(traceback 0). e800 이정표 ~04:20 추정. Nemotron 틱 생략(5090 은 iter_18 후보 생성용 Qwen 교대 중)",
+  "2026-09-26T04:13 i26r e783 hold(traceback 0). ep800 trace 대기 중(server GPU0, PID 3869262, 03:54 부터 최대 3600 s). Nemotron 조언 continue(hold 와 같은 뜻, 일치)",
+  "2026-09-26T04:29 ep800 결정론: 최대 기울기 p50 33.5°(ep600 48), 소스 5지 운반 0.38(0.98), 리시버 5지 0.17(0.32), 붓기 0. iter_27 워크플로 기동(wn57kw2wn). i26r 은 후보 준비 동안 계속(hold)",
+  "2026-09-26T04:33 i26r e829 hold(traceback 0). iter_27 워크플로 진행 중. Nemotron continue(일치)",
+  "2026-09-26T04:53 i26r e874 hold(traceback 0). iter_27 워크플로 진단 단계 진행 중. Nemotron 04:53 출력은 끝에 '}' 가 하나 더 붙어 무효 처리 → parse_output 을 첫 객체만 읽게 고침(테스트 31 통과), 재파싱 결과 hold(일치)",
+  "2026-09-26T05:13 i26r e920 hold(traceback 0). iter_27 노트 작성 완료(notes_iter27.md: 회전 항을 주둥이·기울임 방향 포텐셜의 정확한 변화율로, 리시버 기준점을 측면 여유 SIDE_OK 로, 양손 5지 상대 유지; 웜스타트 ep800 추천). Qwen 교대 성공(04:58, 204 s — max-num-seqs 수정 검증). 후보 게이트 단계 진행 중. Nemotron continue(일치)",
+  "2026-09-26T05:33 i26r e965 hold(traceback 0). iter_27 게이트 단계(c1r 수리본·검사 파일 생성됨), 결과 대기. Nemotron continue(일치)",
+  "2026-09-26T05:44 라운드 27 기동: t2r_i27(iter_27 c1r: tilt_rate = spout×lean 포텐셜의 정확한 중앙차분 변화율, home_rcv 앵커를 측면 여유 SIDE_OK 로, 양손 5지 상대 유지), server GPU1, t2r_i26r ep800 웜스타트, commit 3702fcfc. i26r 은 05:37 SIGTERM, 5.5분 멈춤 → 05:43 SIGKILL(PID 재확인), GPU1 해제 확인. 후보: c1 한쪽 차분 흔들기 이득 +0.07/step → c1r 중앙 차분 수리, q1 앵커 슬라이스 오류, q2·q3 계획 위반·사이클 양수",
+  "2026-09-26T05:50 i27 epoch 1 정상(ep800 ckpt 로드 확인, traceback 0, GPU1 39.1 GB, python PID 3938882)",
+  "2026-09-26T05:53 i27 e8 정상(traceback 0, GPU1 39.1 GB). 하위 세션 e4: tilt_rate 0.00(주둥이 ~0 에서 설계대로), 파지 0.74(웜스타트 과도, e50 뒤 판정)",
+  "2026-09-26T06:14 i27 e65 정상(traceback 0). 파지 소스 0.98·리시버 0.93(웜스타트 과도 끝). tilt_rate ~0(조준 전, 설계대로; i26r -0.17). aim_dist 0.25~0.29 m·home_rcv ~0.5 로 아직 접근·리시버 이동 신호 없음. 최대 기울기(목표 중간) ~40°. Nemotron continue(일치). ep300 게이트까지 계속",
+  "2026-09-26T06:34 i27 e115 정상. tilt_rate ~0, aim 0.20, aim_dist 0.25~0.29 m(아직 좁혀지지 않음), home_rcv ~0.5, 파지 0.95/0.92, 목표 중간 최대 기울기 42°. Nemotron continue(일치). ep300 게이트까지 계속",
+  "2026-09-26T06:54 i27 e165 정상(traceback 0). 하위 세션 e162: 파지 0.85/0.87(i26r ep800 수준 회복), 목표 구간 최대 기울기 42~44°(상승), aim_dist 0.25, tilt_rate ≈0(주둥이 아직 입구 밖). ep300 게이트 ~07:50",
+  "2026-09-26T07:14 i27 e213 정상(traceback 0). ep300 게이트 ~07:50",
+  "2026-09-26T07:16 Nemotron stop(소스 파지 e22 최고 대비 -13.9%) ↔ 메인 continue → ep300 게이트(07:50)에서 판정. 구간 평균: 소스 파지 0.91→0.84, 리시버 0.88→0.83(서서히 하락), aim_dist 0.24~0.27 평탄, home_rcv ~0.45 평탄(리시버 이동 없음), tilt_rate ~0, 목표 중간 최대 기울기 34→43°. 게이트에서 주둥이·리시버 조건 실패 가능성 높음(추정) → 실패면 notes 대로 iter_27 fresh 또는 재진단",
+  "2026-09-26T07:35 i27 e262 정상. Nemotron stop(upright_held 는 e14 최고 대비 -74%: 붓기 전 '세운 채 버티기' 지표라 웜스타트 직후 값이 높았던 것, 판정 근거 아님) ↔ 메인은 ep300 게이트(~07:50)",
+  "2026-09-26T07:54 i27 e309. ep300 게이트 trace 기동(GPU0 잠금 대기, m18 고정 tol 뒤, PID 4031248). 하위 세션 e308: 접근 풀리기 시작(aim_dist 0.28→0.17~0.20, lip 0.11~0.14 m, home_rcv 0.54), tilt_rate 첫 양수(+0.0002), 최대 기울기 42~43° 평탄, src_wrap_ok 0.33~0.37(5지 게이트 우려). Nemotron continue(일치)",
+  "2026-09-26T08:13 i27 ep300 게이트: 리시버 쪽 기울기 p50 20.7°(>20 통과, i26r 8.5), 주둥이-입구 끝 p50 0.085 m(<0.12 통과, i26r 0.194), 리시버 측면 여유 0.138(<0.12 미달, 0.160 에서 개선), 5지 소스 0.48·리시버 0.26(미달). 붓기 0. 판정: 계속(웜). 붓기를 여는 두 조건이 크게 통과했고 5지는 사용자 결정상 로깅 우선 품질 목표 — fresh 는 접근 성과를 버림. 5지는 다음 라운드",
+  "2026-09-26T08:15 i27 e356 정상(traceback 0). 다음 ep600 trace(첫 붓기)",
+  "2026-09-26T08:36 i27 e406 정상. 구간 평균(e380-410): tilt_rate -0.0037(조준 영역에서 기울였다 되돌리는 탐색 — 포텐셜의 되돌림 비용, 설계대로), pour_flow 0, spill 0.00017(소량 증가), aim_dist 0.22, home_rcv 0.49, 소스 파지 0.88, 목표 중간 최대 기울기 42° 평탄. Nemotron continue(일치). 다음 ep600 trace",
+  "2026-09-26T08:56 i27 e452 정상. 하위 세션 e451: 끝 직립 유지(upright_held) 0.03→0.13~0.21 상승, 평균 기울기 27→22°, tilt_rate -0.004~-0.006(주둥이 위에서 기울였다 되돌림), 첫 비드 이탈 흔적(spill 0.0001), in_target 0, src_wrap_ok 0.35→0.62 회복. 우려: 붓기 전에 '세워 끝내기'를 먼저 배움 — ep600 trace 에서 45° 이상 회전 억제 여부 확인",
+  "2026-09-26T09:16 i27 e498 정상. Nemotron continue(일치). 다음 ep600 trace(~10:05)",
+  "2026-09-26T09:37 i27 e546 정상. ep600 trace ~10:00",
+  "2026-09-26T09:57 i27 e592. ep600 trace 체크포인트 대기로 걸어 둠(GPU0). 하위 세션 e593: 기울기 다시 상승(평균 21→33°, 목표 구간 최대 41→47°), 세우기 우선 습관 풀림(upright_held 0.13~0.21→0.05~0.13), src_wrap_ok 0.79~0.89, 붓기 아직 0. 하위 세션 'advance(4 h 초과)' 권고 ↔ 메인 계속(추세 개선 중, ep600 trace 로 판정). e590~591 일시 급락은 전 env 동시 리셋성으로 보임 — 다음 틱 재확인",
+  "2026-09-26T09:58 Nemotron stop(spill 4e-5 vs best 4e-6, on_target 0) ↔ 메인 continue: 흘림 절대량이 무시할 수준이고 기울기가 다시 오르는 중, ep600 trace 로 판정",
+  "2026-09-26T10:15 i27 ep600 결정론: 리시버 쪽 기울기 p50 36.2°(ep300 20.7↑), 최대 기울기 54.9°, 리시버 y 0.097(중앙 쪽↑), 주둥이 끝 거리 0.153 m(0.085 에서 멀어짐), 붓기·흘림 0, 양손 파지(끝) 0.73(0.94↓), 리시버 5지 0.05(↓)·소스 5지 0.69(↑). 판정: 계속 — 회전·접근은 자라는 중, ep1000 이정표까지. 리시버 파지 약화 주시",
+  "2026-09-26T11:05 하위 세션 e700: 회전 계속 증가(평균 42°, 목표 구간 최대 55°), 첫 비드 이탈이 전부 흘림(spill 0.0006~0.0011, in_target 0), tilt_rate ≈0(주둥이 정렬 없이 기울임), 세우기 습관 사라짐. 세션 'advance(5 h 초과)' ↔ 메인 계속: ep1000 이정표까지(첫 흘림이 나온 시점이라 조준 정렬 여부를 trace 로 확인). ~100 epoch 주기 일시 급락은 붕괴 아님(세션 판독)",
+  "2026-09-26T10:50 i27 e716 정상(traceback 0). Nemotron 틱 생략(5090 로컬 모델 검증 중)",
+  "2026-09-26T11:12 i27 e764 정상(traceback 0). ep1000 이정표 대기. Nemotron 틱 생략(5090 틱 백테스트 중)",
+  "2026-09-26T11:40 e810 하위 세션 advance 제안 → 메인: awaiting 조건(ep800 붓기 0) 충족, iter_28 준비 워크플로 기동(진단: 회전 54° 고원·tilt_rate≈0·리시버 5지 하락, 최신 ckpt trace 추가, Claude 후보 c1·c2, 로컬 모델 없음). i27 은 iter_28 선택 전까지 계속(ep1000 이정표 유지)",
+  "2026-09-26T11:38 i27 e822 정상(traceback 0). iter_28 준비 워크플로 진행, ep1000 이정표 대기",
+  "2026-09-26T11:58 i27 e867 정상(traceback 0). iter_28 준비 워크플로 진행, ep1000 이정표 대기"
+ ],
+ "last_tick": "2026-09-26T11:58 i27 e867 정상(traceback 0). iter_28 준비 워크플로 진행, ep1000 이정표 대기",
+ "ended_i26": {
+  "at": "2026-09-25T22:21",
+  "epoch": 47,
+  "why": "리뷰 HIGH H1(finish 자세 인자가 립 기준 → 기울임>직립) + e47 붓기 0. 수리안 c1r 게이트 PASS",
+  "signal": "SIGTERM, user approved"
+ },
+ "det_ep300": {
+  "at": "2026-09-26T00:53",
+  "label": "t2r_i26r",
+  "both_grasp_end": 0.98,
+  "src_5f": 0.93,
+  "rcv_5f": 0.73,
+  "tilt_max_p50": 41,
+  "tilt_max_p90": 50.4,
+  "poured": 0,
+  "verdict": "milestone grasp_lift met; no pour yet (fresh)"
+ },
+ "det_ep600": {
+  "at": "2026-09-26T03:10",
+  "label": "t2r_i26r",
+  "tilt_max_p50": 48,
+  "tilt_max_p10_p90": [
+   45.2,
+   51.7
+  ],
+  "end_tilt_p50": 45.1,
+  "poured": 0,
+  "both_grasp_end": 0.94,
+  "src_5f": 0.98,
+  "verdict": "no pour yet; tilt >= 45 (no iter_27 prep); held tilted (H2 under2_held_tilted 1.0)"
+ },
+ "diag_e790_tb": {
+  "at": "2026-09-26T04:17",
+  "source": "tensorboard reward/* task/* diag/* at e100/300/600/790",
+  "finish": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "tilt_rate": [
+   -0.2837,
+   -0.2254,
+   -0.1446,
+   -0.1728
+  ],
+  "aim": [
+   0.0048,
+   0.0213,
+   0.1514,
+   0.2532
+  ],
+  "aim_dist_m": [
+   0.46,
+   0.431,
+   0.333,
+   0.283
+  ],
+  "home_rcv": [
+   0.198,
+   0.358,
+   0.462,
+   0.532
+  ],
+  "src_tilt_deg_mean": [
+   34.5,
+   29.6,
+   23.3,
+   22.5
+  ],
+  "peak_tilt_deg_tgt_mid": [
+   51.5,
+   46.7,
+   46.9,
+   37.8
+  ],
+  "pour_flow": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "reading": "finish never opened (want on, nothing poured): sub-session hypothesis 'finish before rotation' rejected. tilt_rate is a net charge every step (pay gated by aim_gate*spout ~0 while lip far; return charged by g_charge): exploratory tilts and carry wobble cost. Approach is the bottleneck (aim_dist 0.28 m at e790)."
+ },
+ "det_ep800": {
+  "at": "2026-09-26T04:26",
+  "label": "t2r_i26r",
+  "tilt_max_p50": 33.5,
+  "tilt_max_p10_p90": [
+   26.7,
+   39.6
+  ],
+  "end_tilt_p50": 31.3,
+  "poured": 0,
+  "both_grasp_end": 0.98,
+  "src_5f_carry": 0.38,
+  "rcv_5f_carry": 0.17,
+  "upright_end": 0.078,
+  "verdict": "tilt falling (48 -> 33.5) and source five-finger envelope collapsed (0.98 -> 0.38): iter_27 workflow wn57kw2wn started 04:29 (critic + Claude/Qwen + gate)"
+ },
+ "ended_i26r": {
+  "at": "2026-09-26T05:37",
+  "label": "t2r_i26r",
+  "last_epoch": 976,
+  "signal": "SIGTERM pid 3622868",
+  "reason": "verified reward defect (notes_iter27): tilt_rate paid 0 and charged -76..-125/episode (spout gate ~1e-17), receiver anchored at spawn, pinky not requested. Replaced by iter_27 c1r before the fresh hold (1200) because the cause is the reward, not 'cannot pour yet'.",
+  "preserved": "server ~/rl_ws/ckpt_in/pour_bi/t2r_i26r_ep800.pth (md5 e6183d49)",
+  "det": {
+   "ep300": "det_ep300",
+   "ep600": "det_ep600",
+   "ep800": "det_ep800"
+  }
+ },
+ "hold_released_0926": {
+  "label": "t2r_i26r",
+  "at": "2026-09-26T05:37",
+  "by": "kuku-ai-55 main",
+  "why": "run replaced by iter_27 (reward defect)"
+ },
+ "gate_ep300_i27": {
+  "at": "2026-09-26T08:13",
+  "trace": "server ~/logs/t2r/traces/t2r_i27_ep300 (64 env, 900 steps, ADR 0)",
+  "tilt_toward_rcv_peak_p50": [
+   20.7,
+   ">20 PASS",
+   "i26r ep800 8.5"
+  ],
+  "spout_mouth_end_p50_m": [
+   0.085,
+   "<0.12 PASS",
+   "i26r ep800 0.194"
+  ],
+  "rcv_side_margin_end_p50": [
+   0.138,
+   "<0.12 FAIL (improved from 0.160)"
+  ],
+  "src_5f_carry": [
+   0.48,
+   ">=0.8 FAIL",
+   "i26r ep800 0.38"
+  ],
+  "rcv_5f_carry": [
+   0.26,
+   ">=0.5 FAIL",
+   "i26r ep800 0.17"
+  ],
+  "other": "max total tilt p50 42.1, poured 0, spill 0, both grasp at end 0.94, early term 2/64, src y end +0.028",
+  "decision": "CONTINUE warm i27 (main, deviating from the notes' 'fail -> fresh' rule): the two items that enable pouring passed by a wide margin (spout 19.4 -> 8.5 cm, tilt toward receiver 8.5 -> 20.7 deg) and tilt_rate started paying; the receiver margin is close (0.138 vs 0.12). The failing five-finger items are a quality target, not yet a success criterion (user Q5_envelope_K = k5_log_first). A fresh restart would discard the approach. Five-finger envelope goes to the next round (a warm policy keeps its lift-time grasp reference, so iter_27's relative keep cannot add the pinky; a pre-lift change or a fresh run is needed)."
+ },
+ "det_ep600_i27": {
+  "at": "2026-09-26T10:15",
+  "trace": "server ~/logs/t2r/traces/t2r_i27_ep600",
+  "tilt_toward_rcv_peak_p50": [
+   36.2,
+   "ep300 20.7"
+  ],
+  "max_total_tilt_p50": [
+   54.9,
+   "ep300 42.1"
+  ],
+  "spout_mouth_end_p50_m": [
+   0.153,
+   "ep300 0.085 (min over episode p50 0.092)"
+  ],
+  "rcv_y_end": [
+   0.097,
+   "ep300 0.138"
+  ],
+  "src_y_end": -0.107,
+  "poured": 0,
+  "spill": 0,
+  "both_grasp_end": [
+   0.73,
+   "ep300 0.94"
+  ],
+  "src_5f_carry": [
+   0.69,
+   "ep300 0.48"
+  ],
+  "rcv_5f_carry": [
+   0.05,
+   "ep300 0.26"
+  ],
+  "rcv_3plus_carry": 0.74,
+  "verdict": "rotation toward the receiver keeps growing (20.7 -> 36.2 deg) and the receiver comes toward the centre (0.138 -> 0.097), but still no bead poured, the spout drifts off the mouth at the end, and the receiver grip weakens (both held at end 0.94 -> 0.73, rcv five-finger 0.26 -> 0.05). Continue to the ep1000 milestone (tilt_over_90); prepare iter_28 (receiver grip + five-finger envelope) if ep800-1000 still pours nothing or the receiver grip keeps falling."
+ },
+ "ended_i27": {
+  "at": "2026-09-26T12:56",
+  "last_epoch": 950,
+  "signal": "SIGTERM pid 3938882",
+  "reason": "user: replace with iter_28 (54 deg plateau, 0 poured, lift-reference dodge)"
+ },
+ "ended_i28_warm": {
+  "at": "2026-09-26T13:29",
+  "last_epoch": 56,
+  "signal": "SIGTERM pid 35618",
+  "reason": "ep800 warm carried the tilted-lift dodge; user chose FRESH"
+ },
+ "generator_input": "DESIGN_BRIEF.md 전문을 매 라운드 notes_iterN.md 맨 앞에 포함(사용자 09.26: T2R 과 기존 학습 결과를 종합해 설계·보고). 생성 뒤 브리프 §5 형식으로 사용자에게 보고",
+ "ended_i28f": {
+  "epoch": 50,
+  "reason": "사용자 지시 09.26 14:1x '학습 종료' — iter_00 부터 보상을 새로 설계하기로 결정",
+  "signal": "SIGTERM(14:08) 뒤 Isaac 종료 훅에서 멈춰 VRAM 16.0 GB 유지 → 사용자 승인 후 SIGKILL(14:13), GPU1 26 MiB 확인",
+  "pids": [
+   54837,
+   54877,
+   54884
+  ],
+  "final_ckpt": "last_open-short_b_pour_fab_ep_50_rew_4531.3105.pth",
+  "kills_jsonl": "/media/user/DATA/kuku_ai/journal/kills.jsonl"
+ },
+ "plan": {
+  "next": "iter_00 부터 새로 설계(사용자 결정 09.26). 방향은 사용자가 아카이브 데이터·영상을 보고 다시 정한다.",
+  "approval": "launch: user permission required — 자동화를 다시 지시받기 전까지 학습·재기동·play 는 매번 허락 뒤",
+  "archive": "~/rl_ws/our_source/pour_bi_runs_0926/ (runs·s2r·videos·INDEX.md), 로컬 미러 경로 hdgp/log/server_mirror/pour-fab 는 이 폴더 runs/ 로 심링크"
+ }
+}

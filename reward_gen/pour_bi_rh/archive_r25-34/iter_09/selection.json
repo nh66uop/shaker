@@ -1,0 +1,59 @@
+{
+ "selected": "c1r2",
+ "rule": "ingest PASS + 계획(notes_iter09 1~4) 준수 + check_iter09 [25]·[26]·[29]~[32]·단계 원장 PASS. 정지 상태 전제 [21]·[22b] 예외(iter_08 과 같은 사유)",
+ "decided_by": "session 146751a7. 기동은 사용자 'a,b 필요' + 손 제어 '액션을 바꾸거나 액추에이터를 맞춘다'",
+ "env": "launch: env.palm_action_mode=increment env.hand_action_mode=increment env.synergy_close_speed=0.0167 (벤더 전 범위 1 s)",
+ "exceptions": {
+  "21": "옆·잡는 높이 - 입구 위 정지 총수입 +0.230 (정지 상태, 차분형 접근이라 작음)",
+  "22b": "높이만 내림 +0.083 (정지 상태). 속도 경로 [23] 먼저 내리고 수평 68.49 > 대각선 65.62 > 위에서 내림 57.91"
+ },
+ "candidates": {
+  "c1": {
+   "source": "generator, 원문",
+   "deterministic_check": "FAIL [31] +0.328, [25] +0.277",
+   "sha256_8": "9cc1610c"
+  },
+  "c1r": {
+   "source": "generator 재시도(prompt_c1_repair.md)",
+   "deterministic_check": "FAIL [31] +0.439",
+   "sha256_8": "ae833cad"
+  },
+  "c1r2": {
+   "source": "generator 두 번째 재시도(prompt_c1_repair2.md), 원문 그대로",
+   "plan": "iter_08 대비: open_* 차분형(접근 진척 x 폄 정도), finger_dir 원거리 성분(0.3 x (방향 + 엄지-손가락 사이 배치 straddle)) + 근거리 폭 1.5r, descend 깔때기 척도 2r·tips 0.7·W_DESCEND 1.6. 들기 전 상태형 합 3.0 < 0.7 x 5.5",
+   "deterministic_check": {
+    "key": {
+     "31_park12cm_vs_between": [
+      0.883,
+      1.487,
+      0.604
+     ],
+     "30_open_still_move": [
+      0.0,
+      0.198
+     ],
+     "32_12cm_finger_dir_gain": 0.104,
+     "25_close_04_07": [
+      0.169,
+      0.337
+     ],
+     "16_src_table_3_8": [
+      10.39,
+      11.13,
+      11.48
+     ],
+     "26": 1.221,
+     "23": [
+      65.62,
+      68.49,
+      57.91
+     ]
+    },
+    "stage_ledger": "0.51,0.51,2.50,3.63,5.70,10.02,12.32,14.06,14.77,15.35,15.89..18.87,49.11 (0→1 평탄: 정지 상태에서 차분형 접근 0)"
+   },
+   "sha256_8": "3aaa6d75"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "손 액션 의미 변경(증분) — fresh 필수"
+}

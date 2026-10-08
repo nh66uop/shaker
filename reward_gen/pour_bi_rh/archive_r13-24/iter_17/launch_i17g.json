@@ -1,0 +1,18 @@
+{
+ "label": "t2r_rh3_i17g",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "started": 1790227724.9393983,
+ "started_local": "2026-09-24 14:28",
+ "commit": "2a007960",
+ "run_dir": "t2r_rh3_i17g",
+ "server_pids": [
+  2379902,
+  2379909
+ ],
+ "checkpoint": "/tmp/grasp_stage_i07r3_ep400.pth (vision-3090 t2r_rh2_i07-r3 ep400)",
+ "checkpoint_note": "★탐색이 살아 있는 파지 단계(entropy ~22)에서 재시작. i17(=i16g ep2100, entropy 3.5 웜스타트)은 각도 수입 제거 후 붓기가 사라졌다 — 결정론 재생 ep300 기울기 46.7°·in_target 0.000·소스 잔량 1.000.",
+ "env_note": "env 무변경. 이번이 '각도를 학습이 스스로 찾는가'의 정확한 실험 — 파지만 물려받고 붓기 자세·만남 지점은 백지."
+}

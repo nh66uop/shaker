@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!-- body + lid welded in LOCKED pose (shaking-only training). profile=real -->
+<robot name="rh56_shaker_locked">
+  <link name="body">
+    <!-- origin = bottom centre, rim at z=170.0 mm -->
+    <inertial>
+      <origin xyz="-0.000000 0.000000 0.082640" rpy="0 0 0"/>
+      <mass value="0.13282"/>
+      <inertia ixx="4.8755e-04" ixy="0" ixz="0" iyy="4.8755e-04" iyz="0" izz="1.0418e-04"/>
+    </inertial>
+    <visual><geometry><mesh filename="../../meshes/real/rh56_shaker_body.stl" scale="0.001 0.001 0.001"/></geometry></visual>
+    <collision><geometry><mesh filename="../../meshes/real/rh56_shaker_body.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="lid">
+    <!-- origin = mating plane (plate underside) centre -->
+    <inertial>
+      <origin xyz="0.000000 0.000000 -0.001457" rpy="0 0 0"/>
+      <mass value="0.07537"/>
+      <inertia ixx="4.3439e-05" ixy="0" ixz="0" iyy="4.3439e-05" iyz="0" izz="5.8793e-05"/>
+    </inertial>
+    <visual><geometry><mesh filename="../../meshes/real/rh56_shaker_lid.stl" scale="0.001 0.001 0.001"/></geometry></visual>
+    <collision><geometry><mesh filename="../../meshes/real/rh56_shaker_lid.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <joint name="lid_lock" type="fixed">
+    <parent link="body"/><child link="lid"/>
+    <origin xyz="0 0 0.170600" rpy="0 0 -0.523599"/>
+  </joint>
+</robot>

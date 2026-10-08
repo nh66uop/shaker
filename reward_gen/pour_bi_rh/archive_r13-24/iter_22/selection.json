@@ -1,0 +1,49 @@
+{
+ "selected": "c1r",
+ "candidates": {
+  "c1": {
+   "source": "claude kuku-reward-generator",
+   "gate": "PASS",
+   "terms_kept": "25/25",
+   "added": [
+    "tilt_open"
+   ],
+   "review": "kuku-code-reviewer request_changes: tilt_open symmetric clamp farmable by in/out cycles; direction-blind potential; spill relief gate \"landed\" not \"left\"; no cumulative cap; body-collision pull"
+  },
+  "q1": {
+   "source": "local qwen3.6",
+   "gate": "FAIL shape mismatch"
+  },
+  "q2": {
+   "source": "local qwen3.6",
+   "gate": "FAIL where bool"
+  },
+  "q2r": {
+   "source": "local qwen3.6 repair",
+   "gate": "PASS",
+   "terms_kept": "9/25",
+   "dropped_control_penalties": true,
+   "rejected": "user principle: no relaxation of speed/control penalties; plan: only 3 changes"
+  },
+  "q3": {
+   "source": "local qwen3.6",
+   "gate": "none (client timeout 600 s)"
+  },
+  "c1r": {
+   "source": "claude kuku-reward-generator repair of c1 with reviewer items 1-5",
+   "gate": "PASS",
+   "terms_kept": "25/25",
+   "added": [
+    "tilt_open"
+   ],
+   "deterministic_check": {
+    "script": "check_tilt_open.py",
+    "phi_rate_vs_fd_float64": "rel err p99 1.6e-8 (kinks 0.03%)",
+    "closed_loops": "512 loops, max cycle sum 0.0000, none > +0.05"
+   }
+  }
+ },
+ "rule": "gate PASS AND plan conformance (terms of iter_21 kept, only notes_round22 changes) AND user principles; then kuku-code-reviewer defect check",
+ "decided_by": "kuku-ai-55 main: gate + plan conformance + reviewer fixes + deterministic cycle check",
+ "at": "2026-09-25T21:2x"
+}

@@ -1,0 +1,50 @@
+{
+ "label": "t2r_rh4_f04",
+ "iter": 3,
+ "cycle": 4,
+ "host": "server",
+ "gpu": 1,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-rh_b_pour_fj-lstm",
+ "python_pid": 3457919,
+ "server_head": "32f5228e",
+ "reward": "iter_03 c1r2 (sha256 daad5d2f)",
+ "checkpoint": null,
+ "started_local": "2026-09-29 09:29",
+ "overrides": {
+  "horizon_length": 16,
+  "minibatch_size": 16384,
+  "mini_epochs": 2,
+  "learning_rate": "1e-4",
+  "lr_schedule": "adaptive",
+  "kl_threshold": 0.016,
+  "e_clip": 0.1,
+  "central_value_config.learning_rate": "1e-4",
+  "network.rnn.before_mlp": true,
+  "network.rnn.concat_input": false,
+  "network.rnn.concat_output": false,
+  "config.clip_actions": false,
+  "save_frequency": 50
+ },
+ "env": "PourFJEnvCfg: 팔 joint · 손 direct 범위 grip + 1.0 N 힘 멈춤 · 관측 165/207 잡음·지연 0",
+ "log_dir": "~/rl_ws/hdgp/log/rl_games/open-rh/both/pour-fj/t2r_rh4_f04",
+ "why": "f03: 오른팔 증분 포화(한계 96 %)·왼손 세로 집기·들기 미끄러짐·물리 이상 미종료 → B 보상 + 팔 절대 목표 + bounds_loss 0.005 + 물리 이상 종료",
+ "launched_by": "session 146751a7, 사용자 '학습 진행' 09-29",
+ "ppo_changes": {
+  "gamma": "0.998→0.99",
+  "value_bootstrap": "False→True (actor·central)",
+  "mlp": "[512,512]→[1024,1024,512,512]",
+  "central_mlp": "[512,512,256,128]→[1024,1024,512,512]",
+  "entropy_coef": "0.0005→0",
+  "bounds_loss_coef": "0.0001→0.005"
+ },
+ "env_overrides": {
+  "arm_joint_mode": "absolute",
+  "phys_cup_speed_max": 3.0,
+  "phys_cup_angvel_max": 30.0,
+  "phys_contact_max_n": 200.0,
+  "phys_contact_steps": 2,
+  "cup_leash_m": 0.5
+ }
+}

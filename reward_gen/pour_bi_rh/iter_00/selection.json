@@ -1,0 +1,26 @@
+{
+ "selected": "c1r2",
+ "rule": "ingest PASS + 계획 준수(DESIGN_BRIEF 5절 합 사다리) + check_iter00 핵심 항목 PASS·원장 골 0. 재시도 2회 소진 뒤 남은 2 항목([25] 0.7 닫기 +0.23<0.3, [31] +0.41<0.5)은 사용자 선택으로 수용",
+ "decided_by": "사용자 09-30 AskUserQuestion 'c1r2 (권장)'",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, iter_00/prompt.md",
+   "gate": "PASS",
+   "deterministic_check": "check_c1.txt FAIL 20 항목(접근·손 방향)"
+  },
+  "c1r": {
+   "source": "prompt_c1_repair.md (Review items 20 항목 원문)",
+   "gate": "PASS",
+   "deterministic_check": "check_c1r.txt FAIL 4 항목 [25][31][34][46]"
+  },
+  "c1r2": {
+   "source": "prompt_c1_repair2.md (Review items 4 항목 원문)",
+   "sha256_8": "854a5eec",
+   "gate": "PASS",
+   "deterministic_check": "check_c1r2.txt FAIL 2 항목 [25](0.4 +0.111 ✓, 0.7 +0.229 < 0.3) [31](+0.41 < 0.5); [1] 53 % · [53] +18~20 · [54] 0.43 · [56] +1.82/+2.34 · [57] +0.73/+0.57/+0.36 · [34] 0.31 · [46] +0.40; ledger_c1r2.txt 골 0"
+  }
+ },
+ "env": "object_spawn_dx −0.12 + 실기 제어 응답(사용자 '켬다'): hand_cmd_delay_steps 4 · arm_cmd_delay_steps (9,12) · hand_vel_cap_rad_s 2.1 · hand_thumb_flex_vel_cap_rad_s 0.56 · hand_finger_open_floor_rad 0.065",
+ "warm_start": null,
+ "warm_start_why": "사용자 '학습 보상 다시 세팅' — 새 사이클 fresh"
+}

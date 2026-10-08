@@ -1,0 +1,4 @@
+derivative: abs err max 9.268e-11  rel p99 4.059e-09
+closed cycles start_prog=0.0: max sum -0.050449  frac>1e-9 0.0000
+closed cycles start_prog=0.02: max sum -0.047884  frac>1e-9 0.0000
+closed cycles start_prog=0.2: max sum -0.053061  frac>1e-9 0.0000

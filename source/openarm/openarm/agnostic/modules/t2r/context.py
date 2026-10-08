@@ -1,0 +1,155 @@
+"""RewardContext — 생성된 보상 함수가 읽는 **유일한** 입력.
+
+★설계 계약
+  · 모든 텐서는 배치 (N, …) 이고 같은 device 다. N 은 병렬 환경 수.
+  · 위치는 전부 **env-local**(각 환경의 원점 기준, m 단위). 각도는 rad, 힘은 N.
+  · 이 클래스의 필드 이름·주석이 곧 LLM 프롬프트의 환경 설명이다(`prompts.py` 가
+    소스를 읽어 스텁으로 렌더링한다). 필드를 바꾸면 프롬프트도 같이 바뀐다 —
+    치환 테이블이 없으므로 이름이 어긋날 길이 없다.
+  · frozen — 보상 함수는 읽기만 한다. env 상태를 바꾸는 경로가 구조적으로 없다.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, fields
+
+import torch
+
+
+@dataclass(frozen=True)
+class RewardContext:
+    # ---- 상수 (에피소드 불변, python float) ---------------------------------------
+    table_z: float            # 테이블 상면 높이 [m]
+    cup_radius: float         # 컵 안쪽 반경 [m]
+    cup_mouth_z: float        # 컵 원점(무게중심 부근) → 림(개구) 높이 [m]
+    cup_bottom_z: float       # 컵 원점 → 바닥 높이 [m] (음수)
+    num_beads: int            # 소스 컵에 든 비드 수
+    adr_progress: float       # 난이도 커리큘럼(ADR) 진행도 [0,1]. 0 = 학습 초반(순간 성공률 0.3 을 아직 못 넘김), 성공률이 넘을 때마다 1/30 씩 오른다. 탐색을 죽이는 벌점(액션 부호 반전·변화율 가중)을 학습 초반에 끄고 과제를 배운 뒤 켜는 게이트로 쓴다
+
+    # ---- 소스 팔 (비드가 든 컵을 잡아 붓는 팔) ------------------------------------
+    src_palm_pos: torch.Tensor          # (N,3) 손바닥 위치
+    src_palm_axes: torch.Tensor         # (N,6) 손바닥 회전행렬의 열 0(손바닥 법선)·열 1
+    src_tips_pos: torch.Tensor          # (N,F,3) 손끝 위치 (F=손가락 수, 0번=엄지)
+    src_hand_closure: torch.Tensor      # (N,) 실측 평균 손 폐쇄도 [0,1] (0=펴짐, 1=완전 파지)
+    src_finger_force: torch.Tensor      # (N,F) 손가락별 소스 컵 접촉력 [N]
+    src_palm_force: torch.Tensor        # (N,) 손바닥의 소스 컵 접촉력 [N]
+    src_grasped: torch.Tensor           # (N,) bool 엄지 AND 다른 손가락이 동시에 소스 컵에 접촉
+    src_arm_qd: torch.Tensor            # (N,A) 팔 관절 속도 [rad/s]
+    # ---- 리시버 팔 (빈 컵을 잡아 받는 팔) -------------------------------------------
+    rcv_palm_pos: torch.Tensor          # (N,3)
+    rcv_palm_axes: torch.Tensor         # (N,6)
+    rcv_tips_pos: torch.Tensor          # (N,F,3)
+    rcv_hand_closure: torch.Tensor      # (N,)
+    rcv_finger_force: torch.Tensor      # (N,F) 리시버 컵 접촉력
+    rcv_palm_force: torch.Tensor        # (N,)
+    rcv_grasped: torch.Tensor           # (N,) bool
+    rcv_arm_qd: torch.Tensor            # (N,A)
+
+    # ---- 소스 컵 (비드가 든 컵) ---------------------------------------------------
+    src_cup_pos: torch.Tensor           # (N,3) 컵 원점 위치
+    src_cup_quat: torch.Tensor          # (N,4) 자세 (w,x,y,z)
+    src_cup_up: torch.Tensor            # (N,3) 컵의 위 방향 단위벡터 (직립이면 (0,0,1))
+    src_cup_tilt: torch.Tensor          # (N,) 직립 대비 기울기 [rad] (0=직립, π/2=수평)
+    src_cup_mouth_pos: torch.Tensor     # (N,3) 컵 개구(림) 중심 위치
+    src_cup_lin_vel: torch.Tensor       # (N,3) [m/s]
+    src_cup_ang_vel: torch.Tensor       # (N,3) [rad/s]
+    src_cup_spawn_pos: torch.Tensor     # (N,3) 에피소드 시작 시 컵 위치(테이블 위)
+    # ---- 리시버 컵 (빈 컵) --------------------------------------------------------
+    rcv_cup_pos: torch.Tensor           # (N,3)
+    rcv_cup_quat: torch.Tensor          # (N,4)
+    rcv_cup_up: torch.Tensor            # (N,3)
+    rcv_cup_tilt: torch.Tensor          # (N,)
+    rcv_cup_mouth_pos: torch.Tensor     # (N,3)
+    rcv_cup_lin_vel: torch.Tensor       # (N,3)
+    rcv_cup_ang_vel: torch.Tensor       # (N,3)
+    rcv_cup_spawn_pos: torch.Tensor     # (N,3)
+
+    # ---- 비드 ----------------------------------------------------------------------
+    bead_in_source_frac: torch.Tensor   # (N,) 소스 컵 안에 있는 비드 비율 [0,1]
+    bead_in_target_frac: torch.Tensor   # (N,) 리시버 컵 안에 있고 소스 컵 밖인 비드 비율 [0,1] (소스 컵째 끼워 넣은 비드는 0)
+    bead_spill_frac: torch.Tensor       # (N,) 어느 컵에도 없이 바닥/테이블로 떨어진 비율 [0,1]
+    bead_centroid: torch.Tensor         # (N,3) 비드 무게중심 위치
+    d_in_target: torch.Tensor           # (N,) 이번 스텝 bead_in_target_frac 증분 (Δ, 음수 가능)
+    d_spill: torch.Tensor               # (N,) 이번 스텝 bead_spill_frac 증분
+    bead_fill_level: torch.Tensor       # (N,) 에피소드 시작 시 소스 컵이 부피로 얼마나 찼는지 [0,1] (정착 후 실측, 에피소드 동안 고정; 비드 양은 에피소드마다 다르다)
+
+    # ---- 충돌 (실기 안전 — 09.14) ---------------------------------------------------------
+    cup_cup_force: torch.Tensor         # (N,) 두 컵이 서로 부딪히는 접촉력 [N] (0 = 안 닿음)
+    src_hand_foreign_force: torch.Tensor  # (N,) 소스 손이 **자기 컵 외**(상대 손·상대 컵·테이블)에 닿는 힘 [N]
+    rcv_hand_foreign_force: torch.Tensor  # (N,) 리시버 손이 자기 컵 외에 닿는 힘 [N]
+
+    # ---- 과제 판정 / 시간 ------------------------------------------------------------
+    cups_nested: torch.Tensor           # (N,) bool 두 컵 원점 거리 < 9 cm — 소스 컵이 리시버 컵에 끼워져 있음(붓기가 아니라 성공 무효)
+    premature_tilt: torch.Tensor        # (N,) bool 에피소드 래치 — **잡은** 소스 컵이 src_pour_lip_pos 가 리시버 입구 중심에서 xy 8.1 cm 보다 멀 때 premature_tilt_limit 을 넘은 적이 있음(성공 무효, 리셋 전까지 유지; 잡지 않은 채 넘어진 컵은 아님)
+    src_pour_lip_pos: torch.Tensor      # (N,3) 소스 컵의 **붓는 쪽 림 점** — 비드가 나가는 지점. 방향 d̂(소스 컵 원점→리시버 입구, 수평)는 컵 자세와 무관해서 직립에서도 정의됨: 입구 중심 + r·(cos θ·d̂ − sin θ·ẑ), r = 4.1 cm, θ = src_tilt_toward_rcv
+    src_tilt_toward_rcv: torch.Tensor   # (N,) 리시버 쪽으로 기운 부호 있는 각도 θ [rad] — (d̂, z) 수직면 성분만(옆으로 기운 성분은 0, 반대로 기울면 음수)
+    premature_tilt_limit: torch.Tensor  # (N,) 조준 없이 허용되는 src_cup_tilt 상한 [rad] = 채움별 첫 유출각 − 20° (가득 52°, 채움 0.5 에서 69°); 에피소드 동안 일정
+    cup_hit: torch.Tensor               # (N,) bool 에피소드 래치 — hold 이후 두 컵이 한 번이라도 부딪혔다(cup_cup_force > 0.5 N). 성공 무효
+    pour_dir_xy: torch.Tensor           # (N,2) 붓는 방향 d̂(소스 컵 원점→리시버 입구, 수평 단위벡터). x>0 = 몸 바깥, 로봇 몸통은 −x. x > 0.3 이면 성공 무효
+    rcv_side_margin: torch.Tensor       # (N,) 리시버 컵이 자기 팔 쪽으로 중심선에서 떨어진 거리 [m] (스폰 ≈ +0.16). < 0.03 이면(상대 팔 쪽으로 넘어감) 성공 무효
+    src_wrap_count: torch.Tensor        # (N,) 소스 손에서 중간/원위 마디가 컵에 닿은 손가락 수 [0,5] — 팁만 닿은 손가락은 0(손끝 집기 ≠ 감싸 쥐기)
+    rcv_wrap_count: torch.Tensor        # (N,) 리시버 손의 같은 값
+    success: torch.Tensor               # (N,) bool 성공 조건 충족 (env 가 판정, 보상이 바꿀 수 없음; cups_nested·premature_tilt 면 항상 False)
+
+    # ---- 목표량 붓기(09.23 사용자): 정해진 개수만 붓고 소스 컵을 다시 세운다(s2r 에서 여러 컵에 반복) ----
+    pour_target_beads: torch.Tensor     # (N,) 이번 에피소드에 옮겨야 할 비드 개수(에피소드 고정). 관측에도 비율로 들어간다
+    pour_target_frac: torch.Tensor      # (N,) 목표 개수 / 활성 개수 [0,1]
+    bead_active_count: torch.Tensor     # (N,) 이번 에피소드의 활성 비드 개수 — 개수 = frac × 이 값
+
+    # ---- 파지 기준(09.22): 처음 잡아 들어 올린 순간의 손-컵 관계를 에피소드마다 한 번 기록 ------------------
+    #   기록 시점 = 그 손이 잡은 채 컵이 스폰보다 3 cm 이상 들렸고 컵 기울기 < 20° 이고 손 접촉력 합 > 0.5 N 인 첫 스텝.
+    #   "컵 좌표" = 컵 원점 기준·컵 자세로 되돌린 좌표 — 손이 컵을 그대로 쥐고 있으면 컵이 아무리 돌아도 변하지 않는다.
+    #   힘 비율 = [손바닥, 엄지, 검지, 중지, 약지, 소지] 접촉력 / 합 (자기 컵 접촉만, 합 1; 접촉이 없으면 0 벡터).
+    src_palm_in_cup: torch.Tensor       # (N,3) 지금 손바닥 위치, 소스 컵 좌표 [m]
+    src_tips_in_cup: torch.Tensor       # (N,F,3) 지금 손끝 위치, 소스 컵 좌표 [m] (0번=엄지)
+    src_force_share: torch.Tensor       # (N,F+1) 지금 소스 손 힘 비율
+    src_force_total: torch.Tensor       # (N,) 지금 소스 손 자기 컵 접촉력 합 [N]
+    src_grasp_ref_valid: torch.Tensor   # (N,) bool 이번 에피소드에 소스 손 기준이 기록됐는가 (들어 올리기 전에는 False)
+    src_ref_palm_in_cup: torch.Tensor   # (N,3) 기준 시점 손바닥 위치, 컵 좌표 (valid 가 False 면 0)
+    src_ref_tips_in_cup: torch.Tensor   # (N,F,3) 기준 시점 손끝 위치, 컵 좌표
+    src_ref_force_share: torch.Tensor   # (N,F+1) 기준 시점 힘 비율
+    src_ref_force_total: torch.Tensor   # (N,) 기준 시점 접촉력 합 [N]
+    rcv_palm_in_cup: torch.Tensor       # (N,3) 리시버 손의 같은 값들 (리시버 컵 좌표)
+    rcv_tips_in_cup: torch.Tensor       # (N,F,3)
+    rcv_force_share: torch.Tensor       # (N,F+1)
+    rcv_force_total: torch.Tensor       # (N,)
+    rcv_grasp_ref_valid: torch.Tensor   # (N,) bool
+    rcv_ref_palm_in_cup: torch.Tensor   # (N,3)
+    rcv_ref_tips_in_cup: torch.Tensor   # (N,F,3)
+    rcv_ref_force_share: torch.Tensor   # (N,F+1)
+    rcv_ref_force_total: torch.Tensor   # (N,)
+    episode_progress: torch.Tensor      # (N,) 에피소드 진행도 [0,1]
+
+    # ---- 액션 ------------------------------------------------------------------------
+    actions: torch.Tensor               # (N,Dact) 이번 스텝 액션 [-1,1]
+    prev_actions: torch.Tensor          # (N,Dact) 직전 스텝 액션
+
+    # ---- 손바닥 속도 (09.28 추가 — 기본값 None 인 env 는 이 값을 주지 않는다) --------------
+    #   차분형(진척) 보상용: 목표를 향한 속도 성분 = v · (목표 − 손바닥)/|목표 − 손바닥| 는 "다가가는 중" 에만 양수라
+    #   가만히 있는 자세에 수입을 주지 않는다.
+    src_palm_lin_vel: torch.Tensor = None   # (N,3) 소스 손바닥 선속도 [m/s], env-local
+    rcv_palm_lin_vel: torch.Tensor = None   # (N,3) 리시버 손바닥 선속도 [m/s]
+
+    # ------------------------------------------------------------------
+    @property
+    def num_envs(self) -> int:
+        return int(self.src_palm_pos.shape[0])
+
+    @property
+    def device(self) -> torch.device:
+        return self.src_palm_pos.device
+
+
+TENSOR_FIELDS: tuple[str, ...] = tuple(
+    f.name for f in fields(RewardContext) if f.type == "torch.Tensor")
+SCALAR_FIELDS: tuple[str, ...] = tuple(
+    f.name for f in fields(RewardContext) if f.type in ("float", "int"))
+
+
+def context_stub_source() -> str:
+    """이 파일의 `class RewardContext` 본문(필드+주석)을 그대로 돌려준다 — 프롬프트 재료."""
+    import inspect
+    src = inspect.getsource(RewardContext)
+    # property 구간은 LLM 에 불필요 — 첫 `@property` 앞까지만.
+    cut = src.find("    # ----------")
+    return src[:cut].rstrip() + "\n"

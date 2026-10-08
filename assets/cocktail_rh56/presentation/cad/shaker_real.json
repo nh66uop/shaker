@@ -1,0 +1,137 @@
+{
+  "profile": "real",
+  "params": {
+    "grip_r": 30.0,
+    "wall": 2.5,
+    "body_h": 170.0,
+    "floor": 6.0,
+    "collar_r": 32.0,
+    "groove_depth": 2.2,
+    "n_lugs": 4,
+    "lead_angle_deg": 40.0,
+    "lug_w": 6.0,
+    "lug_h": 5.0,
+    "overhang": 4.0,
+    "twist_deg": 30.0,
+    "collar_top_chamfer": 1.5,
+    "collar_floor": 3.0,
+    "lid_skirt_t": 3.0,
+    "lid_plate": 5.0,
+    "lid_entry_chamfer": 3.0,
+    "knob_h": 22.0,
+    "knob_span": 36.0,
+    "knob_arm": 10.0,
+    "n_keys": 6,
+    "key_w": 6.0,
+    "key_depth": 2.0,
+    "key_h": 8.0,
+    "holder_r": 45.0,
+    "holder_h": 30.0,
+    "holder_floor": 8.0,
+    "holder_funnel": 5.0,
+    "density_g_mm3": 0.00127,
+    "rad_clr": 0.4,
+    "side_clr": 0.5,
+    "z_clr": 0.6,
+    "gasket": 1.5,
+    "helix": 0.9,
+    "detent": 0.8,
+    "pocket_clr": 0.5,
+    "smooth": 0.35,
+    "n_theta": 1440,
+    "dz": 0.25
+  },
+  "derived": {
+    "capacity_ml": 379.4303077280317,
+    "lid_yaw_capture_deg": 45.0,
+    "lid_radial_capture_mm": 4.5,
+    "holder_yaw_capture_deg": 30.0,
+    "holder_radial_capture_mm": 5.0,
+    "lead_in_slide_requires_mu_below": 0.8390996311772799,
+    "v_lead_in_height_mm": 18.1520251863711,
+    "collar_height_mm": 31.6520251863711,
+    "lid_od_mm": 70.8,
+    "lid_total_height_mm": 60.8920251863711
+  },
+  "poses_in_body_frame_m": {
+    "lid_dropin": {
+      "xyz": [
+        0,
+        0,
+        0.1715
+      ],
+      "yaw_rad": 0.0
+    },
+    "lid_locked": {
+      "xyz": [
+        0,
+        0,
+        0.1706
+      ],
+      "yaw_rad": -0.5235987755982988
+    },
+    "lid_yaw_symmetry_rad": 1.5707963267948966,
+    "body_in_holder": {
+      "xyz": [
+        0,
+        0,
+        0.008
+      ],
+      "yaw_symmetry_rad": 1.0471975511965976
+    }
+  },
+  "mass_props": {
+    "body": {
+      "mass_kg": 0.12543720801903968,
+      "com_m": [
+        1.6926290355456824e-17,
+        1.9393509362631924e-17,
+        0.07681760736248093
+      ],
+      "inertia_kgm2": [
+        0.00043468276785809946,
+        0.0004346827678581006,
+        9.632973837432595e-05
+      ]
+    },
+    "lid": {
+      "mass_kg": 0.06820004098638202,
+      "com_m": [
+        4.6556378193259066e-18,
+        3.014709544856566e-17,
+        -0.0012230654260906634
+      ],
+      "inertia_kgm2": [
+        3.803135793289725e-05,
+        3.803135793289678e-05,
+        4.784596149379308e-05
+      ]
+    },
+    "holder": {
+      "mass_kg": 0.15783794120623904,
+      "com_m": [
+        -1.2002208322587411e-17,
+        -1.044245833478539e-17,
+        0.012645670037919452
+      ],
+      "inertia_kgm2": [
+        0.00011404871899807828,
+        0.00011404871899806175,
+        0.00020397606315578987
+      ]
+    }
+  },
+  "checks": {
+    "bayonet": {
+      "seated_unlocked": 0.3999999999999986,
+      "twist_path_min": -0.40000000000000213,
+      "locked": 0.274999999999995,
+      "drop_path_min": 0.3999999999999986,
+      "note": "radial clearance [mm]; detent interference expected = detent - rad_clr"
+    },
+    "lock": {
+      "lug_top_minus_overhang_mm": 0.23999999999999844,
+      "overhang_thickness_mm": 4.0
+    }
+  }
+}

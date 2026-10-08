@@ -1,0 +1,17 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획 준수(5-7 두 변경: level 에 up_ok·approach 에 0.2×level·pre 에 pocket×level 게이트) + check_iter03 [1]~[61](은퇴 [25][31][57] 참고) + traj_ledger T1~T5",
+ "decided_by": "사용자 10-01 '1번' (손 방향을 컵에서 멀 때 먼저)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, prompt.md",
+   "hypothesis": "단일(5-7 1·2)",
+   "gate": "PASS",
+   "deterministic_check": "check_c1.txt PASS: [60] 수평 인벨롭 − 뒤집힌 손 +2.17·접촉 몫 −0.09 · [61] 수평 − 시작 +0.44·수평 − 뒤집힘 +0.67(두 손) · [59] +2.10/+2.61·+0.44/+0.83 · T1 −0.032·T3 전부 손해·T4 최소 +0.29·T5 0 · [1] 53 %·[36] 단조",
+   "note": "생성기 표시: 시작 자세 level 0.36 은 역산 추정(검사 [61] 로 확인됨: +0.44). 새 방향 몫은 쥔 뒤에도 남아 붓는 동안 손가락 축이 기울면 접근 수입이 최대 약 0.4 줄 수 있음(추정) — T1·[1] 통과"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "fresh (보상 바뀜, f02 entropy 21 까지 줄어든 탐색이 따라오지 않게)",
+ "sha256_prefix": "2c2cc95b"
+}

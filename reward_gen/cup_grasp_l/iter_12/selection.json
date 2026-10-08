@@ -1,0 +1,13 @@
+{
+  "selected": "c1r",
+  "rule": "gate PASS + plan compliance (AST diff vs iter_11 limited to open-hand/finger-target changes) + deterministic check (new L19, L16c, L13a) with only iter_02-lineage failures left",
+  "decided_by": "main session (user decided option 2: strong open-hand approach, left arm, local)",
+  "candidates": {
+    "c1": {"source": "kuku-reward-generator prompt.md, Hypothesis A", "hypothesis": "A", "gate": "PASS", "plan": "PASS",
+           "deterministic_check": "check_iter12_c1.out: L19 PASS but L16c FAIL (-0.015 dip when curling 1 cm before contact), L13a FAIL (first-touch step 0.020)", "result": "rejected -> repair"},
+    "c1r": {"source": "kuku-reward-generator prompt_c1_repair.md (Review items: release by palm arrival, keep open-vs-hook margin >= 0.08, halve first-touch step)", "hypothesis": "A", "gate": "PASS", "plan": "PASS",
+            "deterministic_check": "check_iter12_c1r.out: L19 PASS (open-hook 0.33/0.31/0.26 at 10/7/5 cm; iter_11 0.04/0.03/0.02), L16c PASS, L13a PASS (max step 0.0012), L12/L13b/L14/L18 PASS; fails L10/L11b/L11c as iter_02/iter_11; L15 ratio FAIL by dilution from the constant open income, absolute side-above gap 0.082-0.088 (iter_11 0.098-0.104)"}
+  },
+  "warm_start": null,
+  "warm_start_why": "reward requires new behaviour (open-hand approach); fresh, seed 42"
+}

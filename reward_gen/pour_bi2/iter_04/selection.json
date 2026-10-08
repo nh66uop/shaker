@@ -1,0 +1,54 @@
+{
+ "selected": "c2",
+ "rule": "게이트 PASS + 결정론 성질 검사 PASS(A~L). c1(세우기만)은 사용자 결정 '파지만 추가'로 계획이 바뀌어 대체됨.",
+ "decided_by": "사용자 결정 09-27: 목표량 커리큘럼(env) + 세우기 문턱 + 소스 파지(옛 iter_24 방식). 왼팔 높이는 제외",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator (prompt_c1_finish_only.md)",
+   "gate": "PASS",
+   "deterministic_check": "PASS(K)",
+   "status": "대체됨 — 파지 변경 추가 전 계획"
+  },
+  "c2": {
+   "source": "kuku-reward-generator (iter_04/prompt.md, notes K+L)",
+   "gate": "ingest PASS, 성분 23개",
+   "deterministic_check": {
+    "script": "check_iter04.py",
+    "result": "PASS",
+    "finish_threshold": {
+     "one_short_tilted_95": 5.03,
+     "two_short_tilted_rot": 6.41,
+     "in_tol_upright": 14.67,
+     "dumped_upright_finish": 1.17,
+     "pre_pour_finish": 0.0
+    },
+    "grasp_hold": {
+     "wrap1.0": 2.04,
+     "wrap1.5": 2.79,
+     "wrap3": 6.81,
+     "wrap5": 6.81
+    },
+    "tip_only_charge_per_finger": -0.6
+   }
+  }
+ },
+ "env_change": {
+  "commit": "9977f332",
+  "pour_target_schedule": [
+   1.0,
+   0.8,
+   0.5,
+   0.2
+  ],
+  "note": "ADR 0 전량, 진행도 25% 마다 한 단계, 연 단계 섞어 뽑기. 성공 공차 ±1알 그대로"
+ },
+ "warm_start": "t2r2_i03m 최신 체크포인트",
+ "warm_start_why": "사용자 승인. 같은 망·같은 관측. 붓기까지 배운 정책 위에 세우기를 쌓는 단계 커리큘럼. 컵이 비면 기울여 버틸 수입이 사라지므로 버티기 습관은 남을 이유가 없다. e300 에도 버티면 fresh 로.",
+ "compute_reward_sha256_16": "610551ccbd3367a5",
+ "watch_first": [
+  "diag/ep_end_upright_held 와 task/episode_success 가 0 에서 벗어나는가(전량 단계)",
+  "adr/progress 가 오르기 시작하는가(성공률 0.3)",
+  "task/src_wrap_count 가 1.5 에서 3 쪽으로 회복하는가",
+  "bead/spill(전량 단계에서 과틸트로 늘 수 있음)"
+ ]
+}

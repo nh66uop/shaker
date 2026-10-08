@@ -1,0 +1,18 @@
+{
+ "label": "t2r_rh3_i17",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "started": 1790219130.9139683,
+ "started_local": "2026-09-24 12:05",
+ "commit": "2a007960",
+ "run_dir": "t2r_rh3_i17",
+ "server_pids": [
+  2288291,
+  2288298
+ ],
+ "checkpoint": "log/rl_games/open-rh/both/pour-fab-mimic/t2r_rh3_i16g/nn/last_open-rh_b_pour_fab_mimic_ep_2100_rew_14365.492.pth",
+ "checkpoint_note": "i16g ep2100(결정론 기울기 87.6°·in_target 0.150·흘림 0.050·파지 1.00/1.00). 이미 기울일 줄 알아 각도 수입을 빼도 붓기를 잃지 않는다.",
+ "env_note": "env 무변경(성공 0.80/0.25/20·두꺼운 바닥 컵·ctx 관절 필드)."
+}

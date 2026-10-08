@@ -1,0 +1,25 @@
+{
+ "selected": "c1r",
+ "md5": "84663fb0ce6194155f73596ec615682d",
+ "rule": "gate PASS + plan (AST vs iter_05: only reach/palm_in origin-relative + their scale constants) + check_iter06",
+ "decided_by": "main session; user 09-27 '접근만큼은 물체 origin이 맞음', standing '생성하면 바로 재기동 진행'",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator prompt.md, Hypothesis A",
+   "hypothesis": "A",
+   "gate": "PASS",
+   "plan": "PASS",
+   "deterministic_check": "check_iter06_c1.out: L15 PASS (side 0.117-0.120 vs above 0.052-0.059); L15b FAIL (approach dips 7.5-6 cm: open-hand fade -0.0021/step > reach +0.0012 + palm_in +0.0006)"
+  },
+  "c1r": {
+   "source": "kuku-reward-generator prompt_c1_repair.md (review: L15b dip), Hypothesis A",
+   "hypothesis": "A",
+   "gate": "PASS",
+   "plan": "PASS (W_REACH 0.55, REACH_NEAR 0.15, SEAT_SCALE 0.15 vs c1)",
+   "deterministic_check": "check_iter06_c1r.out: 21 PASS; L11 FAIL by design (non-touching digit over rim keeps pre-contact close credit); L15 side 0.207-0.225 vs above 0.093-0.115; L15b min step +0.00078; L12/L13 PASS"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "approach reward redefined; fresh",
+ "at": "2026-09-27T23:35:33"
+}

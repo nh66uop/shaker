@@ -1,0 +1,321 @@
+<title>RH56 바요넷 셰이커</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: workbench — 3D view as the bench, unrolled groove drawing + controls as the side sheet */
+:root{
+  --bg:#eef1f3; --panel:#f9fafb; --fg:#1b2329; --muted:#5d6a73; --line:#cdd5db;
+  --steel:#a9b4bc; --groove:#d9731f; --lug:#2f6fb3; --key:#3a9a7a; --ok:#2d7d4f; --warn:#b4541a;
+  --font-body:"IBM Plex Sans KR",system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#13181c; --panel:#1b2228; --fg:#e3e8ec; --muted:#93a0a9; --line:#2f3a42;
+  --steel:#7d8a93; --groove:#f08a3a; --lug:#5d9be0; --key:#4fbf98; --ok:#5cc98a; --warn:#f0965a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#13181c; --panel:#1b2228; --fg:#e3e8ec; --muted:#93a0a9; --line:#2f3a42;
+  --steel:#7d8a93; --groove:#f08a3a; --lug:#5d9be0; --key:#4fbf98; --ok:#5cc98a; --warn:#f0965a; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:14px;line-height:1.5}
+.wrap{padding-inline:clamp(16px,3vw,32px);padding-block:20px 32px;max-width:1400px;margin:0 auto;display:grid;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+h1{font-size:1.35rem;font-weight:600;margin:0;text-wrap:balance}
+header p{margin:0;color:var(--muted);max-width:70ch}
+.grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.view{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:6px;overflow:hidden;aspect-ratio:4/3.4;max-width:100%}
+.view canvas{display:block;width:100%;height:100%}
+.status{position:absolute;left:12px;top:10px;font-family:var(--font-mono);font-size:12px;display:grid;gap:2px;pointer-events:none}
+.status b{font-weight:500;font-size:13px}
+.legend{position:absolute;right:12px;bottom:10px;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);pointer-events:none}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.side{display:grid;gap:16px;min-width:0}
+section{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:grid;gap:10px;min-width:0}
+h2{font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0}
+.row{display:grid;grid-template-columns:7.5em minmax(0,1fr) 4.2em;align-items:center;gap:10px}
+.row label{color:var(--muted);font-size:13px}
+.row output{font-family:var(--font-mono);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--groove)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;font-size:13px;padding:5px 12px;border-radius:4px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+button:hover{border-color:var(--muted)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--lug);outline-offset:2px}
+.toggles{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px}
+.toggles label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.svgbox{overflow-x:auto}
+svg text{font-family:var(--font-mono)}
+.cap{font-size:12px;color:var(--muted);margin:0}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left;color:var(--muted);font-weight:400}
+thead th{color:var(--muted);font-weight:500;font-size:11.5px}
+td.num{font-family:var(--font-mono)}
+.pos{color:var(--ok)} .neg{color:var(--warn)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>RH56 바요넷 셰이커</h1>
+    <p>뚜껑을 위에서 내려놓으면 V 경사면이 러그를 홈 입구로 밀어 넣고, 30° 비틀면 잠금 턱 아래로 들어갑니다. 슬라이더로 결합 과정을 단계별로 볼 수 있습니다.</p>
+  </header>
+
+  <div class="grid">
+    <div class="view" id="view">
+      <div class="status"><b id="stage">하강</b><span id="readout"></span></div>
+      <div class="legend">
+        <span><i style="background:var(--groove)"></i>바디 홈 (V 리드인 + 비틀림 슬롯)</span>
+        <span><i style="background:var(--lug)"></i>뚜껑 러그</span>
+        <span><i style="background:var(--key)"></i>홀더 키</span>
+      </div>
+    </div>
+
+    <div class="side">
+      <section aria-labelledby="h-ctl">
+        <h2 id="h-ctl">결합 과정</h2>
+        <div class="row"><label for="phase">진행</label><input id="phase" type="range" min="0" max="2" step="0.005" value="0.62"><output id="o-phase"></output></div>
+        <div class="row"><label for="yaw0">초기 각도 오차</label><input id="yaw0" type="range" min="-44" max="44" step="1" value="28"><output id="o-yaw0"></output></div>
+        <div class="btns">
+          <button id="play" type="button">재생</button>
+          <button id="reset" type="button">처음으로</button>
+        </div>
+        <div class="toggles">
+          <label><input id="t-cut" type="checkbox" checked>단면 (1/4 절개)</label>
+          <label><input id="t-ghost" type="checkbox">바디 반투명</label>
+          <label><input id="t-holder" type="checkbox" checked>홀더</label>
+          <label><input id="t-lid" type="checkbox" checked>뚜껑</label>
+        </div>
+      </section>
+
+      <section aria-labelledby="h-unroll">
+        <h2 id="h-unroll">홈 펼침도 · 러그 1개 구간</h2>
+        <div class="svgbox"><svg id="unroll" role="img" aria-label="바디 칼라의 바요넷 홈을 바깥에서 펼쳐 본 도면과 러그 위치"></svg></div>
+        <p class="cap">칼라 표면을 바깥에서 본 펼침도입니다. 가로는 원주 방향 거리(반지름 <span id="cr"></span> mm 기준), 세로는 림에서 아래로의 깊이입니다. 파란 사각형이 러그, 점선이 지나온 경로입니다.</p>
+      </section>
+
+      <section aria-labelledby="h-num">
+        <h2 id="h-num">치수와 검사</h2>
+        <table id="numtab"></table>
+        <p class="cap">반경 여유는 러그 끝과 바디 표면 사이 거리이며, 음수는 간섭입니다. real의 회전 중 음수는 딸깍 돌기를 넘는 의도된 구간입니다. 3D 형상은 sim 프로파일입니다.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const MESH = __MESHES__;
+const P = __PARAMS__;
+const REP = __REPORTS__;
+
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const buf = s => Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer;
+const tanL = Math.tan(P.lead_angle_deg * Math.PI / 180);
+const hw = P.lug_w / 2;
+const D0 = P.lug_t1 + 14;                 // start height of lid above seat [mm]
+
+/* ---------- kinematics: lug centre s (arc mm at collar_r) and lid drop ---------- */
+function lim(t) {                           // max |s| for lug centre when lug bottom is at depth t
+  if (t <= 0) return Infinity;
+  return Math.max(P.side_clr, P.S / 2 - t / tanL - hw);
+}
+const clamp = (v, m) => Math.max(-m, Math.min(m, v));
+const ease = u => u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+function state(u, yaw0deg) {
+  const s0 = P.collar_r * yaw0deg * Math.PI / 180;
+  let drop, s, twist = 0, stage, guided = false;
+  if (u <= 1) {
+    drop = D0 * (1 - ease(u));
+    const tb = P.lug_t1 - P.gasket - drop;
+    const m = lim(tb);
+    s = clamp(s0, m);
+    guided = Math.abs(s - s0) > 0.05;
+    stage = tb <= 0 ? "하강" : (drop > 0.05 ? (guided ? "V 경사면 유도" : "홈 진입") : "안착");
+  } else {
+    drop = 0;
+    const sd = clamp(s0, P.side_clr);
+    twist = ease(Math.min(1, u - 1));
+    s = sd + twist * (-P.L_tw - sd);
+    stage = twist >= 0.999 ? "잠김" : "비틀어 잠금";
+  }
+  const dz = P.helix * twist;
+  const tTop = P.lug_t0 - P.gasket - drop + dz;
+  return { s, drop, dz, stage, guided, tTop, yaw: s / P.collar_r };
+}
+
+/* ---------- 3D ---------- */
+const view = $("view");
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+view.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1, 5, 5000);
+camera.position.set(190, 270, 230);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(0, P.body_h - 20, 0);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.75));
+const sun = new THREE.DirectionalLight(0xffffff, 0.85); sun.position.set(200, 400, 250); scene.add(sun);
+const fillL = new THREE.DirectionalLight(0xffffff, 0.3); fillL.position.set(-250, 100, -150); scene.add(fillL);
+
+const world = new THREE.Group(); world.rotation.x = -Math.PI / 2; scene.add(world);   // z-up, mm
+const clip = [new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0), new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)];
+// world rotated: local +y maps to world -z, so local "y>0" is world z<0 -> normal (0,0,1)
+
+function geom(d) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(buf(d.v)), 3));
+  g.setIndex(new THREE.BufferAttribute(new Uint32Array(buf(d.i)), 1));
+  g.computeVertexNormals();
+  g.userData.flags = new Uint8Array(buf(d.f));
+  g.setAttribute("color", new THREE.BufferAttribute(new Float32Array(g.userData.flags.length * 3), 3));
+  return g;
+}
+function mat() {
+  return new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.25, roughness: 0.55,
+    side: THREE.DoubleSide, clippingPlanes: clip, clipIntersection: true });
+}
+const parts = {};
+for (const k of ["body", "lid", "holder"]) {
+  parts[k] = new THREE.Mesh(geom(MESH[k]), mat());
+  world.add(parts[k]);
+}
+parts.holder.position.z = -P.holder_floor;
+const ground = new THREE.Mesh(new THREE.CircleGeometry(160, 64), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.08 }));
+ground.position.z = -P.holder_floor - 0.5; world.add(ground);
+
+function paint() {
+  const base = new THREE.Color(css("--steel")), acc = { 1: null, 2: new THREE.Color(css("--key")) };
+  const tone = { body: [base, new THREE.Color(css("--groove"))], lid: [base.clone().offsetHSL(0, 0, 0.06), new THREE.Color(css("--lug"))],
+                 holder: [base.clone().offsetHSL(0, 0, -0.08), null] };
+  for (const k in parts) {
+    const g = parts[k].geometry, f = g.userData.flags, c = g.attributes.color;
+    for (let i = 0; i < f.length; i++) {
+      const col = f[i] === 1 ? tone[k][1] : f[i] === 2 ? acc[2] : tone[k][0];
+      c.setXYZ(i, col.r, col.g, col.b);
+    }
+    c.needsUpdate = true;
+  }
+  ground.material.color.set(css("--fg"));
+}
+paint();
+
+function resize() {
+  const r = view.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / r.height; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(view);
+
+/* ---------- unrolled groove SVG ---------- */
+const svg = $("unroll"), NS = "http://www.w3.org/2000/svg";
+const sMin = -P.S / 2, sMax = P.S / 2, tMin = -(P.lug_h + 10), tMax = P.collar_h + 1;
+const K = 6, padL = 34, padT = 14, padB = 26, padR = 8;
+const W = (sMax - sMin) * K + padL + padR, H = (tMax - tMin) * K + padT + padB;
+svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("width", W); svg.style.maxWidth = "100%"; svg.style.height = "auto";
+const X = s => padL + (s - sMin) * K, Y = t => padT + (t - tMin) * K;
+function el(tag, a, parent = svg) { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); parent.appendChild(e); return e; }
+el("defs", {}).innerHTML = `<clipPath id="below"><rect x="${X(sMin)}" y="${Y(0)}" width="${(sMax - sMin) * K}" height="${(tMax) * K}"/></clipPath>`;
+el("rect", { x: X(sMin), y: Y(0), width: (sMax - sMin) * K, height: P.collar_h * K, fill: "var(--steel)", "fill-opacity": .35 });
+el("polygon", { points: P.groove.map(([s, t]) => `${X(s)},${Y(t)}`).join(" "), fill: "var(--groove)", "fill-opacity": .55,
+  stroke: "var(--groove)", "stroke-width": 1.2, "clip-path": "url(#below)" });
+el("line", { x1: X(sMin), x2: X(sMax), y1: Y(0), y2: Y(0), stroke: "var(--fg)", "stroke-width": 1 });
+for (let t = 0; t <= P.collar_h; t += 10) {
+  el("line", { x1: padL - 4, x2: padL, y1: Y(t), y2: Y(t), stroke: "var(--muted)" });
+  el("text", { x: padL - 6, y: Y(t) + 4, "text-anchor": "end", "font-size": 10, fill: "var(--muted)" }).textContent = t;
+}
+for (let s = -20; s <= 20; s += 10) {
+  el("line", { x1: X(s), x2: X(s), y1: H - padB, y2: H - padB + 4, stroke: "var(--muted)" });
+  el("text", { x: X(s), y: H - padB + 15, "text-anchor": "middle", "font-size": 10, fill: "var(--muted)" }).textContent = s;
+}
+el("text", { x: X(sMax) - 2, y: Y(0) - 4, "text-anchor": "end", "font-size": 10, fill: "var(--muted)" }).textContent = "림 (rim)";
+el("text", { x: X(P.S / 2 - 2), y: Y(P.Hv * 0.45), "text-anchor": "end", "font-size": 10, fill: "var(--fg)" }).textContent = `V 리드인 ${P.lead_angle_deg}°`;
+el("text", { x: X(-P.c - P.L_tw / 2), y: Y(P.t_s0) - 4, "text-anchor": "middle", "font-size": 10, fill: "var(--fg)" }).textContent = `잠금 턱 ${P.overhang} mm`;
+el("text", { x: X(-P.c - P.L_tw / 2), y: Y(P.t_s1) + 13, "text-anchor": "middle", "font-size": 10, fill: "var(--fg)" }).textContent = `${P.twist_deg}° 비틀림`;
+const trail = el("polyline", { fill: "none", stroke: "var(--lug)", "stroke-width": 1.2, "stroke-dasharray": "3 3" });
+const lug = el("rect", { width: P.lug_w * K, height: P.lug_h * K, rx: 2, fill: "var(--lug)", "fill-opacity": .85, stroke: "var(--lug)" });
+$("cr").textContent = P.collar_r.toFixed(0);
+
+function drawTrail(u, yaw0) {
+  const pts = [];
+  for (let i = 0; i <= 120; i++) { const st = state(u * i / 120, yaw0); pts.push(`${X(st.s)},${Y(st.tTop + P.lug_h / 2)}`); }
+  trail.setAttribute("points", pts.join(" "));
+}
+
+/* ---------- table ---------- */
+function fmt(v, d = 2) { return (v >= 0 ? "+" : "") + v.toFixed(d); }
+function table() {
+  const rows = [["", "sim", "real"]];
+  const g = (k, f) => ["sim", "real"].map(p => REP[p] ? f(REP[p]) : "–");
+  const cell = v => typeof v === "number" ? `<td class="num ${v < 0 ? "neg" : "pos"}">${fmt(v)}</td>` : `<td class="num">${v}</td>`;
+  const body = [
+    ["반경 틈새 / 측면 틈새 [mm]", g(0, r => `${r.clr.rad} / ${r.clr.side}`)],
+    ["가스켓 / 나선 압착 / 딸깍 [mm]", g(0, r => `${r.clr.gasket} / ${r.clr.helix} / ${r.clr.detent}`)],
+    ["반경 여유 · 하강", g(0, r => r.checks.bayonet.drop_path_min)],
+    ["반경 여유 · 안착", g(0, r => r.checks.bayonet.seated_unlocked)],
+    ["반경 여유 · 회전 중 최소", g(0, r => r.checks.bayonet.twist_path_min)],
+    ["반경 여유 · 잠김", g(0, r => r.checks.bayonet.locked)],
+    ["V 리드인 높이 [mm]", g(0, r => r.derived.v_lead_in_height_mm.toFixed(1))],
+    ["뚜껑 외경 [mm]", g(0, r => r.derived.lid_od_mm.toFixed(1))],
+    ["용량 [mL]", g(0, r => r.derived.capacity_ml.toFixed(0))],
+    ["질량 바디 / 뚜껑 [g] (PETG)", g(0, r => `${(r.mass.body * 1000).toFixed(0)} / ${(r.mass.lid * 1000).toFixed(0)}`)],
+  ];
+  $("numtab").innerHTML = `<thead><tr><th></th><th>sim</th><th>real</th></tr></thead><tbody>` +
+    body.map(([k, v]) => `<tr><th scope="row">${k}</th>${v.map(cell).join("")}</tr>`).join("") + "</tbody>";
+}
+table();
+
+/* ---------- controls ---------- */
+const phase = $("phase"), yaw0 = $("yaw0");
+function update() {
+  const u = +phase.value, y0 = +yaw0.value, st = state(u, y0);
+  parts.lid.position.z = P.body_h + P.gasket + st.drop - st.dz;
+  parts.lid.rotation.z = st.yaw;
+  $("o-phase").textContent = u <= 1 ? `${Math.round(u * 100)}%` : `${Math.round((u - 1) * 100)}%`;
+  $("o-yaw0").textContent = `${y0 > 0 ? "+" : ""}${y0}°`;
+  $("stage").textContent = st.stage;
+  $("stage").style.color = st.stage === "잠김" ? "var(--ok)" : st.guided ? "var(--groove)" : "var(--fg)";
+  $("readout").textContent = `높이 ${st.drop.toFixed(1)} mm · 회전 ${(st.yaw * 180 / Math.PI).toFixed(1)}°`;
+  lug.setAttribute("x", X(st.s - hw)); lug.setAttribute("y", Y(st.tTop));
+  drawTrail(u, y0);
+}
+phase.addEventListener("input", () => { playing = false; $("play").textContent = "재생"; update(); });
+yaw0.addEventListener("input", update);
+let playing = false, last = 0;
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+$("play").addEventListener("click", () => {
+  playing = !playing; $("play").textContent = playing ? "정지" : "재생";
+  if (playing && +phase.value >= 2) phase.value = 0;
+  if (playing && reduce) { phase.value = 2; playing = false; $("play").textContent = "재생"; update(); }
+});
+$("reset").addEventListener("click", () => { phase.value = 0; update(); });
+const setVis = () => {
+  parts.holder.visible = $("t-holder").checked; parts.lid.visible = $("t-lid").checked;
+  const on = $("t-cut").checked;
+  for (const k in parts) parts[k].material.clippingPlanes = on ? clip : [];
+  const gh = $("t-ghost").checked, m = parts.body.material;
+  m.transparent = gh; m.opacity = gh ? 0.3 : 1; m.depthWrite = !gh; m.needsUpdate = true;
+  for (const k in parts) parts[k].material.needsUpdate = true;
+};
+for (const id of ["t-cut", "t-ghost", "t-holder", "t-lid"]) $(id).addEventListener("change", setVis);
+setVis(); update();
+
+const recolor = () => { paint(); };
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", recolor);
+new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+function loop(t) {
+  const dt = Math.min(0.05, (t - last) / 1000); last = t;
+  if (playing) {
+    let u = +phase.value + dt * 0.4;
+    if (u >= 2) { u = 2; playing = false; $("play").textContent = "재생"; }
+    phase.value = u; update();
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>

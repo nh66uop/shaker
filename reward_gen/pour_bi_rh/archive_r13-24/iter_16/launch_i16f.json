@@ -1,0 +1,18 @@
+{
+ "label": "t2r_rh3_i16f",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 2048,
+ "minibatch": 16384,
+ "started": 1790131140.1865644,
+ "started_local": "2026-09-23 11:39",
+ "commit": "2bcd125e",
+ "run_dir": "t2r_rh3_i16f",
+ "server_pids": [
+  1084452,
+  1084459
+ ],
+ "checkpoint": null,
+ "checkpoint_note": "fresh — 웜스타트 없음(i09 부터 굳은 만남 지점 습관을 깨기 위한 A/B 한쪽)",
+ "env_note": "A/B 동시 실행: 같은 GPU0 에 2048 env 두 런(사용자 결정). 성공 기준 0.80/0.25/20·ctx 관절 필드 포함."
+}

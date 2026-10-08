@@ -1,0 +1,14 @@
+{
+ "selected": "c1r",
+ "rule": "ingest PASS + 계획 준수(improvement.md 두 항목) + 원장 PASS + 궤적 원장 PASS(나쁜 궤적 < 0.6×, 덮기 쥔 스텝 < 머묾, 유도 기울기 ≥ 0.8)",
+ "decided_by": "session (사용자 09.30 '진행': 인벨롭 프로브 → iter_08 → 두 팔 fresh; '손바닥 쪽으로 최대한 들어오게, 원통이라 기하적으로 걸리게')",
+ "candidates": {
+  "c1": {"source": "kuku-reward-generator (prompt.md)", "hypothesis": null, "gate": "validation_c1.json PASS",
+         "deterministic_check": "원장 FAIL: 3o(엄지 벽 밖 2.2 r) 1.727 = 인벨롭, 3h(입구 위 덮기) 0.776 > 머묾 0.372 — 엄지 인자에서 상자 끌림을 빼며 두 결함이 다시 열림"},
+  "c1r": {"source": "kuku-reward-generator 재시도(prompt_c1_repair.md, 원장 오류 원문 + 세션 검토)", "hypothesis": null, "gate": "validation_c1r.json PASS",
+          "plan": "c1 대비 엄지 인자만: not_above 를 입구 높이에서 바닥(0.92 이하 전액), not_far(1.45 r 까지 전액, 1.8 r 바닥) 추가",
+          "deterministic_check": "원장 PASS: 단조 0.171<0.224<0.386<1.727<4.817<12.534<16.710; 손바닥 먼 손끝 파지 3m 0.51×·6m 0.60×; 입구 근처 엄지 첫 파지 3n 2.89× 머묾; 서툰 첫 파지 2.89× 머묾·2.80× 엄지 상자 머묾; 덮기 3h 0.310 < 머묾 0.372; 엄지 벽 밖 3o 0.25×; 입구 안 엄지 3i 0.11×·6j 0.12×; 새끼 미접촉 6k 0.83×; 손가락 23° 6d 0.82×. 궤적 원장 PASS: 나쁜 궤적 0.046~0.060× good_mirror, 덮기 쥔 스텝 0.033, 유도 기울기 1.00×3"}
+ },
+ "warm_start": null,
+ "warm_start_why": "보상이 새 행동(손바닥 깊이 감싸기)을 요구 → 두 팔 모두 fresh(seed 42)"
+}

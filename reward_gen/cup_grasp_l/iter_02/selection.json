@@ -1,0 +1,17 @@
+{
+ "selected": "c1",
+ "rule": "single hypothesis (k=1, user decision 09-27 '1,3을 같이'): gate PASS (GraspRewardContext validator), AST plan compliance (segment-weighted digit contact in ladder/hold/envelope/depth + segment pull; other terms unchanged), check_iter02.py all PASS: L1-L6 regressions, L7 press/wrap 0.648 (iter_01 0.717), L8 tip-only -> segments near -> touching 0.651 < 0.700 < 0.996 (iter_01 flat 0.747 = 0.747), L9 table 0.996 < 3 cm 3.169",
+ "decided_by": "cup_pick session 227884a1; launch awaits user permission (default rule 09-26)",
+ "env": "new gym id open-short_{r,l}_cup_grasp-lstm (CupGraspEnv: proximal link inputs + critic contact 21; actor obs 133 / action 26 unchanged)",
+ "both_arms": "byte-identical: cup_grasp_l/iter_02/compute_reward.py == cup_grasp_r/iter_01/compute_reward.py",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, hypothesis A, verbatim",
+   "hypothesis": "A",
+   "md5": "e001302112459f997d000940cc401034",
+   "deterministic_check": "check_iter02.out"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "reward and critic observation changed -> fresh, seed 42"
+}

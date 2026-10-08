@@ -1,0 +1,20 @@
+{
+ "track": "cup_pick_r_approach",
+ "history": [
+  "cp_r_a20 09.24 local-5090 fresh 기동 · 검증된 1단계 보상(iter_00) · PID 3749572. iter_10~12 fresh 단일보상은 감쌈을 못 만들어 정체(닫은 손으로 접근).",
+  "cp_r_a20 1단계 완료·저장(our_source/policy_zoo/cup_pick/right/approach/cup_pick_r_approach_e1800.pth). 인벨롭 0.5 이상 200 epoch 유지 조건 충족. 영상·보상 사본·params·사이드카 저장 완료."
+ ],
+ "iter": 0,
+ "round": 1,
+ "label": "cp_r_a20",
+ "status": "stopped",
+ "pid": null,
+ "awaiting": "2단계 기동 승인 대기 — iter_13(연속 보상 + 접근 중 열린 손 유지) 생성 후 our_source/policy_zoo/cup_pick/right/approach/cup_pick_r_approach_e1800.pth 가중치를 이어받아 기동",
+ "commit": "d7fb8f04",
+ "host": "local-5090",
+ "started": "2026-09-24T18:21:03",
+ "logdir": "log/rl_games/open-short/right/cup-pick/cp_r_a20",
+ "console": "/home/user/rl_ws/our_source/fj_t2r_runs/cp_r_a20.out",
+ "reward": "reward_gen/cup_pick_r_approach/iter_00/compute_reward.py",
+ "note": "09.24 좌우 2단계 계획의 1단계(파지까지) fresh. 목표 인벨롭 ≥0.5 가 200 epoch 유지. 끝나면 가중치+보상을 policy_zoo 에 분리 저장하고 같은 정책으로 2단계(연속 보상) 진행."
+}

@@ -1,0 +1,17 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획 준수(AST diff 가 improvement.md 항목 1 뿐) + 원장 PASS + 성질 검사(check_iter04.py) 통과",
+ "decided_by": "session (사용자 09.29 '1번 진행': iter_04 보상 수정·왼팔 fresh)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator (prompt.md, 가설 분할 없음)",
+   "hypothesis": null,
+   "gate": "validation_c1.json PASS",
+   "plan": "iter_03 대비 바뀐 곳: level_pre 정의 1줄, approach 가까운 부분·open_hand·pre_pose·close_at_pose·approach_orient 에 level_pre 곱 — 나머지 동일",
+   "deterministic_check": "check_iter04.py → check_iter04.out: 컵 옆 머묾 수입이 손바닥 |n_z| 0→0.8 에 단조 감소(0.371→0.257, 바닥 0.69×), 수평 행 불변. 원장 PASS: 2l 기울어진 머묾 0.296 = 수평 머묾 0.371 의 0.80×(iter_03 0.96×), 3s/2h 2.20×, 단조 0.171<0.224<0.384<1.324…"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "보상이 새 행동을 요구 + 접촉 버퍼 수정 → fresh(seed 42)",
+ "ledger_note": "t2r_aglt.py 원장 시작 행을 09.29 시작 자세(손바닥 0.08,−0.30,0.45 · 손가락 10° 아래)로 갱신, 2l 행 추가"
+}

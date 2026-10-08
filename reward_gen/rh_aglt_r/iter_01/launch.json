@@ -1,0 +1,13 @@
+{
+ "label": "aglt_r_i01",
+ "host": "local-5090",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-rh_r_aglt-lstm",
+ "python_pid": 980299,
+ "commit": "9ef620ef",
+ "reward": "iter_01 c1 (sha256 048c681e6b17)",
+ "checkpoint": null,
+ "env": "테이블 앞 대칭 시작(palm 0.08, ∓0.30, 0.45)·쉬는 팔 거울·shape 지표"
+}

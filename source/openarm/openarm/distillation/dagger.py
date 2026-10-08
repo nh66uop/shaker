@@ -1,0 +1,808 @@
+# Copyright 2025 Enactic, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""DAgger teacher→student distillation (DEXTRAH distillation.py 이식, mono 카메라 전용).
+
+teacher = state-based LSTM (privileged obs, 물체 pose 포함)
+student = vision (D435i mono 카메라 + proprio, 물체 pose 미관측)
+
+student 인코더가 실제로 보는 건 **RGB** 다 — DEXTRAH 의 a2c_* 학생망은 전부
+use_depth=False 로 RGB 를 입력받는다. depth 는 (stereo_recon 변종에서) aux 재구성
+타깃으로 쓰일 뿐이다. 그래서 RGB 증강 + env 시각 DR(visual_dr.py)이 필수다.
+이걸 빼면 student 가 고정된 단일 외형에만 맞는 정책이 된다.
+
+원본 대비 제거: stereo 분기, wandb, matplotlib 시각화.
+원본 유지: DAgger beta 혼합, student/teacher RNN hidden state 관리, DDP, aux loss,
+          RGB/depth 증강 (img_aug_type 으로 분기).
+
+env 계약 (cfg.distillation=True 일 때 obs dict):
+    "policy"        student obs  (proprio + goal + action + fabric)
+    "expert_policy" teacher obs  (+ 물체 privileged state)
+    "img"           depth  (N,1,H,W)
+    "rgb"           rgb    (N,3,H,W)
+    "aux_info"      dict — aux head 지도 대상 (object_pos 등)
+    "mask"          depth 무효 픽셀 마스크 (N,1,H,W)
+"""
+
+from __future__ import annotations
+
+import os
+from typing import Any
+
+import numpy as np
+import torch
+import torch.distributed as dist
+import torchvision.utils as vutils
+import warp as wp
+import yaml
+from rl_games.algos_torch import torch_ext
+from rl_games.algos_torch.model_builder import ModelBuilder
+from rl_games.algos_torch.running_mean_std import RunningMeanStd
+from tensorboardX import SummaryWriter
+from torch.nn.parallel import DistributedDataParallel as DDP
+
+from openarm.distillation.depth_augs import DepthAug
+from openarm.distillation.rgb_augs import RgbAug
+
+# DAgger 스케줄 (DEXTRAH 원본 상수)
+DEFAULT_NUM_ITERS = 100_000
+BACKBONE_FREEZE_ITERS = 5_000   # 초반엔 인코더 동결 (헤드만 학습)
+CKPT_INTERVAL = 5_000
+GRAD_CLIP_NORM = 1.0
+LEARNING_RATE = 1e-4
+GAMES_TO_TRACK = 100
+PALM_ACTION_DIMS = 6   # action[0:6]=palm(arm), [6:]=hand(finger/abduction). 양 로봇 공통.
+
+
+def l2(model: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    return torch.norm(model - target, p=2, dim=-1)
+
+
+def weighted_l2(
+    model: torch.Tensor, target: torch.Tensor, weights: torch.Tensor
+) -> torch.Tensor:
+    return torch.sum((model - target) * (weights * (model - target)), dim=-1) ** 0.5
+
+
+def adjust_state_dict_keys(
+    checkpoint_state_dict: dict, model_state_dict: dict
+) -> dict:
+    """torch.compile 흔적(_orig_mod)을 넣거나 빼서 체크포인트 키를 모델에 맞춘다."""
+    adjusted = {}
+    for key, value in checkpoint_state_dict.items():
+        if key in model_state_dict:
+            adjusted[key] = value
+            continue
+
+        parts = key.split(".")
+        parts.insert(2, "_orig_mod")
+        key_with_orig_mod = ".".join(parts)
+        key_without_orig_mod = key.replace("_orig_mod.", "")
+
+        if key_with_orig_mod in model_state_dict:
+            adjusted[key_with_orig_mod] = value
+        elif key_without_orig_mod in model_state_dict:
+            adjusted[key_without_orig_mod] = value
+        else:
+            print(f"[dagger] 매칭 실패한 체크포인트 키: {key}")
+            adjusted[key] = value
+    return adjusted
+
+
+class Dagger:
+    """teacher 행동을 student가 모방하도록 online 학습한다.
+
+    config = {
+        "student": {"cfg": <yaml path>, "ckpt": <path|None>, "obs_type": "policy",
+                    "data_aug": bool},
+        "teacher": {"cfg": <yaml path>, "ckpt": <path>, "obs_type": "expert_policy"},
+        "play_policy": bool,
+    }
+    """
+
+    def __init__(self, env, config: dict, summaries_dir: str, nn_dir: str):
+        # torchrun 필수: 단일 GPU도 `torchrun --nproc_per_node=1` 로 기동
+        self.world_size = int(os.environ["WORLD_SIZE"])
+        self.rank = int(os.environ["RANK"])
+        self.local_rank = int(os.environ["LOCAL_RANK"])
+        torch.cuda.set_device(self.local_rank)
+        wp.set_device(f"cuda:{self.local_rank}")
+
+        self.env = env
+        # gym.make 가 OrderEnforcing 등 wrapper 를 씌우므로 unwrapped 로 베이스
+        # DirectRLEnv 까지 벗긴다(num_envs·cfg·robot 등 직접 속성 접근용).
+        self.ov_env = env.env.unwrapped
+        self.num_envs = self.ov_env.num_envs
+        self.num_actions = self.ov_env.num_actions
+        self.device = self.local_rank
+        # ① 손가락/파지 dim 손실 가중 (PCA 시너지 오차 증폭 대응) + ② action EMA smoothing.
+        # tesollo distill cfg 에서만 켜짐 — 미설정 로봇(rh56f1 등)은 무효(weight 1.0, ema 0.0).
+        self.finger_loss_weight = float(getattr(self.ov_env.cfg, "finger_loss_weight", 1.0))
+        self.action_ema_alpha = float(getattr(self.ov_env.cfg, "action_ema_alpha", 0.0))
+        self.config = config
+
+        self.student_network_params = self._load_param_dict(config["student"]["cfg"])["params"]
+        self.teacher_network_params = self._load_param_dict(config["teacher"]["cfg"])["params"]
+        student_network = self._load_network(self.student_network_params)
+        teacher_network = self._load_network(self.teacher_network_params)
+
+        self.value_size = 1
+        student_cfg = self.student_network_params["config"]
+        self.horizon_length = student_cfg["horizon_length"]
+        self.normalize_value = student_cfg["normalize_value"]
+        self.normalize_input = student_cfg["normalize_input"]
+
+        self.student_model = student_network.build({
+            "actions_num": self.num_actions,
+            "input_shape": (self.ov_env.num_observations,),
+            "batch_size": self.num_envs,
+            "num_seqs": self.num_envs,
+            "value_size": self.value_size,
+            "normalize_value": self.normalize_value,
+            "normalize_input": self.normalize_input,
+        }).to(self.device)
+        # rank 0 의 초기 가중치로 전 rank 동기화 후 DDP 래핑
+        for param in self.student_model.parameters():
+            dist.broadcast(param.data, src=0)
+        self.student_model_ddp = DDP(
+            self.student_model,
+            device_ids=[self.local_rank],
+            find_unused_parameters=True,
+        )
+
+        self.teacher_model = teacher_network.build({
+            "actions_num": self.num_actions,
+            "input_shape": (self.ov_env.num_teacher_observations,),
+            "num_seqs": self.num_envs,
+            "value_size": self.value_size,
+            "normalize_value": self.normalize_value,
+            "normalize_input": self.normalize_input,
+        }).to(self.device)
+
+        self.optimizer = torch.optim.Adam(
+            self.student_model_ddp.parameters(), lr=LEARNING_RATE, eps=1e-8
+        )
+        self.num_iters = DEFAULT_NUM_ITERS
+
+        if config["student"]["ckpt"] is not None:
+            self._set_weights(config["student"]["ckpt"], "student")
+        if config["teacher"]["ckpt"] is None:
+            raise ValueError("teacher 체크포인트가 필요하다 (--teacher)")
+        self._set_weights(config["teacher"]["ckpt"], "teacher")
+
+        self.student_obs_type = config["student"]["obs_type"]
+        self.teacher_obs_type = config["teacher"]["obs_type"]
+
+        self.is_rnn = self.student_model.is_rnn()
+        self.is_teacher_rnn = self.teacher_model.is_rnn()
+        if self.is_rnn:
+            # BPTT 윈도우 길이. 원본 DEXTRAH 은 1(매 스텝 flush + hidden detach)이라
+            # LSTM 이 시간 credit assignment 를 못 배운다 — occlusion 전에 물체 위치를
+            # hidden 에 저장했다 나중에 꺼내 쓰는 걸 학습할 gradient 경로가 없다.
+            # config.seq_length>1 이면 hidden 을 N 스텝 유지 후 한 번에 backward →
+            # LSTM 이 시간 메모리를 학습. 에피소드 리셋은 flush 하지 않고 done env
+            # hidden 만 마스크 곱으로 0 처리(_on_done). 경계에서만 flush(distill()).
+            self.seq_length = int(student_cfg.get("seq_length", 1))
+        self.is_aux = bool(
+            getattr(self.student_model.a2c_network, "is_aux", False)
+        )
+        self.finetune_backbone = False
+
+        self.play_policy = config["play_policy"]
+        # play 시 teacher(expert) action 으로 rollout(beta=1). teacher 상한 확인·비교 렌더용.
+        self.play_teacher = bool(config.get("play_teacher", False))
+        self.frame = 0
+        self.epoch_num = 0
+        self.game_rewards = torch_ext.AverageMeter(
+            self.value_size, GAMES_TO_TRACK
+        ).to(self.device)
+        self.game_lengths = torch_ext.AverageMeter(1, GAMES_TO_TRACK).to(self.device)
+
+        if self.rank == 0:
+            self.writer = SummaryWriter(summaries_dir)
+            self.nn_dir = nn_dir
+            os.makedirs(self.nn_dir, exist_ok=True)
+
+        wp.init()
+        self.aux_coeff = self.ov_env.cfg.aux_coeff
+        self.aux_loss_names: Any = []
+
+        # 이미지 증강 — 어느 텐서를 증강할지는 student 인코더가 뭘 보느냐로 정해진다.
+        #   img_aug_type="rgb"   : 인코더 입력이 RGB (a2c_* 전부 use_depth=False)
+        #   img_aug_type="depth" : 구 a2c_with_aux_depth 처럼 depth 를 직접 입력받는 경우
+        # 엉뚱한 쪽을 증강하면 조용히 헛돈다 — 인코더가 안 보는 텐서에 노이즈를 넣게 된다.
+        self.img_aug_type = self.ov_env.cfg.img_aug_type
+        # 인코더가 보는 modality(use_depth)와 증강 대상(img_aug_type)이 어긋나면 조용히 헛돈다
+        # (안 보는 텐서에 노이즈를 넣거나, 정규화 채널수가 어긋난다) → 시작 시 즉시 실패시킨다.
+        _net_use_depth = bool(getattr(self.student_model.a2c_network, "use_depth", False))
+        if (self.img_aug_type == "depth") != _net_use_depth:
+            raise ValueError(
+                f"modality 불일치: env.img_aug_type={self.img_aug_type!r} 인데 "
+                f"student network use_depth={_net_use_depth}. "
+                "둘을 함께 맞춰라(depth ↔ True, rgb ↔ False)."
+            )
+        self.use_data_aug = config["student"]["data_aug"]
+
+        self.depth_aug = DepthAug(f"cuda:{self.local_rank}")
+        self.use_depth_aug = (
+            self.ov_env.cfg.aug_depth and self.img_aug_type == "depth"
+        )
+        self.depth_aug_cfg = self.ov_env.cfg.depth_randomization_cfg_dict
+
+        self.rgb_aug = None
+        if self.use_data_aug and self.img_aug_type == "rgb":
+            self.rgb_aug = RgbAug(
+                device=self.device,
+                all_env_inds=self.ov_env.robot._ALL_INDICES,
+                use_stereo=False,
+                background_cfg={
+                    "dir": os.path.join(
+                        self.ov_env.cfg.texture_root, "background_imgs", "voc_resized"
+                    ),
+                    "height": self.ov_env.cfg.img_height,
+                    "width": self.ov_env.cfg.img_width,
+                    "aug_prob": 0.5,
+                },
+                color_cfg={
+                    "aug_prob": 1.0,
+                    "saturation_range": [0.5, 1.5],
+                    "contrast_range": [0.5, 1.5],
+                    "brightness_range": [0.5, 1.5],
+                    "hue_range": [-0.15, 0.15],
+                },
+                motion_blur_cfg={
+                    "aug_prob": 0.1,
+                    "kernel_sizes": [9, 11, 13, 15, 17],
+                    "angle_range": [0, 2 * np.pi],
+                    "direction_range": [-1, 1],
+                },
+            )
+
+        self._init_tensors()
+
+        # 물체별 접촉 진단(play 전용): "파지 관여(distal/middle/tip 중 하나라도 접촉)
+        # 중일 때 tip 이 닿는 비율"을 물체별로 누적. 접근 단계(무접촉)를 분모에서 빼
+        # "제대로 잡았을 때 tip sensing 되는가"를 물체별로 본다.
+        self._obj_contact = None
+        if self.play_policy:
+            n = len(self.ov_env._object_names)
+            z = lambda: torch.zeros(n, device=self.device)  # noqa: E731
+            _side_mask = torch.zeros(n, dtype=torch.bool, device=self.device)
+            _side_mask[self.ov_env.side_object_idx] = True   # cup 등 side 접근
+            self._obj_contact = {
+                "names": list(self.ov_env._object_names),
+                "tip": z(), "distal": z(), "middle": z(),
+                "engaged": z(), "total": z(),
+                # 파지 중 물체 수평 이동(테이블 위에 남아있는 통제된 파지만 — 실패로
+                # 튕겨나간 것 제외). side/top 접근별로 "제자리 파지"인지 본다.
+                "drift_sum": z(), "drift_cnt": z(),
+                "side_mask": _side_mask,
+            }
+
+    def _accumulate_obj_contact(self) -> None:
+        s = self._obj_contact
+        if s is None:
+            return
+        ov = self.ov_env
+        obj = ov.object_idx.long()                              # (N,)
+        tipc = ov.binary_contact_buf.any(dim=1)                 # (N,) any tip finger
+        distc = ov.distal_binary_contact_buf.any(dim=1)
+        midc = ov.middle_binary_contact_buf.any(dim=1)
+        engaged = (tipc | distc | midc).float()
+        ones = torch.ones_like(engaged)
+        s["tip"].scatter_add_(0, obj, tipc.float() * engaged)
+        s["distal"].scatter_add_(0, obj, distc.float() * engaged)
+        s["middle"].scatter_add_(0, obj, midc.float() * engaged)
+        s["engaged"].scatter_add_(0, obj, engaged)
+        s["total"].scatter_add_(0, obj, ones)
+        # 파지 중 수평 변위 — 물체가 테이블 위에 남아있고(±5cm z, 실패로 튕김/리프트 제외)
+        # settle 이후인 env 만. = "제자리에서 잡는가 vs 밀며 잡는가".
+        drift_xy = (ov.object_pos[:, :2] - ov.object_init_pos[:, :2]).norm(dim=-1)
+        on_table = (ov.object_pos[:, 2] - ov.object_init_pos[:, 2]).abs() < 0.05
+        past_settle = ov.episode_length_buf >= int(ov.cfg.settle_steps)
+        gate = (on_table & past_settle).float()
+        s["drift_sum"].scatter_add_(0, obj, drift_xy * gate)
+        s["drift_cnt"].scatter_add_(0, obj, gate)
+
+    def _dump_obj_contact(self) -> None:
+        s = self._obj_contact
+        if s is None:
+            return
+        eng = s["engaged"].clamp_min(1.0)
+        tot = s["total"].clamp_min(1.0)
+        tip = (s["tip"] / eng).cpu().tolist()
+        distal = (s["distal"] / eng).cpu().tolist()
+        middle = (s["middle"] / eng).cpu().tolist()
+        engc = s["engaged"].cpu().tolist()
+        engagement = (s["engaged"] / tot).cpu().tolist()
+        rows = sorted(
+            zip(s["names"], tip, distal, middle, engagement, engc),
+            key=lambda r: r[1],
+        )
+        print("===== PER-OBJECT CONTACT (engaged 중 tip/distal/middle 접촉률) =====")
+        print("  물체            tip   distal middle | engage(관여율) n_eng")
+        for name, t, d, m, e, c in rows:
+            if c < 5:
+                continue
+            print(
+                f"  {name:14s} {t:.2f}  {d:.2f}   {m:.2f}   |  {e:.2f}       {int(c)}"
+            )
+        _eng_arr = s["engaged"]
+        _tw = float((_eng_arr * torch.tensor(tip, device=self.device)).sum()
+                    / _eng_arr.sum().clamp_min(1.0))
+        print(f"  OVERALL engaged 중 tip 접촉률 = {_tw:.3f}")
+
+        # ── 파지 중 물체 수평 변위 (테이블 위 통제 파지만) ──
+        dcnt = s["drift_cnt"]
+        davg = (s["drift_sum"] / dcnt.clamp_min(1.0))
+        side_mask = s["side_mask"]
+        drows = sorted(
+            [(nm, float(davg[i]), int(dcnt[i]), bool(side_mask[i]))
+             for i, nm in enumerate(s["names"]) if float(dcnt[i]) >= 20],
+            key=lambda r: -r[1],
+        )
+        print("===== PER-OBJECT 파지 중 수평변위(m, 테이블 위만) — 큰 순 =====")
+        print("  물체            drift  approach  n")
+        for nm, dv, c, sd in drows[:20]:
+            print(f"  {nm:14s} {dv:.3f}  {'side' if sd else 'top':4s}     {c}")
+        # side vs top 종합
+        for _tag, _m in (("top", ~side_mask), ("side", side_mask)):
+            _c = dcnt[_m].sum().clamp_min(1.0)
+            _w = float((s['drift_sum'][_m]).sum() / _c)
+            print(f"  OVERALL {_tag:4s} 파지 중 수평변위 = {_w:.3f} m (n={int(dcnt[_m].sum())})")
+
+    def _init_tensors(self) -> None:
+        # neglogp 계산이 요구하는 더미 (값 자체는 쓰지 않음)
+        self.prev_actions_student = torch.zeros(
+            (self.num_envs, self.num_actions), dtype=torch.float32, device=self.device
+        )
+        self.prev_actions_teacher = torch.zeros(
+            (self.num_envs, self.num_actions), dtype=torch.float32, device=self.device
+        )
+        self.current_rewards = torch.zeros(
+            (self.num_envs, self.value_size), dtype=torch.float32, device=self.device
+        )
+        self.current_lengths = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self.dones = torch.ones(
+            (self.num_envs,), dtype=torch.uint8, device=self.device
+        )
+        self.actions_teacher = torch.zeros(
+            (self.num_envs, self.num_actions), dtype=torch.float32, device=self.device
+        )
+        # ② action EMA smoothing 버퍼 (action_ema_alpha>0 일 때만 사용).
+        self.action_ema = torch.zeros(
+            (self.num_envs, self.num_actions), dtype=torch.float32, device=self.device
+        )
+        # ① 손가락/파지 dim 손실 가중 벡터: palm(0:6)=1, hand(6:)=finger_loss_weight.
+        self._action_dim_weight = torch.ones(
+            self.num_actions, dtype=torch.float32, device=self.device
+        )
+        self._action_dim_weight[PALM_ACTION_DIMS:] = self.finger_loss_weight
+
+        if self.is_rnn:
+            self.student_hidden_states = [
+                s.to(self.device)
+                for s in self.student_model.get_default_rnn_state()
+            ]
+            self.hidden_state_means = [
+                RunningMeanStd((s.shape[0], s.shape[-1])).to(
+                    device=self.device, dtype=s.dtype
+                )
+                for s in self.student_hidden_states
+            ]
+
+        if self.is_teacher_rnn:
+            self.teacher_hidden_states = [
+                s.to(self.device)
+                for s in self.teacher_model.get_default_rnn_state()
+            ]
+
+    # ------------------------------------------------------------------
+    # 학습 루프
+    # ------------------------------------------------------------------
+    def distill(self) -> None:
+        self.student_model.train()
+        self.teacher_model.eval()
+
+        obs = self.env.reset()[0]
+        log_counter = 0
+        total_loss = 0.0
+        self.optimizer.zero_grad()
+
+        while log_counter < self.num_iters:
+            # beta = teacher action으로 rollout할 확률. 원본은 0 고정 (student on-policy
+            # rollout + teacher 지도 = DAgger). play 시엔 student만 스텝.
+            beta = 0.0
+            if self.play_policy:
+                self.optimizer.param_groups[0]["lr"] = 0.0
+                if self.play_teacher:
+                    beta = 1.0   # 전 env teacher action 으로 스텝(상한 비교 렌더)
+            self.finetune_backbone = log_counter >= BACKBONE_FREEZE_ITERS
+
+            if self.use_depth_aug:
+                obs["img"] = self._augment_depth(obs["img"])
+                obs["img"][obs["img"] > self.ov_env.cfg.d_max] = 0.0
+                obs["img"][obs["img"] < self.ov_env.cfg.d_min] = 0.0
+
+            if self.rgb_aug is not None:
+                # mask = 배경(depth 밴드 초과) 픽셀 → 배경만 VOC 이미지로 교체
+                obs["rgb"] = self.rgb_aug.apply(obs["rgb"], obs["mask"])
+
+            # 학습·play 모두 fp32(autocast off). 이유:
+            #  1) bf16 이 sigma 를 음수/near-zero 로 반올림해 Normal.sample(std>=0) 크래시.
+            #  2) 윈도우 BPTT 의 bf16 backward 가 overflow→inf grad→nan 파라미터→발산.
+            # 무거운 CNN(resnet)은 인코더 내부에서 자체 bf16 을 쓰고 동결·detach 라
+            # 그래프에 안 남으므로, fp32 전환 비용은 작은 LSTM/MLP 뿐이다.
+            import contextlib as _ctx
+            _amp = _ctx.nullcontext()
+            with _amp:
+                with torch.no_grad():
+                    actions_teacher = self._get_actions(obs, "teacher")
+                    self.actions_teacher = actions_teacher["actions"]
+
+                actions_student = self._get_actions(obs, "student")
+                aux_loss = self._compute_aux_loss(actions_student, obs)
+
+                # teacher sigma의 역수 제곱으로 가중 — teacher가 확신하는 축을 더 강하게 모방
+                weights = (1.0 / actions_teacher["sigmas"][0]) ** 2
+                # ① 손가락/파지 dim(palm 이후) 추가 가중 — PCA 시너지 계수 오차가 여러 관절로
+                # 증폭돼 물체를 밀어내므로, 손가락 축을 더 정밀히 모방시킨다(weight 1.0=무효).
+                weights = weights * self._action_dim_weight
+                student_loss = self._loss(
+                    actions_student["mus"], actions_teacher["mus"],
+                    fn="weighted_l2", weights=weights,
+                ) + self._loss(actions_student["sigmas"], actions_teacher["sigmas"])
+                total_loss += student_loss + self.aux_coeff * sum(aux_loss)
+
+            if self.rank == 0:
+                self._log_information(log_counter, total_loss, aux_loss, beta)
+
+            log_counter += 1
+
+            if self.is_rnn:
+                if log_counter % self.seq_length == 0:
+                    total_loss = self._optimizer_step(total_loss)
+            else:
+                self.optimizer.zero_grad()
+                total_loss.backward()
+                self.optimizer.step()
+                total_loss = 0.0
+
+            stepping_actions = self._mix_actions(actions_student, actions_teacher, beta)
+            # ② action EMA smoothing — 압축(PCA) action jitter 를 완화해 물체 밀어냄↓.
+            # 실행 action 에만 적용(imitation 타깃은 raw). 배포에도 동일 적용 전제. alpha=0 무효.
+            if self.action_ema_alpha > 0.0:
+                stepping_actions = (
+                    self.action_ema_alpha * self.action_ema
+                    + (1.0 - self.action_ema_alpha) * stepping_actions
+                )
+                self.action_ema = stepping_actions.detach()
+            obs, rew, out_of_reach, timed_out, _ = self.env.step(
+                stepping_actions.detach()
+            )
+
+            self.frame += self.num_envs
+            self.current_rewards += rew.unsqueeze(-1)
+            self.current_lengths += 1
+            self.dones = out_of_reach | timed_out
+            all_done_indices = self.dones.nonzero(as_tuple=False)
+
+            if len(all_done_indices) > 0:
+                total_loss = self._on_done(total_loss, all_done_indices)
+                if self.rgb_aug is not None:
+                    self.rgb_aug.reset(all_done_indices)
+
+            self.game_rewards.update(self.current_rewards[all_done_indices])
+            self.game_lengths.update(self.current_lengths[all_done_indices])
+            not_dones = 1.0 - self.dones.float()
+            self.current_rewards = self.current_rewards * not_dones.unsqueeze(1)
+            self.current_lengths = self.current_lengths * not_dones
+            self.actions_teacher[all_done_indices] *= 0.0
+            # ② 에피소드 종료 env 는 EMA 리셋(이전 에피소드 action 오염 방지).
+            if self.action_ema_alpha > 0.0:
+                self.action_ema[all_done_indices] *= 0.0
+
+            # 물체별 접촉 진단(play): 매 스텝 누적, 600 스텝마다 테이블 덤프
+            if self.play_policy:
+                self._accumulate_obj_contact()
+                if self.rank == 0 and log_counter % 600 == 0:
+                    self._dump_obj_contact()
+
+            if not self.play_policy and self.rank == 0 and log_counter % CKPT_INTERVAL == 0:
+                self.save(
+                    os.path.join(self.nn_dir, f"grasp_student_{log_counter}_iters")
+                )
+
+    def _optimizer_step(self, total_loss):
+        # 윈도우 손실은 seq_length 스텝의 합 → 평균으로 정규화해 유효 lr 가
+        # seq_length 배로 뛰지 않게 한다(seq_length=1 안정 영역과 정합).
+        loss = total_loss / max(self.seq_length, 1)
+        loss.backward()
+        # bf16 BPTT(윈도우) backward 가 간헐적으로 grad 를 inf/nan 로 만들 수 있고,
+        # clip 은 nan norm 을 못 살린다(1/nan 스케일로 전부 nan 전파) → optimizer.step 이
+        # 파라미터를 nan 으로 오염 → 다음 forward 에서 sigma=exp(logstd)=nan → std>=0
+        # 크래시. clip 이 돌려주는 total_norm 이 비유한이면 이 스텝을 통째로 버린다.
+        total_norm = torch.nn.utils.clip_grad_norm_(
+            self.student_model.parameters(), GRAD_CLIP_NORM
+        )
+        if torch.isfinite(total_norm):
+            self.optimizer.step()
+        self.optimizer.zero_grad()
+        # 다음 스텝의 BPTT가 이미 소비한 그래프를 다시 타지 않도록 hidden 분리
+        for i, s in enumerate(self.student_hidden_states):
+            self.student_hidden_states[i] = s.detach()
+        torch.cuda.empty_cache()
+        return 0.0
+
+    def _on_done(self, total_loss, all_done_indices):
+        """에피소드 종료 env의 RNN hidden state를 0으로 리셋한다.
+
+        seq_length>1(BPTT 윈도우)에서는 여기서 optimizer flush 를 하지 않는다.
+        예전엔 done 이 하나라도 있으면 매 스텝 flush 해서, 리셋이 잦은 다중 env 에선
+        유효 BPTT 윈도우가 1 로 붕괴했다(memory 학습 불가). flush 는 distill() 의
+        경계(log_counter % seq_length == 0)에서만 한다.
+
+        done env 의 hidden 은 0 으로 만들되, 윈도우 그래프에 걸린 텐서를 in-place 로
+        건드리면 autograd 가 죽으므로 마스크 곱(새 텐서)으로 처리한다.
+        """
+        if self.is_rnn:
+            done_keep = (~self.dones.bool()).to(
+                self.student_hidden_states[0].dtype
+            ).view(1, -1, 1)                       # (1, num_envs, 1)
+            for i in range(len(self.student_hidden_states)):
+                with torch.no_grad():
+                    self.hidden_state_means[i](
+                        self.student_hidden_states[i][:, all_done_indices[0]].permute(
+                            (1, 0, 2)
+                        )
+                    )
+                # in-place 대신 마스크 곱 — 윈도우 그래프 손상 없이 done env hidden 0
+                self.student_hidden_states[i] = self.student_hidden_states[i] * done_keep
+
+        if self.is_teacher_rnn:
+            for s in self.teacher_hidden_states:
+                s[:, all_done_indices, ...] *= 0.0
+
+        return total_loss
+
+    def _mix_actions(self, actions_student, actions_teacher, beta: float):
+        """DAgger 혼합: env별로 beta 확률만큼 teacher action으로 스텝."""
+        p = torch.rand(self.num_envs, device=self.device)
+        stepping_actions = torch.zeros_like(actions_student["actions"])
+        student_inds = p > beta
+        teacher_inds = ~student_inds
+        if torch.any(student_inds):
+            stepping_actions[student_inds] = actions_student["actions"][student_inds]
+        if torch.any(teacher_inds):
+            stepping_actions[teacher_inds] = actions_teacher["actions"][teacher_inds]
+        return stepping_actions
+
+    def _compute_aux_loss(self, actions_student, obs) -> list:
+        """aux head(object_pos 등) 지도 손실. aux 미사용 네트워크면 [0.]."""
+        if not self.is_aux or actions_student["aux"] is None:
+            return [0.0]
+
+        aux_out = actions_student["aux"]
+        aux_gt = obs["aux_info"]
+        self.aux_loss_names = list(aux_out.keys())
+
+        aux_loss = []
+        for name in self.aux_loss_names:
+            if "img" in name:
+                if "depth" in name:
+                    d_min, d_max = self.ov_env.cfg.d_min, self.ov_env.cfg.d_max
+                    aux_out[name] = aux_out[name] * (d_max - d_min) + d_min
+                aux_loss.append(
+                    torch.mean(
+                        torch.norm(aux_out[name] - aux_gt[name], p=2, dim=(1, 2, 3))
+                    )
+                )
+                if self.rank == 0:
+                    self._log_img(aux_out[name][:5], aux_gt[name][:5])
+            elif "uv" in name:
+                uv_mask = ((aux_out[name] >= 0) & (aux_out[name] <= 1)).all(dim=-1)
+                aux_loss.append(
+                    self._loss(
+                        aux_out[name][uv_mask],
+                        aux_gt[name][uv_mask].reshape(len(uv_mask), -1),
+                    )
+                )
+            else:
+                aux_loss.append(
+                    self._loss(
+                        aux_out[name], aux_gt[name].reshape(self.num_envs, -1)
+                    )
+                )
+        return aux_loss
+
+    def _get_actions(self, obs: dict, policy_type: str) -> dict:
+        aux = None
+        if policy_type == "student":
+            batch_dict = {
+                "is_train": True,
+                "obs": obs[self.student_obs_type],
+                "prev_actions": self.prev_actions_student,
+                "img": obs["img"],
+                "rgb": obs["rgb"],
+                "rgb_data": obs["rgb"],
+                "finetune_backbone": self.finetune_backbone,
+            }
+            if self.is_rnn:
+                batch_dict["rnn_states"] = self.student_hidden_states
+                batch_dict["seq_length"] = 1
+                batch_dict["rnn_masks"] = None
+            res_dict = self.student_model_ddp(batch_dict)
+            if self.is_rnn:
+                # aux 네트워크는 rnn_states 슬롯에 (states, aux) 튜플을 싣는다
+                if self.is_aux:
+                    self.student_hidden_states = list(res_dict["rnn_states"][0])
+                else:
+                    self.student_hidden_states = list(res_dict["rnn_states"])
+            if self.is_aux:
+                aux = res_dict["rnn_states"][1]
+        else:
+            batch_dict = {
+                "is_train": False,
+                "obs": obs[self.teacher_obs_type],
+                "prev_actions": self.prev_actions_teacher,
+            }
+            if self.is_teacher_rnn:
+                batch_dict["rnn_states"] = self.teacher_hidden_states
+                batch_dict["seq_length"] = 1
+                batch_dict["rnn_masks"] = None
+            # teacher 는 is_train=False 라 모델 내부(rl_games models.py)에서 직접
+            # distr.sample() 을 호출한다 — bf16 autocast 가 teacher sigma 를 음수로
+            # 반올림하면 거기서 죽는다(dagger 의 clamp 는 반환 후라 못 막음). teacher
+            # forward 만 fp32 로 돌려 방지(LSTM 뿐이라 저렴). play 렌더 fix 와 동일.
+            with torch.autocast(device_type="cuda", enabled=False):
+                res_dict = self.teacher_model(batch_dict)
+            if self.is_teacher_rnn:
+                self.teacher_hidden_states = res_dict["rnn_states"]
+
+        mus, sigmas = res_dict["mus"], res_dict["sigmas"]
+        # bf16 autocast 가 near-zero sigma 를 음수로 반올림하면 Normal.sample 이
+        # RuntimeError(std>=0)로 죽는다(play 렌더에서 이미 관측, autocast on 학습에서도
+        # frozen-CNN+윈도우로 rollout 상태가 달라지면 재현). sampling 시 양수 바닥으로
+        # clamp — 정상 sigma(~0.1~1)엔 무해하고 loss 에 쓰는 sigmas 원본은 유지한다.
+        distr = torch.distributions.Normal(
+            mus, sigmas.clamp_min(1e-4), validate_args=False
+        )
+        selected_action = torch.clamp(distr.sample().squeeze(), -1.0, 1.0)
+
+        return {"mus": mus, "sigmas": sigmas, "actions": selected_action, "aux": aux}
+
+    def _augment_depth(self, depth_nchw: torch.Tensor) -> torch.Tensor:
+        """D435i 스테레오 깊이 노이즈 모사 (상관노이즈·정규노이즈·dropout·스틱)."""
+        depth_nhw = depth_nchw[:, 0]
+        depths = torch.clone(depth_nhw)
+        self.depth_aug.add_correlated_noise(
+            depth_nhw, depths, **self.depth_aug_cfg["correlated_noise"]
+        )
+        self.depth_aug.add_normal_noise(depths, **self.depth_aug_cfg["normal_noise"])
+        self.depth_aug.add_pixel_dropout_and_randu(
+            depths, **self.depth_aug_cfg["pixel_dropout_and_randu"]
+        )
+        self.depth_aug.add_sticks(depths, **self.depth_aug_cfg["sticks"])
+        return depths.unsqueeze(1)
+
+    def _loss(self, student_result, target_result, fn="l2", weights=None):
+        if fn == "l2":
+            loss = l2(student_result, target_result)
+        else:
+            loss = weighted_l2(student_result, target_result, weights)
+        losses, _ = torch_ext.apply_masks([loss.unsqueeze(1)], None)
+        return losses[0]
+
+    # ------------------------------------------------------------------
+    # 로깅 / 체크포인트
+    # ------------------------------------------------------------------
+    def _log_information(self, log_counter, total_loss, aux_loss, beta) -> None:
+        student_loss = total_loss - self.aux_coeff * sum(aux_loss)
+        perf = self.ov_env.in_success_region.float().mean().cpu().numpy()
+
+        # 접촉 분포 진단: tip vs distal vs middle 접촉률. envelope grip 이 tip 센서까지
+        # 닿는지(=student 촉각 15D 가 teacher 에서라도 유효한지) 확인용. tip 이 낮고
+        # distal/middle 만 높으면 촉각 활용(A) 전에 grip 기하부터 봐야 한다.
+        ov = self.ov_env
+        tip_pf = ov.binary_contact_buf.float().mean(dim=0)          # (5,) 손가락별
+        tip_rate = float(tip_pf.mean())
+        distal_rate = float(ov.distal_binary_contact_buf.float().mean())
+        middle_rate = float(ov.middle_binary_contact_buf.float().mean())
+        self.writer.add_scalar("contact/tip", tip_rate, self.frame)
+        self.writer.add_scalar("contact/distal", distal_rate, self.frame)
+        self.writer.add_scalar("contact/middle", middle_rate, self.frame)
+
+        # 물체 수평 변위(settle 대비): teacher 가 파지 중 물체를 얼마나 이동시키는가.
+        # FP-lock 이 깨지는 정도 = tactile 이 보완해야 할 밀림량.
+        _drift = (ov.object_pos[:, :2] - ov.object_init_pos[:, :2]).norm(dim=-1)  # (N,)
+        drift_mean = float(_drift.mean())
+        drift_p90 = float(_drift.quantile(0.9))
+        drift_max = float(_drift.max())
+        drift_f1 = float((_drift > 0.01).float().mean())
+        drift_f3 = float((_drift > 0.03).float().mean())
+        self.writer.add_scalar("obj_drift/mean", drift_mean, self.frame)
+        self.writer.add_scalar("obj_drift/p90", drift_p90, self.frame)
+
+        if self.game_rewards.current_size > 0:
+            mean_rewards = self.game_rewards.get_mean()
+            self.writer.add_scalar("rewards/step", mean_rewards[0], self.frame)
+        self.writer.add_scalar("total_loss", float(total_loss), self.frame)
+        self.writer.add_scalar("imitation_loss", float(student_loss), self.frame)
+        self.writer.add_scalar("beta", beta, self.frame)
+        self.writer.add_scalar("in_success_region", perf, self.frame)
+        if self.is_aux:
+            for idx, name in enumerate(self.aux_loss_names):
+                self.writer.add_scalar(
+                    f"aux_loss_{name}", float(aux_loss[idx]), self.frame
+                )
+
+        if log_counter % 10 == 0:
+            print("=" * 10)
+            print(f"ITERATION: {log_counter}")
+            print(f"  imitation_loss: {float(student_loss):.5f}")
+            print(f"  total_loss: {float(total_loss):.5f}")
+            print(f"  in_success_region: {perf}")
+            print(
+                f"  contact tip={tip_rate:.3f} distal={distal_rate:.3f} "
+                f"middle={middle_rate:.3f} | tip_per_finger="
+                + " ".join(f"{v:.2f}" for v in tip_pf.tolist())
+            )
+            print(
+                f"  obj_drift(m) mean={drift_mean:.4f} p90={drift_p90:.4f} "
+                f"max={drift_max:.4f} | >1cm={drift_f1:.2f} >3cm={drift_f3:.2f}"
+            )
+            if self.game_rewards.current_size > 0:
+                print(f"  mean_rewards: {self.game_rewards.get_mean()}")
+                print(f"  mean_length: {self.game_lengths.get_mean()}")
+
+    def _log_img(self, pred_images, gt_images) -> None:
+        grid = vutils.make_grid(
+            torch.cat((pred_images, gt_images), dim=0),
+            nrow=pred_images.shape[0],
+            normalize=True,
+            scale_each=True,
+        )
+        self.writer.add_image("pred_vs_gt", grid, global_step=self.frame)
+
+    def _set_weights(self, ckpt: str, policy_type: str) -> None:
+        weights = torch_ext.load_checkpoint(ckpt)
+        if policy_type == "student":
+            model = self.student_model
+            weights["model"] = adjust_state_dict_keys(
+                weights["model"], model.state_dict()
+            )
+        else:
+            model = self.teacher_model
+        model.load_state_dict(weights["model"])
+        if self.normalize_input and "running_mean_std" in weights:
+            model.running_mean_std.load_state_dict(weights["running_mean_std"])
+
+    def save(self, filename: str) -> None:
+        torch_ext.save_checkpoint(filename, {
+            "model": self.student_model.state_dict(),
+            "epoch": self.epoch_num,
+            "optimizer": self.optimizer.state_dict(),
+            "frame": self.frame,
+        })
+
+    @staticmethod
+    def _load_network(params: dict):
+        return ModelBuilder().load(params)
+
+    @staticmethod
+    def _load_param_dict(cfg_path: str) -> dict:
+        with open(cfg_path) as f:
+            return yaml.safe_load(f)

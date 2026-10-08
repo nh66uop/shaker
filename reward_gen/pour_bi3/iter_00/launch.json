@@ -1,0 +1,21 @@
+{
+ "label": "t2r3_i00",
+ "track": "pour_bi3",
+ "iter": 0,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-short_b_pour_fab-lstm",
+ "commit": "2037a834",
+ "python_pid": 2350917,
+ "checkpoint": null,
+ "fresh": true,
+ "network": "LSTM 1024 (before_mlp, no concat) -> MLP [512,512], horizon 16, seq 16, minibatch 16384, sigma_init default (sigma 1.0)",
+ "env": "env.preset=i24 (obs 223 / critic 293, fill success, beads 30 mm, absolute EMA 0.25, slew 0.03, i24 boxes)",
+ "reward": "pour_bi3 iter_00 = pour_bi iter_24",
+ "note": "params/env.yaml is dumped before resolve_cfg applies the preset (shows 24 mm etc.); runtime values are i24 (preset re-applied on replay)",
+ "log": "~/logs/t2r/t2r3_i00.log",
+ "started_local": "2026-09-28T19:25:16+09:00",
+ "started": 1790591116.6895006
+}

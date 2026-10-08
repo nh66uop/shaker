@@ -1,0 +1,55 @@
+{
+ "selected": "c1",
+ "rule": "게이트 PASS + 계획 준수 + 결정론 성질 검사 PASS(H: 조준 바닥 검사 포함). 1차 생성은 사용자 지적(정밀도 게이트로 회전이 꺼질 위험)으로 중단·폐기, notes F절을 바닥+보너스 구조로 다시 써서 재생성.",
+ "decided_by": "pour_bi session; 변경 범위와 fresh 는 사용자 결정(09-27)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator (iter_02/prompt.md 재렌더본, 가설 id 없음)",
+   "hypothesis": null,
+   "gate": "ingest PASS, 성분 22개",
+   "plan": "AST diff: aim_xy·aim_h·aim_quality·AIM_FLOOR·aim_factor(변경 1), spill 20→40(변경 1의 결과 쪽 이빨), action_flip·arm_tremor·_rms(변경 2), action_reg_adr 는 포화만 남김. 추가로 로그 성분 3쌍 합침(approach_both·premature·cup_clash) — 값 불변을 G·D 수치가 iter_01 과 같음으로 확인",
+   "deterministic_check": {
+    "script": "check_iter02.py",
+    "result": "PASS",
+    "rot_income_75deg": {
+     "perfect_aim_0cm": 5.372,
+     "visited_12.3cm": 1.745,
+     "ratio": 0.32
+    },
+    "monotone_in_offset": true,
+    "rot_income_55deg": {
+     "6cm": 3.48,
+     "10cm": 2.1,
+     "14cm": 0.87
+    },
+    "profit_from_55deg_inside_latch": {
+     "+10deg": 0.62,
+     "+20deg": 1.25,
+     "+39deg": 2.44
+    },
+    "premature_charge_inside_latch": 0.0,
+    "state_income_per_step": 5.84,
+    "one_bead_pay": 30.0,
+    "spill_per_bead": -40.0,
+    "tremor_flip_charge_at_measured": {
+     "action_flip": -0.037,
+     "arm_tremor": -0.147,
+     "sum": -0.185,
+     "share_of_state_income": 0.027
+    }
+   }
+  }
+ },
+ "discarded": {
+  "first_generation": "사용자 지적 09-27 '1번은 지난 보상에서도 있던 텀, 그대로 생성하면 또 회전이 안 될 것' — 응답이 나오기 전에 중단(TaskStop), prompt 재렌더"
+ },
+ "warm_start": null,
+ "warm_start_why": "사용자 결정 fresh. iter_01 체크포인트는 옆으로 붓는 습관·왼팔 떨림을 갖고 있다(L5).",
+ "compute_reward_sha256_16": "ce59cca1da25d978",
+ "watch_first": [
+  "e400~500: 접근·첫 붓기가 iter_01 처럼 오는가(iter_01: 접근 e392, 첫 붓기 e491). 늦어지면 떨림 청구가 탐색을 누르는 것이다.",
+  "task/aim_dist(붓는 중)가 0.12 m 에서 1r(0.04 m) 쪽으로 내려가는가 — 변경 1의 직접 지표.",
+  "bead/spill 대비 bead/in_target 비율, diag/ep_amount_on_target.",
+  "diag/ctrl_arm_qd_rms_rcv 와 ctrl_flip_rate 가 iter_01(0.46, 0.49)보다 내려가는가 — 변경 2의 직접 지표."
+ ]
+}

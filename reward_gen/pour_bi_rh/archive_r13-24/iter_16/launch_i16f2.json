@@ -1,0 +1,18 @@
+{
+ "label": "t2r_rh3_i16f2",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "started": 1790152934.5180655,
+ "started_local": "2026-09-23 17:42",
+ "commit": "940ac589",
+ "run_dir": "t2r_rh3_i16f2",
+ "server_pids": [
+  1500284,
+  1500291
+ ],
+ "checkpoint": "log/rl_games/open-rh/both/pour-fab-mimic/t2r_rh3_i16f/nn/last_open-rh_b_pour_fab_mimic_ep_750_rew_1947.2612.pth",
+ "checkpoint_note": "i16f(fresh 계보) ep750 가중치 이어받기 — 옛 붓기 습관 없는 계보. 2048 → 4096 env 로 처리량 상향(fps 13.9k→17.4k, epoch 당 프레임 2배).",
+ "env_note": "warm(t2r_rh3_i16w)은 종료. 사용자 결정: fresh 로 진행."
+}

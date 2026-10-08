@@ -1,0 +1,8 @@
+손바닥 0 N 에서 항 = 0 (iter_01 과 같음): True
+높이에 대해 단조 비감소(3 N): True
+손바닥 힘에 대해 단조 증가(0~3 N)·3 N 이상 상한: True True
+테이블 위(h=0) 지급: 0.0
+t2r3_i01b ep3500   src: palm_lift 평균 +0.000 (t300~, 스텝당)
+t2r3_i01b ep3500   rcv: palm_lift 평균 +0.818 (t300~, 스텝당)
+i24 best           src: palm_lift 평균 +1.380 (t300~, 스텝당)
+i24 best           rcv: palm_lift 평균 +0.821 (t300~, 스텝당)

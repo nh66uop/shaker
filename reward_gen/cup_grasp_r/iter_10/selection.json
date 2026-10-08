@@ -1,0 +1,11 @@
+{
+  "selected": "c1",
+  "rule": "gate PASS + plan compliance (diff vs iter_14 limited to palm_level on grasp/hold/transport incomes + diagnostic component) + deterministic check (new L24a/b/c; iter_14 checks L12/L13a/L19-L23/L10b kept) with only lineage failures left",
+  "decided_by": "main session (user 09-29: '감싸진 위치를 좀더 아래로', '14를 앞으로의 기준으로, 왼손/오른손 둘다 학습', choice '둘 다 iter_15')",
+  "candidates": {
+    "c1": {"source": "kuku-reward-generator prompt.md, Hypothesis A", "hypothesis": "A", "gate": "PASS", "plan": "PASS",
+           "deterministic_check": "check_iter15_c1.out: L24a PASS (level vs +5.6 cm wrap: table 1.50x, lifted 1.33x; iter_14 1.00x), L24b PASS (monotone slide down), L24c PASS (high wrap lift 3 cm +1.99 over table), L19-L23/L12/L13a/L10b PASS; fails L10/L11b/L11c/L15 as the lineage"}
+  },
+  "warm_start": null,
+  "warm_start_why": "fresh, seed 42 (iter_14 entropy 4.4: warm start would carry the collapsed exploration); agent bounds_loss_coef 0.005 in the launcher"
+}

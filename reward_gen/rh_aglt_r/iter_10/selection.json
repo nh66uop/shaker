@@ -1,0 +1,16 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획 준수(improvement.md 한 항목: 네 손가락 바깥 벽) + 원장 PASS(손가락 행 포함) + 궤적 원장 PASS",
+ "decided_by": "session (사용자 10.01 '약지·새끼 팁이라도 닿았으면' + '붓기 트랙 왼손 인벨롭 토대로 iter 개선, 왼손 arm5080·오른손 arm4090')",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator (prompt.md)",
+   "hypothesis": null,
+   "gate": "validation_c1.json PASS",
+   "plan": "iter_09 대비: 네 손가락 끝 바깥 벽 가까움(높이 창 −0.7~0.8 × 입구, 입구 안 제외, 제곱 평균) 항 finger_wall 0.10(파지 자리·수평·엄지 위·직립 게이트, 쥔 동안도) + 파지 뒤 4항 post_f × (0.8 + 0.2 s³), s = 네 손가락 바깥 접촉 tanh(F/0.7) 평균. 진단 성분 finger_factor(합산 제외). 다른 줄 변경 없음",
+   "deterministic_check": "원장 PASS: 세 손가락 6F3 0.668× 네 손가락 · 약지·새끼 끝 0.5 N 6F4t 1.234× · 새끼 끝 1.8→1.45 r 0.662→0.667 · 서툰 첫 파지 2.51× 머묾 · 관절 한계 행 그대로. 궤적 원장 PASS: good_mirror 2.537(iter_09 2.590, −2 %) · 우 i09 ep6000(세 손가락) 2.948(iter_09 3.558, −17 %) · 좌 i09 ep3000 2.438(2.880, −15 %) · 나쁜 궤적 0.117~0.138"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "보상이 새 행동(약지·새끼 닫기, 지금 명령 0)을 요구 → fresh(seed 42), 2단계 ①(지연 0)"
+}

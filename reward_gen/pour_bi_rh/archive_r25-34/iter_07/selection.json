@@ -1,0 +1,42 @@
+{
+ "selected": "c1r",
+ "rule": "ingest PASS + 계획(notes_iter07 1~4) 준수 + check_iter07 PASS, 단 [25] 예외 1건(아래)",
+ "decided_by": "session 146751a7. 기동은 사용자 '일단 수정 필요'(iter_07 제안에 대한 답)로 교체 진행",
+ "exception": "[25] 재생 자세(iter_06 ep950 왼손 t=60~100) 닫힘 0.7 에서 +0.279 (기준 0.3). 분해: opp 0.94·d_oth 0.6 cm 는 만족, 엄지 끝이 컵 origin 위 +4.7 cm(잡는 높이 대역 0~2.7 cm 밖)·벽에서 2.3 cm 라 tip_w 0.58. 엄지도 대역 안으로 내린 [25b] 는 +0.424 (iter_06 +0.166). 엄지 높이 조건을 풀면 엄지를 입구에 걸친 닫기에 지급하게 되므로 보상은 그대로 둔다",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator, 원문 그대로",
+   "deterministic_check": "FAIL [16] src 3cm +0.30(경계), [25] +0.216",
+   "sha256_8": "fb7a93c9"
+  },
+  "c1r": {
+   "source": "kuku-reward-generator 재시도(prompt_c1_repair.md), 원문 그대로",
+   "plan": "iter_06 대비: 파지 전 흘림 0(쥔 뒤 40 유지), close = 대향 x 손끝-벽(먼 쪽 기준 1.5r) x 잡는 점(3r) 조건에서 닫힘 비례·pinch 우대 W_CLOSE 1.0, palm_inside_* 비용 0.3, W_LIFT 5.5",
+   "deterministic_check": {
+    "result": "[25] 외 PASS",
+    "key": {
+     "25_close_04_07": [
+      0.137,
+      0.279
+     ],
+     "25b_thumb_ok_07": 0.424,
+     "16_src_table_3_8": [
+      10.2,
+      11.0,
+      11.37
+     ],
+     "26_pushed_in_gap": 0.856,
+     "27_prespill_5beads": 0.0,
+     "24_start": [
+      0.076,
+      0.061
+     ]
+    },
+    "stage_ledger": "0→10 단계 전부 증가(골 없음): 0.97,1.40,3.55,4.19,5.56,9.83,12.27,14.03,14.66,15.24,15.78..18.76,49.01"
+   },
+   "sha256_8": "ba402aea"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "보상 변경 — fresh"
+}

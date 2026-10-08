@@ -1,0 +1,377 @@
+## 1. What the task means, and the stages the robot must go through
+
+The policy starts from **random weights** and has to learn the whole chain in one reward. Nothing about the
+environment's own `approach_done` / `envelope_done` templates may be used, no cylinder parameters
+(`cup_radius`, `cup_axis`, `cup_half_height`) and no world-frame direction constant, so every geometric
+quantity has to come from the object's measured surface (`palm_surface_dist/dir/normal`,
+`link_surface_dist/dir/normal`), the contact forces, the object pose/velocity and the goal. The same file
+must work for the mirrored right arm and for any object shape.
+
+The chain, with the income the reward puts on each link:
+
+1. **Travel to the object.** The palm is 0.15-0.49 m away and the object is somewhere in a 30 x 30 cm patch.
+   Only `palm_surface_dist` plus a facing test (`palm_normal` against `palm_surface_dir` and against
+   `palm_surface_normal`) can say "closer and facing it". Ceiling ~0.6 together with the closing shaping,
+   and it fades to zero once the object is really held, so it can never become a place to park.
+2. **Close the hand onto the object.** Measured joint flexion (`hand_q_norm` against `hand_default_q_norm`)
+   multiplied by how near that digit's links are to the real surface, multiplied by whether the palm is
+   seated. A straight finger lying along the object earns nothing (flexion 0); a curled finger in the air
+   earns nothing (nearness 0). This proximity credit is capped well below what one real contact pays - six
+   rounds of this track died on exactly that plateau.
+3. **Keep a real, opposed, multi-digit grasp.** Ceiling 1.2: a rank ladder over the sorted per-digit contact
+   (two digits 0.18, three 0.42, four 0.80, five 1.00), a per-digit mean in which every digit is weighted
+   alike, palm contact that only counts together with digits, and opposition computed from the surface
+   normals at the touching links (thumb against fingers, palm against fingers). Every contact term is scaled
+   by contact quality `cq`, so a fingertip poke with the palm off the object collects 15 %.
+4. **Lift, upright.** Ceiling 1.0, capped at the height the goal itself needs
+   (`goal_pos[:,2] - cup_spawn_pos[:,2]`) and multiplied by horizontal closeness to the goal, so hovering at
+   the right height in the wrong place earns almost nothing. Uprightness from `cup_tilt` multiplies it.
+5. **Transport.** Ceiling 2.5: a constant-slope ramp on `goal_dist` over the whole 0-0.30 m range plus a fine
+   ramp, and a signed term on the rate at which `goal_dist` falls (the closing speed towards the goal), so
+   moving in pays before arriving and drifting out costs the same.
+6. **Arrest at the goal and defend it.** The dominant income, 10 per step, gated on a real hold (palm plus
+   several opposing digits, entering twice), multiplied by uprightness, by a tolerance-scaled nearness that
+   already pays a large fraction at about two tolerances, by stillness with a floor (the environment pushes
+   the object there, so holding station must stay profitable) and by a dwell factor that grows the longer the
+   object stays, so settling beats arriving.
+7. **Succeed, then do it again.** A large bonus for the FIRST success only; later successes decay to almost
+   nothing, because the episode counts up to five and the income for staying must come from the hold term.
+
+Everything that undoes progress is priced above the income it would replace: dropping a lifted object (6.0),
+setting it back on the table (3.0), parking a closed grasp on the table (grows with `episode_progress`),
+lowering a held object below goal height, squeezing beyond what a hold needs, pushing the palm or the fingers
+into the table, and small penalties on fast arm and object motion that can never make standing still better
+than carrying.
+
+### What was missed or wrong in the previous round, and what this round changes
+
+- **The hold term never reached the policy** (0.215 out of 10.0, goal distance flat at 0.167 m while the
+  tolerance was 0.047 m). The fine ramp was 0.04 m wide, so at 3.5 tolerances the landscape was flat. Fixed by
+  scaling the paying region to `success_tol` itself: `exp(-goal_dist / 4*success_tol)` pays 0.61 at two
+  tolerances and keeps a gradient wherever the curriculum currently is, with a fixed fine ramp added for the
+  last centimetres.
+- **Settling was never distinguished from arriving.** Added a dwell factor built from `episode_progress`
+  (which restarts after every success, so at the goal it measures how long the object has been there) on top
+  of the stillness factor.
+- **Successes were cheap and ended the episode.** The bonus is now large only for the first success of an
+  episode, decayed by `num_successes`; later arrivals pay 2.0 and the standing income comes from the hold.
+- **The grasp was starved** when the grasp ceiling was cut to 0.80 (digits 0.75 to 0.55, palm 0.64 to 0.43,
+  and the drop penalty became the largest negative term). Raised to 1.2 as the feedback asked, with no
+  ring-specific term: every digit pays alike and four digits are already 0.80 of the ladder.
+- **This round starts from random weights**, so reach and close must actually carry the early gradient. They
+  are the only terms that pay before contact, they keep a long-range 0.20 m pull on `palm_surface_dist`, and
+  their zero-contact ceiling stays below what a single real contact buys, which is the one rule that finally
+  produced contact in this track.
+
+## 2. Reward function
+
+```python
+import torch
+import math
+
+
+def _soft_contact(force: torch.Tensor, scale: float = 0.15) -> torch.Tensor:
+    """0 off the object, ~0.6 at 0.1 N, ->1 above a few tenths of a newton.
+    Saturating, so solver force spikes cannot dominate and extra force buys nothing."""
+    return torch.tanh(force.clamp(min=0.0) / scale)
+
+
+def _unit(v: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
+    """Safe normalisation: a zero vector stays zero (its dot products are then 0)."""
+    return v / v.norm(dim=-1, keepdim=True).clamp(min=eps)
+
+
+def compute_reward(ctx: "RewardContext") -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    device = ctx.goal_dist.device
+    dtype = ctx.goal_dist.dtype
+
+    # =============================================================================================
+    # WEIGHTS. Object-agnostic and arm-agnostic throughout: only surface distances/normals, contact
+    # forces, object pose/velocity and the goal. No approach/envelope latch, no radius/axis/half
+    # height, no world-frame direction constant.
+    #
+    # Per-step ceilings (the budget IS the design):
+    #   reach + close    0.60   pre-contact only, x (1 - held): it vanishes once the object is held
+    #   keep the grasp   1.20   per-digit contact + count ladder + palm + opposition
+    #   lift             1.00   x uprightness x horizontal closeness to the goal, capped at goal height
+    #   transport        2.50   1.70 on goal_dist over 0-0.30 m + 0.80 on the RATE it falls (signed)
+    #   hold at rest    10.00   real hold, upright, at the goal, still, growing with dwell
+    #   first success   60.00   one-off; later successes 2.0, so staying pays, not re-arriving
+    #
+    # Steady states: hovering upright away from the goal ~1.6/step; at rest on the goal ~10-13/step.
+    # =============================================================================================
+    W_REACH = 0.35        # palm towards the surface and facing it            } 0.60 total,
+    W_CLOSE = 0.25        # measured flexion x link nearness x palm seat      } x (1 - held)
+    W_COUNT = 0.50        # digits in contact, sorted rank ladder             }
+    W_DIGIT = 0.35        # per-digit contact mean, every digit alike         } 1.20 total: enough
+    W_PALM = 0.15         # palm contact, only together with digits           } to build and keep a
+    W_OPPOSE = 0.20       # thumb/palm against the fingers (surface normals)  } grasp, not to live on
+    W_LIFT = 0.80         # height above spawn, capped at what the goal needs }
+    W_RISE = 0.20         # upward speed, only until `lifted` latches         } 1.00 total
+    W_GOAL = 1.70         # goal_dist, constant slope over the whole 0-0.30 m }
+    W_PROGRESS = 0.80     # signed rate at which goal_dist falls              } 2.50 total
+    W_HOLD = 10.0         # AT REST AT THE GOAL, upright, really held: the dominant income
+    W_SUCCESS_FIRST = 60.0  # FIRST success of an episode only (~6 steps of a perfect hold)
+    W_SUCCESS_LATER = 2.0   # later successes are cheap: staying must pay through the hold term
+
+    P_DROP = 6.00         # lifted and no longer held: on top of losing up to 10 of hold income
+    P_SETDOWN = 3.00      # back on the table after a lift: the lift income is not re-earnable
+    P_STALL = 1.00        # closed grasp parked on the table, growing with episode progress
+    P_DESCEND = 0.60      # lowering a held object BELOW goal height < keeping it still < raising it
+    P_TILT = 0.25         # small: uprightness is enforced as a MULTIPLIER, not as a penalty
+    P_SHOVE = 0.50        # shoving / tipping the object while it is still on the table
+    P_SQUEEZE = 0.50      # force beyond what a hold needs (thresholds measured in round 7)
+    P_TABLE = 0.60        # palm or finger links driven into the table top
+    P_ARM_VEL = 0.12      # smoothness; ~0.05 at the commanded ~0.3 rad/s, far below the goal income
+    P_ARM_FAST = 0.80     # only above 3 rad/s: runaway states only
+    P_CUP_VEL = 0.10      # object speed while held: 0.02 at 0.1 m/s against +0.6 of transport income,
+    P_CUP_SPIN = 0.06     #   so carrying to the goal always beats standing still
+    P_ACT_RATE = 0.02     # action jitter
+    P_ARM_ACT = 0.01      # arm action magnitude only (the fingers must be free to reach +-1)
+
+    PALM_DEAD = 0.02      # palm_surface_dist reads up to ~1 cm high at the surface (512 samples)
+    LINK_DEAD = 0.025     # link points sit inside the links: a touching link reads 1-3 cm (1.8 avg)
+    TILT_DEAD = math.radians(5.0)    # a few degrees of wobble is not a tilted carry
+    TILT_SCALE = math.radians(10.0)  # 15 deg -> x0.37, 30 deg -> x0.08 of lift/transport/hold
+    SQ_TOTAL = 40.0       # measured: a grip that holds fine paid -0.45/step at a 15 N threshold
+    SQ_LINK = 15.0
+
+    zero = torch.zeros_like(ctx.goal_dist)
+    lifted = ctx.lifted.to(dtype)
+    success = ctx.success.to(dtype)
+
+    # movable finger joints per digit (ranges <= 0.05 rad are locked; their normalisation is noise)
+    # locked = thumb_2(0), index_1(3), middle_1(7), ring_1(11), pinky_1(15), pinky_2(16)
+    digit_joint = torch.zeros((5, 19), device=device, dtype=dtype)
+    digit_joint[0, 1:3] = 1.0      # thumb_3, thumb_4
+    digit_joint[1, 4:7] = 1.0      # index_2, _3, _4
+    digit_joint[2, 8:11] = 1.0     # middle_2, _3, _4
+    digit_joint[3, 12:15] = 1.0    # ring_2, _3, _4
+    digit_joint[4, 17:19] = 1.0    # pinky_3, pinky_4
+    n_digit_joint = digit_joint.sum(-1)                                        # (5,)
+
+    # =============================================================================================
+    # CONTACT AND GRASP QUALITY
+    # =============================================================================================
+    link_c = _soft_contact(ctx.link_cup_force)                     # (N,5,3)
+    digit_touch = link_c.amax(dim=-1)                              # (N,5) does this digit touch
+    digit_links = link_c.mean(dim=-1)                              # (N,5) how many of its links do
+    palm_c = _soft_contact(ctx.palm_cup_force)                     # (N,)
+    n_touch = digit_touch.sum(dim=-1)                              # (N,) 0..5
+    finger_any = digit_touch[:, 1:].amax(dim=-1)                   # (N,) any of the four fingers
+    grip = (0.8 * n_touch / 5.0 + 0.2 * palm_c).clamp(min=0.0, max=1.0)
+
+    # ONE uprightness multiplier on every lift / transport / hold income. An additive tilt penalty
+    # does not keep the object upright; multiplying does (tilt fell 28 deg -> 5 deg when it did).
+    upright = torch.exp(-(ctx.cup_tilt - TILT_DEAD).clamp(min=0.0) / TILT_SCALE)      # (N,) in (0,1]
+
+    # ---- palm against the object's REAL surface (works for any shape, either arm) ----------------
+    palm_d = ctx.palm_surface_dist.clamp(min=0.0)
+    # facing: the palm normal points at the nearest surface point AND against the outward normal
+    # there. Both are dot products of context vectors, so nothing is tied to a world axis.
+    face = (0.5 * (ctx.palm_normal * ctx.palm_surface_dir).sum(-1)
+            - 0.5 * (ctx.palm_normal * ctx.palm_surface_normal).sum(-1)).clamp(min=0.0, max=1.0)
+    palm_near = torch.exp(-(palm_d - PALM_DEAD).clamp(min=0.0) / 0.02)
+    seat = torch.maximum(palm_near * (0.3 + 0.7 * face), palm_c)
+    # contact quality: a fingertip poke with the palm off the object is worth 15 % of a seated grasp
+    cq = 0.15 + 0.85 * seat
+
+    # ---- opposition from the surface normals at the touching links ------------------------------
+    # opposite outward normals = contacts on opposite sides of the body, whatever its shape.
+    normals = ctx.link_surface_normal                                        # (N,5,3,3)
+    thumb_n = _unit((link_c[:, 0, :].unsqueeze(-1) * normals[:, 0]).sum(dim=1))           # (N,3)
+    finger_n = _unit((link_c[:, 1:, :].unsqueeze(-1) * normals[:, 1:]).sum(dim=(1, 2)))   # (N,3)
+    thumb_opp = (-(thumb_n * finger_n).sum(-1)).clamp(min=0.0) * digit_touch[:, 0] * finger_any
+    palm_opp = ((-(ctx.palm_surface_normal * finger_n).sum(-1)).clamp(min=0.0)
+                * palm_c * finger_any)
+    opposition = (0.65 * thumb_opp + 0.35 * palm_opp).clamp(min=0.0, max=1.0)             # (N,)
+
+    # "held" = palm plus several OPPOSING digits (smooth, full at four). The floors on palm and
+    # opposition keep force/normal flicker from zeroing a real grasp when the wrench arrives.
+    digit_hold = ((n_touch - 2.0) / 2.0).clamp(min=0.0, max=1.0)
+    opp_sat = (opposition / 0.5).clamp(max=1.0)
+    held = digit_hold * (0.4 + 0.6 * palm_c) * (0.5 + 0.5 * opp_sat)                      # (N,)
+    # the 10/step asks for more than the lift does: palm and opposition enter a SECOND time, so a
+    # fingertip touch can never collect the dominant income.
+    hold_grip = held * (0.5 + 0.5 * palm_c) * (0.5 + 0.5 * opp_sat)
+
+    # =============================================================================================
+    # REACH AND CLOSE -- 0.60 total, and it FADES OUT once the object is really held.
+    # From random weights this is the only income before contact, so it keeps a long-range pull;
+    # but its zero-contact ceiling stays below what one real digit contact pays, which is the rule
+    # that finally produced contact in this track.
+    # =============================================================================================
+    fade = (1.0 - held).clamp(min=0.0, max=1.0)
+    reach_far = (1.0 - torch.tanh(palm_d / 0.20)) * (0.4 + 0.6 * face)   # 0.20 m covers 0.15-0.49 m
+    reach_near = palm_near * face                                        # the last 2 cm
+    r_reach = W_REACH * fade * (0.6 * reach_far + 0.4 * reach_near) * (0.45 + 0.55 * grip)
+
+    head_room = (1.0 - ctx.hand_default_q_norm).clamp(min=0.1)
+    rel_flex = ((ctx.hand_q_norm - ctx.hand_default_q_norm) / head_room).clamp(min=0.0, max=1.0)
+    closure = (rel_flex.unsqueeze(1) * digit_joint.unsqueeze(0)).sum(-1) / n_digit_joint   # (N,5)
+    flex = (closure / 0.5).clamp(max=1.0)        # saturates at half flexion: no crushing drive
+    link_near = torch.exp(-(ctx.link_surface_dist - LINK_DEAD).clamp(min=0.0) / 0.02)      # (N,5,3)
+    near_digit = link_near.amax(dim=-1)                                                     # (N,5)
+    # a straight finger lying along the object gets nothing (flex = 0), a curled finger in the air
+    # gets nothing (near = 0): only curling ONTO the surface with the palm seated pays.
+    r_close = W_CLOSE * fade * seat * (flex * near_digit).mean(dim=-1)
+
+    # =============================================================================================
+    # KEEP THE GRASP -- 1.20 total (raised from 0.80: at 0.80 the grasp loosened and the drop
+    # penalty became the largest negative term of the round).
+    # =============================================================================================
+    # sorted rank weights (sum 1.0): 2 digits 0.18, 3 = 0.42, 4 = 0.80, 5 = 1.00. The digits that
+    # arrive LAST carry the most, so a two-digit pinch is worth under a quarter of a real envelope.
+    rank_w = torch.tensor([0.06, 0.12, 0.24, 0.38, 0.20], device=device, dtype=dtype)
+    touch_desc, _ = torch.sort(digit_touch, dim=-1, descending=True)
+    r_count = W_COUNT * cq * (touch_desc * rank_w).sum(dim=-1)
+
+    # per-digit mean, EVERY digit weighted alike (no digit-specific term: four digits are already a
+    # full grasp on the ladder, and a fifth still adds more than the first one did)
+    digit_score = 0.6 * digit_touch + 0.4 * digit_links                                     # (N,5)
+    r_digit = W_DIGIT * cq * digit_score.mean(dim=-1)
+
+    # palm contact counts mostly together with digits, never on its own (it funded a flat open hand
+    # pressed against the object when it did)
+    r_palm = W_PALM * palm_c * (0.25 + 0.75 * (n_touch / 3.0).clamp(max=1.0))
+    r_oppose = W_OPPOSE * opposition
+
+    # =============================================================================================
+    # LIFT -- 1.00 total, x uprightness, capped at the height the goal needs, and multiplied by
+    # HORIZONTAL closeness to the goal: hovering at the right height in the wrong place earns ~0.2.
+    # =============================================================================================
+    height = (ctx.cup_pos[:, 2] - ctx.cup_spawn_pos[:, 2]).clamp(min=0.0)
+    on_table = 1.0 - torch.tanh(height / 0.02)
+    h_need = (ctx.goal_pos[:, 2] - ctx.cup_spawn_pos[:, 2]).clamp(min=0.05)   # read from the goal
+    h_eff = torch.minimum(height, h_need)        # nothing to gain from lifting past the goal
+    lift_shape = 0.5 * torch.tanh(h_eff / 0.03) + 0.5 * (h_eff / h_need)     # steep first 3 cm
+    d_xy = (ctx.cup_pos[:, :2] - ctx.goal_pos[:, :2]).norm(dim=-1)
+    goal_xy = torch.exp(-d_xy / 0.12)
+    r_lift = W_LIFT * held * upright * goal_xy * lift_shape
+    vz = ctx.cup_lin_vel[:, 2]
+    # upward speed pays only until `lifted` latches, so setting the object down and raising it again
+    # can never re-earn the lift income
+    r_rise = W_RISE * held * upright * (1.0 - lifted) * torch.tanh(vz.clamp(min=0.0) / 0.10)
+
+    # =============================================================================================
+    # TRANSPORT -- 2.50 total: 1.70 on the distance, 0.80 on the RATE at which it falls
+    # =============================================================================================
+    # a CONSTANT slope over the whole 0-0.30 m range (a narrow ramp left the landscape flat exactly
+    # where the policy sat), plus a fine ramp for the last few centimetres
+    goal_far = 1.0 - (ctx.goal_dist / 0.30).clamp(max=1.0)
+    goal_fine = torch.exp(-ctx.goal_dist / 0.06)
+    r_goal = W_GOAL * held * upright * (0.55 * goal_far + 0.45 * goal_fine)
+
+    # paying for the REDUCTION of goal_dist between steps. The function must be pure, so the rate is
+    # read from the state: the closing speed towards the goal is d(goal_dist)/dt up to the rotation
+    # part, which uprightness already handles. SIGNED, so drifting away costs what approaching pays
+    # and an out-and-back orbit nets negative (tanh is concave). Faded inside ~3 cm so that jitter at
+    # rest, and the environment's pushes, neither pay nor punish.
+    to_goal = ctx.goal_pos - ctx.cup_pos
+    closing = (ctx.cup_lin_vel * _unit(to_goal)).sum(-1)
+    approach_scale = 1.0 - torch.exp(-ctx.goal_dist / 0.03)
+    r_progress = W_PROGRESS * held * upright * approach_scale * torch.tanh(closing / 0.10)
+
+    # =============================================================================================
+    # ARREST AND DEFEND -- 10/step, the dominant income of the whole reward
+    # =============================================================================================
+    cup_speed = ctx.cup_lin_vel.norm(dim=-1)
+    spin = ctx.cup_ang_vel.norm(dim=-1)
+    # the paying region is scaled by the CURRENT tolerance, so it always covers where the curriculum
+    # is: exp(-d / 4*tol) pays 0.78 at one tolerance and 0.61 at two, and a fixed fine ramp keeps the
+    # last centimetres worth crossing as the tolerance shrinks towards 0.015 m.
+    tol_scale = (4.0 * ctx.success_tol).clamp(min=0.06)
+    near_goal = 0.65 * torch.exp(-ctx.goal_dist / tol_scale) + 0.35 * torch.exp(-ctx.goal_dist / 0.03)
+    still = torch.exp(-cup_speed / 0.05) * torch.exp(-spin / 1.5)
+    # 0.30 + 0.70*still, not `still` alone: the environment pushes and twists the object at the goal,
+    # so holding station against a push must stay profitable while drifting off loses all of it.
+    settle = 0.30 + 0.70 * still
+    # dwell: episode_progress restarts after every success, so at the goal it measures how long the
+    # object has been standing there. Settling therefore pays strictly more than arriving.
+    dwell = 0.60 + 0.40 * torch.tanh(ctx.episode_progress / 0.25)
+    r_hold = W_HOLD * hold_grip * upright * near_goal * settle * dwell
+
+    # the FIRST success of an episode is the big one; later ones decay hard, because the episode
+    # counts up to five and the income for staying must come from r_hold, not from re-arriving.
+    # The factor is the mean of the two possible conventions for num_successes (whether it already
+    # includes this step's success or not), so it decays monotonically under either one.
+    n_succ = ctx.num_successes.to(dtype)
+    n_prev = (n_succ - 1.0).clamp(min=0.0)
+    first_factor = 0.5 * (torch.exp(-n_prev / 0.35) + torch.exp(-n_succ / 0.35))
+    r_success = success * (W_SUCCESS_FIRST * first_factor + W_SUCCESS_LATER)
+
+    # =============================================================================================
+    # LOSING IT, PUTTING IT DOWN, PARKING -- each priced above the income it would replace
+    # =============================================================================================
+    p_drop = P_DROP * lifted * (1.0 - held)             # 6.0 on top of losing up to 10 of hold
+    p_setdown = P_SETDOWN * lifted * on_table           # no second lift income after a set-down
+    p_stall = P_STALL * held * on_table * ctx.episode_progress   # a closed grasp parked on the table
+    # lowering a held object costs, but only BELOW goal height, so descending onto the goal from
+    # above is not taxed: descending < still < rising.
+    descend_gate = (1.0 - height / h_need).clamp(min=0.0, max=1.0)
+    p_descend = P_DESCEND * held * descend_gate * torch.tanh((-vz).clamp(min=0.0) / 0.10)
+
+    # =============================================================================================
+    # SAFETY AND SMOOTHNESS (all small next to the stage income)
+    # =============================================================================================
+    p_tilt = P_TILT * torch.tanh(ctx.cup_tilt / (math.pi / 6.0))
+    horiz_speed = ctx.cup_lin_vel[:, :2].norm(dim=-1)
+    p_shove = P_SHOVE * on_table * 0.5 * (torch.tanh(horiz_speed / 0.05)
+                                          + torch.tanh(ctx.cup_tilt / math.radians(10.0)))
+    total_force = ctx.link_cup_force.clamp(min=0.0).sum(dim=(1, 2)) + ctx.palm_cup_force.clamp(min=0.0)
+    max_link_force = ctx.link_cup_force.clamp(min=0.0).amax(dim=-1).amax(dim=-1)
+    p_squeeze = P_SQUEEZE * 0.5 * (torch.tanh((total_force - SQ_TOTAL).clamp(min=0.0) / 30.0)
+                                   + torch.tanh((max_link_force - SQ_LINK).clamp(min=0.0) / 10.0))
+    # neither the palm nor any finger link may be driven into the table top
+    palm_pen = torch.tanh((0.005 - ctx.palm_clearance).clamp(min=0.0) / 0.01)
+    floor_pen = torch.tanh((0.002 - (ctx.hand_z_min - ctx.table_z)).clamp(min=0.0) / 0.01)
+    p_table = P_TABLE * 0.5 * (palm_pen + floor_pen)
+    p_arm_vel = P_ARM_VEL * (0.4 + 0.6 * held) * torch.tanh(ctx.arm_qd.norm(dim=-1) / 1.0)
+    p_arm_fast = P_ARM_FAST * torch.tanh((ctx.arm_qd.abs().amax(dim=-1) - 3.0).clamp(min=0.0) / 3.0)
+    # object motion while held: 0.02 at 0.1 m/s against +0.6 of transport income at the same speed,
+    # so carrying to the goal is always better than standing still
+    p_cup_vel = held * (P_CUP_VEL * torch.tanh(cup_speed / 0.5)
+                        + P_CUP_SPIN * torch.tanh(spin / 3.0))
+    act_rate = (ctx.actions - ctx.prev_actions).pow(2).mean(dim=-1)
+    p_action = (P_ACT_RATE * torch.tanh(act_rate / 0.1)
+                + P_ARM_ACT * ctx.actions[:, :7].pow(2).mean(dim=-1))
+
+    reward = (
+        r_reach + r_close
+        + r_count + r_digit + r_palm + r_oppose
+        + r_lift + r_rise
+        + r_goal + r_progress
+        + r_hold + r_success
+        - p_drop - p_setdown - p_stall - p_descend
+        - p_tilt - p_shove - p_squeeze - p_table
+        - p_arm_vel - p_arm_fast - p_cup_vel - p_action
+    ) + zero  # keeps shape (N,) even if a term ever broadcasts
+
+    components = {
+        "reach": r_reach,
+        "close": r_close,
+        "grasp_count": r_count,
+        "grasp_digit": r_digit,
+        "grasp_palm": r_palm,
+        "grasp_oppose": r_oppose,
+        "lift_height": r_lift,
+        "lift_rise": r_rise,
+        "goal_reach": r_goal,
+        "goal_progress": r_progress,
+        "goal_hold": r_hold,
+        "success_bonus": r_success,
+        "pen_drop": -p_drop,
+        "pen_setdown": -p_setdown,
+        "pen_stall": -p_stall,
+        "pen_descend": -p_descend,
+        "pen_tilt": -p_tilt,
+        "pen_shove": -p_shove,
+        "pen_squeeze": -p_squeeze,
+        "pen_table": -p_table,
+        "pen_arm_vel": -p_arm_vel,
+        "pen_arm_fast": -p_arm_fast,
+        "pen_cup_vel": -p_cup_vel,
+        "pen_action": -p_action,
+    }
+    return reward, components
+```

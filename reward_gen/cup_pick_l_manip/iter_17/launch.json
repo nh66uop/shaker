@@ -1,0 +1,14 @@
+{
+ "label": "cp_l_m17",
+ "host": "vision-3090",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "commit": "42206b01",
+ "checkpoint": "/home/usr/rl_ws/ckpt_in/cup_pick/cp_l_m16r_e1000.pth",
+ "tol_start": 0.1,
+ "reward": "iter_17 c1",
+ "started_local": "2026-09-25 23:55",
+ "python_pid": 544398,
+ "launched_by": "kuku-ai-55 main"
+}

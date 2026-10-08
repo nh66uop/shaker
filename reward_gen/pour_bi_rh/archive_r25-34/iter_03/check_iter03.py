@@ -1,0 +1,541 @@
+"""iter_03 후보의 결정론 성질 검사 (float64 CPU, 학습 불요).
+
+이번 라운드가 노린 세 가지를 그대로 잰다.
+  1. 예산 — 붓는 상태에서 회전·배달 수입이 스텝당 총수입의 절반 이상인가.
+     그리고 "두 컵 들고 가만히 있기"(주차)의 스텝당 수입이 붓기보다 확실히 낮은가.
+  2. 각도 수입 — 같은 기울기라도 방향이 반대이거나 주둥이가 창 밖이면 지불이 사라지는가.
+     기울기 0 에서 70° 로 갈 때 수입이 단조로 늘고, 목표 각을 지나쳐도 벌점이 튀지 않는가(각도 처방 금지).
+  3. 관절 여유 — 같은 기울기·같은 위치에서 팔 관절 여유만 다를 때 여유가 큰 쪽이 더 많이 받는가.
+  4. 공통 — 유한성, 상태 무보존(같은 입력 두 번 = 같은 값), N·dtype 바뀌어도 동작, 닫힌 경로 차분 합 ≤ 0.
+  6. ★되받기 — 부었다가 소스로 되받고 다시 붓는 왕복이, 같은 길이 동안 부어 놓고 유지하는 것보다
+     이득이면 안 된다(iter_00 이 이것 때문에 배달을 66 % 잃었다).
+  7. ★차단 — 다 붓고 난 뒤에는 같은 자세라도 기울임 수입이 꺼져야 한다.
+  8. ★고원 — "붓지 않고 기울인 자세만 유지"(ep3100 의 최적해)가 부어 놓고 유지보다 이득이면 안 되고,
+     격차는 2 배 이상이어야 한다.
+  9. ★방출각 — 측정상 이 컵은 약 101° 에서 비드가 나온다. 85→105° 에서 회전 수입 경사가 45→65° 경사의
+     절반 아래로 평평해지면 FAIL(iter_00 은 86° 에서 포화했다). 45→65° 경사가 없어도 FAIL(DG-5F L1).
+ 10. ★시작점 — i01 시작 상태(주둥이-입구 10~15r)에서 두 컵이 가까워질수록 수입이 올라야 한다(DG-5F L3).
+ 11. ★fresh 파지 경로 — 팔마다 멀리 → 깔때기 → 손끝이 벽 → 닫힘 → 한쪽 접촉 → 양쪽 파지 → 들기 순으로 수입이 오른다.
+ 12. ★리시버 — 소스가 쥐고 있을 때 리시버가 컵으로 가 닿고 잡으면 단계마다 더 번다(rh2_i03 리시버 이탈 방지).
+ 13. ★파지 전 흘림 — 한 번 건드려 1 알 흘리는 비용이 접근 수입 10 스텝치를 넘지 않는다(iter_01 회피 구조 방지).
+ 14. ★리시버 중심선 — 자기 컵에서 같은 거리라도 중심선 쪽(소스 쪽)이 바깥쪽보다 이득이거나 차이가 스텝당 0.05 미만이면 FAIL(i02m 왼손 이탈).
+ 15. ★원거리 접근 — 25→15→6 cm 로 다가갈 때 스텝당 수입이 구간마다 +0.05 이상, 합 +0.15 이상(cup_grasp L1).
+ 16. ★들기 사다리 — 파지한 채 테이블 < 3 cm(+0.3 이상) < 8 cm (cup_grasp L3).
+ 17. ★편 손 주차 — 벽 앞 편 손 < 한쪽 접촉 < 양쪽 접촉 (cup_grasp L2).
+     (6·7 의 ctx 는 env 의 성공 판정을 담김·흘림·받는 컵 기울기로 흉내낸다.)
+
+사용법: python3 check_iter03.py [후보.py]     기본 compute_reward_c1.py
+"""
+import math
+import sys
+import types
+
+import torch
+
+torch.set_default_dtype(torch.float64)
+BASE = "/home/user/rl_ws/hdgp/reward_gen/pour_bi_rh/"
+CAND = sys.argv[1] if len(sys.argv) > 1 else BASE + "iter_03/compute_reward_c1.py"
+R, MZ, BZ, TABLE_Z = 0.02808, 0.053885, -0.0599, 0.205   # RH56F1 shaker x0.65 (env cfg)
+DT = 1.0 / 60.0
+POUR_AZ = math.radians(68)          # K2: 소스가 부을 수 있는 방위
+N = 1024
+
+
+def load(path):
+    ns = {"RewardContext": object}
+    exec(open(path).read(), ns)
+    return ns
+
+
+NS = load(CAND)
+
+
+def reset_cache():
+    """후보가 모듈 수준 dict 캐시를 쓰면 비운다(이름 규약 `_..._CACHE` 류)."""
+    for k, v in list(NS.items()):
+        if k.startswith("_") and not k.startswith("__") and isinstance(v, dict):
+            v.clear()
+
+
+def make_ctx(ps, us, pr, ur, vs=None, ws=None, prog=0.5, margin=0.5, in_t=0.0, d_in=0.0,
+             fingers=None, grasped=True, spill=0.0, d_spill=0.0):
+    n = ps.shape[0]
+    c = types.SimpleNamespace()
+    z0, o = torch.zeros(n), torch.ones(n)
+    vs = torch.zeros(n, 3) if vs is None else vs
+    ws = torch.zeros(n, 3) if ws is None else ws
+    c.src_cup_pos, c.src_cup_up, c.rcv_cup_pos, c.rcv_cup_up = ps, us, pr, ur
+    c.src_cup_mouth_pos, c.rcv_cup_mouth_pos = ps + MZ * us, pr + MZ * ur
+    c.src_cup_lin_vel, c.rcv_cup_lin_vel = vs, torch.zeros(n, 3)
+    c.src_cup_ang_vel, c.rcv_cup_ang_vel = ws, torch.zeros(n, 3)
+    c.src_cup_tilt = torch.acos(us[:, 2].clamp(-1, 1))
+    c.rcv_cup_tilt = torch.acos(ur[:, 2].clamp(-1, 1))
+    c.cup_mouth_z, c.cup_radius, c.cup_bottom_z, c.table_z, c.num_beads = MZ, R, BZ, TABLE_Z, 20
+    ring = torch.tensor([[math.cos(a), math.sin(a), 0.0]
+                         for a in torch.linspace(0, 2 * math.pi, 6)[:5].tolist()])
+    for side, p, u in (("src", ps, us), ("rcv", pr, ur)):
+        setattr(c, f"{side}_cup_spawn_pos",
+                torch.stack([p[:, 0], p[:, 1], torch.full((n,), TABLE_Z - BZ)], -1))
+        setattr(c, f"{side}_tips_pos", p.unsqueeze(1) + 0.3 * MZ * u.unsqueeze(1) + R * ring.unsqueeze(0))
+        setattr(c, f"{side}_palm_pos", p - 1.2 * R * u)      # 손바닥은 컵 옆(축에서 한 반지름 남짓)
+        setattr(c, f"{side}_finger_force", (2.0 * torch.ones(n, 5)) if fingers is None else fingers)
+        setattr(c, f"{side}_palm_force", z0.clone())
+        setattr(c, f"{side}_hand_closure", 0.8 * o)
+        setattr(c, f"{side}_grasped", torch.full((n,), bool(grasped)))
+        setattr(c, f"{side}_arm_qd", torch.zeros(n, 7))
+        setattr(c, f"{side}_arm_qdd", torch.zeros(n, 7))
+        m = margin if torch.is_tensor(margin) else margin * torch.ones(n, 7)
+        setattr(c, f"{side}_arm_limit_margin", m.clone())
+        setattr(c, f"{side}_hand_foreign_force", z0.clone())
+    c.bead_in_target_frac = in_t * o if not torch.is_tensor(in_t) else in_t
+    c.bead_spill_frac = spill * o if not torch.is_tensor(spill) else spill
+    c.bead_in_source_frac = (1.0 - c.bead_in_target_frac - c.bead_spill_frac).clamp(min=0.0)
+    c.d_in_target = d_in * o if not torch.is_tensor(d_in) else d_in
+    c.d_spill = d_spill * o if not torch.is_tensor(d_spill) else d_spill
+    c.cup_cup_force = z0.clone()
+    c.episode_progress = prog * o if not torch.is_tensor(prog) else prog
+    c.cups_nested = torch.zeros(n, dtype=torch.bool)
+    # env 가 계산하는 성공 판정을 흉내낸다: 담김 >= 0.80 · 흘림 <= 0.25 · 받는 컵 20도 이내 ·
+    # 두 손 파지 · 포개짐 아님. (20 스텝 유지 조건은 무상태 검사라 재현하지 않는다 —
+    # 두 시나리오에 같은 기준을 적용하므로 비교는 공정하다.)
+    c.success = ((c.bead_in_target_frac >= 0.80) & (c.bead_spill_frac <= 0.25)
+                 & (c.rcv_cup_tilt <= math.radians(20.0)) & bool(grasped))
+    c.actions, c.prev_actions = torch.zeros(n, 24), torch.zeros(n, 24)
+    return c
+
+
+def run(c):
+    r, comps = NS["compute_reward"](c)
+    return r, {k: v for k, v in comps.items()}
+
+
+def pour_state(n, tilt_deg, az=POUR_AZ, lip_dxy=0.4 * R, lip_dz=2.0 * R, src_z=0.62, lean_az=None):
+    """받는 컵 입구 위에 소스 주둥이를 두고 tilt 만큼 기운 상태.
+
+    `az` 는 두 컵의 배치 방위(받는 컵에서 소스 주둥이로 가는 방향)이고,
+    `lean_az` 는 컵이 기우는 방위다. 기본은 둘이 같다(= 받는 컵 쪽으로 기움).
+    방향 검사는 배치를 그대로 두고 `lean_az` 만 돌린다.
+    """
+    ang = math.radians(tilt_deg) * torch.ones(n)
+    azt = az * torch.ones(n)
+    lat = (az if lean_az is None else lean_az) * torch.ones(n)
+    us = torch.stack([torch.sin(ang) * torch.cos(lat), torch.sin(ang) * torch.sin(lat), torch.cos(ang)], -1)
+    ur = torch.tensor([0.0, 0.0, 1.0]).repeat(n, 1)
+    pr = torch.tensor([0.40, 0.0, TABLE_Z - BZ + 0.10]).repeat(n, 1)
+    mouth_r = pr + MZ * ur
+    lip = mouth_r + torch.stack([lip_dxy * torch.cos(azt), lip_dxy * torch.sin(azt),
+                                 lip_dz * torch.ones(n)], -1)
+    ps = lip - MZ * us
+    ps[:, 2] = src_z - MZ * us[:, 2]
+    return ps, us, pr, ur
+
+
+def state_center(n, tilt_deg, gap=0.052, lean_off=0.0, az=POUR_AZ, dz=3.0 * R, src_z=0.62):
+    """컵 **중심**을 받는 컵 입구에서 gap 만큼 떨어진 곳에 고정하고 기울인다.
+
+    실제 팔은 컵 중심을 잡고 있으므로 기울이면 주둥이가 `MZ·sinθ` 만큼 휘돌아 나간다.
+    `lean_off` = 0 이면 받는 컵 쪽으로 기울이고(주둥이가 입구 위로 온다), π 면 반대쪽으로 기운다.
+    """
+    ang = math.radians(tilt_deg) * torch.ones(n)
+    u_az = torch.tensor([math.cos(az), math.sin(az)])
+    lean = az + math.pi + lean_off                       # 중심 → 입구 방향이 '받는 컵 쪽'
+    us = torch.stack([torch.sin(ang) * math.cos(lean), torch.sin(ang) * math.sin(lean), torch.cos(ang)], -1)
+    ur = torch.tensor([0.0, 0.0, 1.0]).repeat(n, 1)
+    pr = torch.tensor([0.40, 0.0, TABLE_Z - BZ + 0.10]).repeat(n, 1)
+    mouth_r = pr + MZ * ur
+    ps = mouth_r.clone()
+    ps[:, :2] += gap * u_az
+    ps[:, 2] = src_z
+    return ps, us, pr, ur
+
+
+def share(comps, keys):
+    tot = sum(float(v.mean()) for v in comps.values())
+    part = sum(float(comps[k].mean()) for k in comps if any(s in k for s in keys))
+    return part, tot
+
+
+def main() -> int:
+    ok = True
+    names = None
+
+    # --- 1. 예산: 붓는 상태 대 주차 상태 -------------------------------------------------
+    reset_cache()
+    ps, us, pr, ur = pour_state(N, 75.0)
+    c_pour = make_ctx(ps, us, pr, ur, prog=0.5, in_t=0.35, d_in=1.0 / 20.0)   # 스텝마다 한 알 들어감
+    r_pour, comps_pour = run(c_pour)
+    names = sorted(comps_pour)
+    reset_cache()
+    ps0, us0, pr0, ur0 = pour_state(N, 8.0, lip_dxy=3.0 * R, lip_dz=4.0 * R)
+    c_park = make_ctx(ps0, us0, pr0, ur0, prog=0.5, in_t=0.0, d_in=0.0)
+    r_park, comps_park = run(c_park)
+    pour_i, tot_pour = share(comps_pour, ("pour", "tilt", "deliver", "transfer", "rot", "open", "in_target"))
+    print(f"[1] 붓는 상태 스텝당 총수입 {float(r_pour.mean()):+.3f} · 회전·배달 몫 {pour_i:+.3f} "
+          f"({pour_i / tot_pour * 100 if tot_pour else float('nan'):.0f} %)")
+    print(f"    주차(두 컵 들고 정지) 스텝당 총수입 {float(r_park.mean()):+.3f}")
+    if not (pour_i > 0.5 * abs(tot_pour)):
+        print("    ✗ 회전·배달 수입이 총수입의 절반 미만")
+        ok = False
+    if not (float(r_pour.mean()) > float(r_park.mean()) + 1.0):
+        print("    ✗ 붓기가 주차보다 확실히 크지 않다")
+        ok = False
+
+    # --- 2. 각도 수입: 방향·창 조건 -------------------------------------------------------
+    rows = []
+    for deg in (0, 20, 40, 55, 70, 85, 100):
+        reset_cache()
+        ps, us, pr, ur = state_center(N, float(deg))
+        r, _ = run(make_ctx(ps, us, pr, ur, prog=0.5))
+        rows.append((deg, float(r.mean())))
+    print("[2] 기울기별 스텝당 수입(방향·창 맞음): " + " · ".join(f"{d}°:{v:+.2f}" for d, v in rows))
+    rise = [rows[i + 1][1] - rows[i][1] for i in range(len(rows) - 1)]
+    print("    구간 증분: " + " · ".join(f"{rows[i][0]}→{rows[i+1][0]}:{rise[i]:+.3f}" for i in range(len(rise))))
+    if min(rise[:4]) < -0.05:                         # 0 → 70° 구간은 사실상 단조 증가여야 한다
+        print("    ✗ 0~70° 구간에서 수입이 줄어드는 지점이 있다")
+        ok = False
+    drop_after = rows[4][1] - rows[6][1]              # 70° → 100°
+    if drop_after > 0.5 * max(1e-9, rows[4][1]):
+        print(f"    ⚠ 70°를 지나면 수입이 {drop_after:+.2f} 줄어든다(각도 상한 처방 의심)")
+
+    reset_cache()
+    ps, us, pr, ur = state_center(N, 75.0, lean_off=math.pi)    # 중심 고정, 받는 컵 반대쪽으로 기울임
+    r_wrong, _ = run(make_ctx(ps, us, pr, ur, prog=0.5))
+    reset_cache()
+    ps, us, pr, ur = state_center(N, 75.0, gap=8.0 * R)         # 두 컵이 멀다(창 밖)
+    r_far, _ = run(make_ctx(ps, us, pr, ur, prog=0.5))
+    reset_cache()
+    ps, us, pr, ur = state_center(N, 75.0)
+    r_right, _ = run(make_ctx(ps, us, pr, ur, prog=0.5))
+    print(f"    같은 75°: 방향 맞음 {float(r_right.mean()):+.3f} · 반대 방향 {float(r_wrong.mean()):+.3f} "
+          f"· 창 밖 {float(r_far.mean()):+.3f}")
+    if not (float(r_right.mean()) > float(r_wrong.mean()) + 0.2):
+        print("    ✗ 방향이 반대인데 수입이 줄지 않는다")
+        ok = False
+    if not (float(r_right.mean()) > float(r_far.mean()) + 0.2):
+        print("    ✗ 창 밖인데 수입이 줄지 않는다")
+        ok = False
+
+    # --- 3. 관절 여유 ---------------------------------------------------------------------
+    reset_cache()
+    ps, us, pr, ur = state_center(N, 70.0)
+    r_hi, _ = run(make_ctx(ps, us, pr, ur, prog=0.5, margin=0.6))
+    reset_cache()
+    m_lo = 0.6 * torch.ones(N, 7)
+    m_lo[:, 6] = 0.01            # j7 이 한계에 붙음
+    m_lo[:, 1] = 0.05            # j2 도 거의 한계
+    r_lo, _ = run(make_ctx(ps, us, pr, ur, prog=0.5, margin=m_lo))
+    d = float(r_hi.mean() - r_lo.mean())
+    print(f"[3] 같은 70° 자세에서 관절 여유 큼 {float(r_hi.mean()):+.3f} · j7 한계 {float(r_lo.mean()):+.3f} (차 {d:+.3f})")
+    if d <= 1e-6:
+        print("    ✗ 관절 여유를 구분하지 않는다(이번 라운드 요구 3 미충족)")
+        ok = False
+
+    # --- 4. 공통 성질 ---------------------------------------------------------------------
+    reset_cache()
+    ps, us, pr, ur = pour_state(64, 60.0)
+    c = make_ctx(ps, us, pr, ur, prog=0.5)
+    r1, _ = run(c)
+    r2, _ = run(c)                                    # 같은 입력 두 번
+    same = torch.allclose(r1, r2)
+    finite = bool(torch.isfinite(r1).all())
+    reset_cache()
+    ps, us, pr, ur = pour_state(7, 60.0)              # N 이 바뀌어도 동작
+    try:
+        r3, _ = run(make_ctx(ps, us, pr, ur, prog=0.5))
+        nchange = bool(torch.isfinite(r3).all())
+    except Exception as e:                            # noqa: BLE001
+        nchange, _ = False, print(f"    ✗ N 변경에서 예외: {e}")
+    print(f"[4] 유한 {finite} · 같은 입력 재현 {same} · N 변경 {nchange}")
+    if not (finite and nchange):
+        ok = False
+    if not same:
+        print("    ⚠ 같은 입력이 다른 값을 낸다(스텝 캐시가 있으면 정상일 수 있다 — 차분 항 확인 필요)")
+
+    # 닫힌 경로: 기울였다 되돌리면 차분 수입 합이 0 이하
+    reset_cache()
+    cyc = list(range(0, 76, 5)) + list(range(70, -1, -5))
+    tot = 0.0
+    for i, deg in enumerate(cyc):
+        ps, us, pr, ur = state_center(N, float(deg))
+        r, _ = run(make_ctx(ps, us, pr, ur, prog=0.3 + i * DT))
+        tot += float(r.mean())
+    base = 0.0
+    reset_cache()
+    for i in range(len(cyc)):
+        ps, us, pr, ur = state_center(N, 0.0)
+        r, _ = run(make_ctx(ps, us, pr, ur, prog=0.3 + i * DT))
+        base += float(r.mean())
+    print(f"[5] 기울였다 되돌린 닫힌 경로 합 {tot:+.2f} (같은 길이 정지 {base:+.2f})")
+    if tot > base + 2.0 * len(cyc):
+        print("    ⚠ 되돌림 펌프 의심(왕복만으로 정지보다 스텝당 2 이상 더 번다)")
+
+    # --- 6. 되받기(pour → refill → pour) 가 유지보다 이득이면 안 된다 ------------------
+    # 측정(ep1300 trace): env 의 d_in_target 은 "건너간 비드"의 단조 증분이라 되받아도 음수 지급이 없고,
+    # 다시 부어도 같은 비드에는 배달 수입이 다시 붙지 않는다. 그래서 왕복의 이득은 회전 수입뿐이다.
+    STEPS = 60
+    reset_cache()
+    cyc_total = 0.0
+    for i in range(STEPS):                              # 1차 붓기: 담김 0 → 0.9, 배달 증분 지급
+        f = (i + 1) / STEPS
+        ps, us, pr, ur = state_center(N, 95.0)
+        c = make_ctx(ps, us, pr, ur, prog=0.30 + i * DT, in_t=0.9 * f, d_in=0.9 / STEPS)
+        cyc_total += float(run(c)[0].mean())
+    for i in range(STEPS):                              # 되받기: 담김 0.9 → 0, 배달 증분 없음
+        f = 1.0 - (i + 1) / STEPS
+        ps, us, pr, ur = state_center(N, 20.0)
+        c = make_ctx(ps, us, pr, ur, prog=0.30 + (STEPS + i) * DT, in_t=0.9 * f, d_in=0.0)
+        cyc_total += float(run(c)[0].mean())
+    for i in range(STEPS):                              # 2차 붓기: 같은 비드라 배달 증분 0
+        f = (i + 1) / STEPS
+        ps, us, pr, ur = state_center(N, 95.0)
+        c = make_ctx(ps, us, pr, ur, prog=0.30 + (2 * STEPS + i) * DT, in_t=0.9 * f, d_in=0.0)
+        cyc_total += float(run(c)[0].mean())
+    reset_cache()
+    hold_total = 0.0
+    for i in range(3 * STEPS):                          # 같은 길이 동안 부어 놓고 유지(직립, 조준 유지)
+        ps, us, pr, ur = state_center(N, 8.0)
+        c = make_ctx(ps, us, pr, ur, prog=0.30 + i * DT, in_t=0.9, d_in=0.0)
+        hold_total += float(run(c)[0].mean())
+    print(f"[6] 되받아 다시 붓기 {cyc_total:+.1f} 대 부어 놓고 유지 {hold_total:+.1f} ({3 * STEPS} 스텝)")
+    if cyc_total >= hold_total:
+        print("    ✗ 되받기가 유지보다 이득이다(iter_00 의 실패 구조)")
+        ok = False
+
+    # --- 7. 다 부으면 회전 수입이 꺼지는가 -----------------------------------------------
+    # 총수입이 아니라 **회전 수입 항**을 본다(다 부은 뒤에는 유지·성공 수입이 대신 들어오는 것이 정상).
+    def rot_income(comps):
+        return sum(float(comps[k].mean()) for k in comps
+                   if k in ("pour_open", "pour_rot", "pour_rate", "posture_margin"))
+
+    reset_cache()
+    ps, us, pr, ur = state_center(N, 95.0)
+    _, c_empty = run(make_ctx(ps, us, pr, ur, prog=0.6, in_t=1.0))     # 담김 1.0 (소스가 비었다 = 다 부음)
+    reset_cache()
+    _, c_full = run(make_ctx(ps, us, pr, ur, prog=0.6, in_t=0.0))      # 담김 0 (아직 안 부음)
+    ri_e, ri_f = rot_income(c_empty), rot_income(c_full)
+    print(f"[7] 같은 95° 자세 회전 수입: 아직 안 부었을 때 {ri_f:+.3f} · 다 붓고 난 뒤 {ri_e:+.3f}")
+    if ri_e >= 0.5 * ri_f:
+        print("    ✗ 다 붓고 나서도 회전 수입이 절반 이상 남는다")
+        ok = False
+
+    # --- 8. "붓지 않고 기울인 자세만 유지" 가 이득이면 안 된다 (ep3100 에서 확인된 최적해) ---
+    reset_cache()
+    ps, us, pr, ur = state_center(N, 89.0)
+    r_tilt_only, _ = run(make_ctx(ps, us, pr, ur, prog=0.5, in_t=0.0))        # 기울이기만, 배달 0
+    reset_cache()
+    ps, us, pr, ur = state_center(N, 89.0)
+    r_pouring, _ = run(make_ctx(ps, us, pr, ur, prog=0.5, in_t=0.45, d_in=1.0 / 20.0))
+    reset_cache()
+    ps, us, pr, ur = state_center(N, 8.0)
+    r_holding, _ = run(make_ctx(ps, us, pr, ur, prog=0.5, in_t=0.9))          # 부어 놓고 유지
+    a, b, c = float(r_tilt_only.mean()), float(r_pouring.mean()), float(r_holding.mean())
+    print(f"[8] 스텝당 수입: 붓지 않고 기울이기 {a:+.2f} · 붓는 중 {b:+.2f} · 부어 놓고 유지 {c:+.2f} "
+          f"(유지/기울이기 {c / a if a else float('nan'):.2f} 배)")
+    if not (c > a and b > a):
+        print("    ✗ 붓지 않고 기울이기가 유지·붓기보다 이득이다")
+        ok = False
+    elif c < 2.0 * a:
+        print("    ⚠ 유지가 기울이기의 2 배에 못 미친다 — 기울이기 고원에 눌러앉을 위험")
+
+    # --- 9. 방출 전에 회전 수입이 포화하면 안 된다 (측정: 이 컵은 ~101도에서 방출, iter_00 은 86도에서 포화) ---
+    def rot_only(comps):
+        return sum(float(comps[k].mean()) for k in comps
+                   if any(t in k for t in ("pour_rot", "pour_open", "pour_rate", "posture_margin", "rot")))
+    vals = {}
+    for deg in (45.0, 65.0, 85.0, 105.0, 115.0):
+        reset_cache()
+        ps, us, pr, ur = state_center(N, deg)
+        _, cc = run(make_ctx(ps, us, pr, ur, prog=0.3, in_t=0.0))
+        vals[deg] = rot_only(cc)
+    print("[9] 회전 수입(잔량 1.0, 창·방향 맞음): " + " · ".join(f"{int(d)}°:{v:+.2f}" for d, v in vals.items()))
+    slope_lo = (vals[65.0] - vals[45.0]) / 20.0
+    slope_hi = (vals[105.0] - vals[85.0]) / 20.0
+    print(f"    도당 경사 45→65° {slope_lo:+.4f} · 85→105° {slope_hi:+.4f}")
+    if not (slope_hi > 0 and slope_hi >= 0.5 * slope_lo):
+        print("    ✗ 방출 영역(85→105°)에서 회전 수입이 평평해진다 — 비드가 안 나오는 각에서 포화")
+        ok = False
+    if slope_lo < 0.02:     # 20° 더 기울일 때 스텝당 +0.4 미만이면 구동이 없는 것과 같다
+        print("    ✗ 45→65° 에서 회전 경사가 도당 0.02 미만이다(DG-5F L1: 0° 부터 연속 구동이 필요)")
+        ok = False
+
+    # --- 10. 시작점(파지 단계 상태)에서 모이기·조준 경사가 살아 있는가 (DG-5F L3) ---------
+    # 측정: i01 시작 상태의 주둥이-입구 수평 거리는 p10/p50/p90 = 9.8r/12.4r/14.7r.
+    inc = {}
+    for gap_r in (14.0, 10.0, 6.0, 3.0, 1.0):
+        reset_cache()
+        ps, us, pr, ur = state_center(N, 15.0, gap=gap_r * R)
+        r_, _ = run(make_ctx(ps, us, pr, ur, prog=0.1, in_t=0.0))
+        inc[gap_r] = float(r_.mean())
+    print("[10] 시작점 거리별 스텝당 수입(15° 기울기): " + " · ".join(f"{g:.0f}r:{v:+.2f}" for g, v in inc.items()))
+    gaps = list(inc)
+    mono = all(inc[gaps[k + 1]] > inc[gaps[k]] for k in range(len(gaps) - 1))
+    if not mono:
+        print("    ✗ 두 컵이 가까워질수록 수입이 오르지 않는 구간이 있다")
+        ok = False
+    if inc[10.0] - inc[14.0] < 0.02:
+        print("    ✗ 시작 거리(10~14r)에서 모이기 경사가 사실상 0 이다")
+        ok = False
+
+    # --- 11. fresh 파지 경로: 손이 컵에 다가가 잡고 드는 동안 수입이 계단처럼 올라가야 한다 ------
+    #   (rh2_i01 은 접근 0.93 · 엄지 0 N 에서 주차했다. 단계마다 오르는지, 골짜기가 없는지 본다)
+    def hand_state(n, cup_p, cup_u, gap, closure, f_thumb, f_oth, grasped, phi=0.0):
+        """한 손의 손끝·손바닥·힘을 만든다. 엄지는 phi 방향, 나머지 네 손가락은 맞은편(phi+pi ±15도)."""
+        h = 0.25 * MZ
+        def ring(a, rr):
+            e = torch.tensor([math.cos(a), math.sin(a), 0.0])
+            return cup_p + h * cup_u + rr * e
+        rr = R + 0.0005 + gap
+        tips = [ring(phi, rr)] + [ring(phi + math.pi + da, rr) for da in (-0.26, -0.09, 0.09, 0.26)]
+        tips = torch.stack(tips, 1)                                   # (n,5,3)
+        palm = ring(phi + 0.5 * math.pi, rr + 0.03)
+        ff = torch.zeros(n, 5); ff[:, 0] = f_thumb; ff[:, 1:] = f_oth / 4.0
+        return tips, palm, ff, closure * torch.ones(n), torch.full((n,), bool(grasped))
+
+    def grasp_path_ctx(arm, gap, closure, f_t, f_o, grasped, lift, other_grasped=False, other_gap=0.20):
+        n = 256
+        ps = torch.tensor([0.382, -0.159, TABLE_Z - BZ]).repeat(n, 1)
+        pr = torch.tensor([0.378, 0.165, TABLE_Z - BZ]).repeat(n, 1)
+        up = torch.tensor([0.0, 0.0, 1.0]).repeat(n, 1)
+        if arm == "src":
+            ps = ps + torch.tensor([0.0, 0.0, lift])
+        else:
+            pr = pr + torch.tensor([0.0, 0.0, lift])
+        c = make_ctx(ps.clone(), up.clone(), pr.clone(), up.clone(), prog=0.2)
+        for side, cp in (("src", ps), ("rcv", pr)):
+            spawn = cp.clone(); spawn[:, 2] = TABLE_Z - BZ
+            setattr(c, f"{side}_cup_spawn_pos", spawn)
+            if side == arm:
+                t, pa, ff, cl, gr = hand_state(n, cp, up, gap, closure, f_t, f_o, grasped)
+            else:
+                og = other_grasped
+                t, pa, ff, cl, gr = hand_state(n, cp, up, 0.0 if og else other_gap, 0.8 if og else 0.0,
+                                               1.5 if og else 0.0, 1.5 if og else 0.0, og)
+            setattr(c, f"{side}_tips_pos", t); setattr(c, f"{side}_palm_pos", pa)
+            setattr(c, f"{side}_finger_force", ff); setattr(c, f"{side}_hand_closure", cl)
+            setattr(c, f"{side}_grasped", gr)
+            setattr(c, f"{side}_palm_force", torch.zeros(n))
+        return c
+
+    path = [("멀리(20cm)", 0.20, 0.0, 0.0, 0.0, False, 0.0),
+            ("깔때기(6cm)", 0.06, 0.0, 0.0, 0.0, False, 0.0),
+            ("손끝이 벽(1cm)", 0.01, 0.2, 0.0, 0.0, False, 0.0),
+            ("벽에 닿음·닫힘 0.7", 0.0, 0.7, 0.0, 0.0, False, 0.0),
+            ("한쪽 접촉 0.5N", 0.0, 0.7, 0.0, 0.5, False, 0.0),
+            ("양쪽 1.5N·파지", 0.0, 0.8, 1.5, 1.5, True, 0.0),
+            ("파지·5cm 들기", 0.0, 0.8, 1.5, 1.5, True, 0.05)]
+    for arm in ("src", "rcv"):
+        vals = []
+        for lbl, gap, cl, ft, fo, gr, lift in path:
+            reset_cache()
+            r_, _ = run(grasp_path_ctx(arm, gap, cl, ft, fo, gr, lift))
+            vals.append(float(r_.mean()))
+        print(f"[11] {arm} 파지 경로: " + " → ".join(f"{p[0]} {v:+.2f}" for p, v in zip(path, vals)))
+        steps = [vals[k + 1] - vals[k] for k in range(len(vals) - 1)]
+        bad = [path[k + 1][0] for k, d in enumerate(steps) if d <= 0.0]
+        if bad:
+            print(f"    ✗ {arm}: 다음 단계에서 수입이 오르지 않는다 — {', '.join(bad)}")
+            ok = False
+
+    # --- 12. 리시버를 버리지 않게: 소스가 잡고 든 상태에서 리시버가 파지 자세에 있으면 더 벌어야 한다 ----
+    reset_cache()
+    a, _ = run(grasp_path_ctx("rcv", 0.20, 0.0, 0.0, 0.0, False, 0.0, other_grasped=True))   # 리시버 멀리
+    reset_cache()
+    b, _ = run(grasp_path_ctx("rcv", 0.0, 0.7, 0.0, 0.5, False, 0.0, other_grasped=True))    # 리시버 한쪽 접촉
+    reset_cache()
+    cc, _ = run(grasp_path_ctx("rcv", 0.0, 0.8, 1.5, 1.5, True, 0.0, other_grasped=True))    # 리시버 파지
+    print(f"[12] 소스 파지 중 리시버: 멀리 {float(a.mean()):+.2f} · 한쪽 접촉 {float(b.mean()):+.2f} · 파지 {float(cc.mean()):+.2f}")
+    if not (float(b.mean()) > float(a.mean()) and float(cc.mean()) > float(b.mean())):
+        print("    ✗ 리시버가 컵에 가면 손해다(rh2_i03 의 리시버 이탈 구조)")
+        ok = False
+
+    # --- 13. 파지 전 한 번 건드려 비드가 쏟아지는 비용 < 컵에 다가가서 얻는 몇 스텝치 수입 -------
+    reset_cache()
+    far, _ = run(grasp_path_ctx("src", 0.20, 0.0, 0.0, 0.0, False, 0.0))
+    reset_cache()
+    near_c = grasp_path_ctx("src", 0.0, 0.7, 0.0, 0.0, False, 0.0)
+    near, _ = run(near_c)
+    reset_cache()
+    knock_c = grasp_path_ctx("src", 0.0, 0.7, 0.0, 0.0, False, 0.0)
+    knock_c.d_spill = torch.full_like(knock_c.d_spill, 1.0 / 20.0)
+    knock_c.bead_spill_frac = torch.full_like(knock_c.bead_spill_frac, 1.0 / 20.0)
+    knock, _ = run(knock_c)
+    gain = float(near.mean() - far.mean()); cost = float(near.mean() - knock.mean())
+    print(f"[13] 파지 전 비드 1 알 흘림 비용 {cost:.2f} 대 컵에 다가가 얻는 스텝당 수입 {gain:+.2f} (비용/수입 {cost / gain if gain > 0 else float('inf'):.1f} 스텝)")
+    if gain <= 0 or cost > 10.0 * gain:
+        print("    ✗ 파지 전 한 번의 흘림이 10 스텝 이상의 접근 수입을 지운다(iter_01 의 회피 구조)")
+        ok = False
+
+    # --- 14~17. 빠른 fresh 파지를 위한 원장(cup_grasp L1~L3 에 대응) -----------------------------
+    def offset_ctx(arm, dx, dy, dz, closure=0.0):
+        """arm 손을 자기 컵에서 (dx,dy,dz) 떨어진 가상 중심 둘레에 둔다(손끝이 컵에서 멀다). 다른 팔은 멀리."""
+        n = 256
+        ps = torch.tensor([0.382, -0.159, TABLE_Z - BZ]).repeat(n, 1)
+        pr = torch.tensor([0.378, 0.165, TABLE_Z - BZ]).repeat(n, 1)
+        up = torch.tensor([0.0, 0.0, 1.0]).repeat(n, 1)
+        c = make_ctx(ps.clone(), up.clone(), pr.clone(), up.clone(), prog=0.2)
+        for side, cp in (("src", ps), ("rcv", pr)):
+            spawn = cp.clone(); setattr(c, f"{side}_cup_spawn_pos", spawn)
+            if side == arm:
+                vc = cp + torch.tensor([dx, dy, dz])
+                t, pa, ff, cl, gr = hand_state(n, vc, up, 0.0, closure, 0.0, 0.0, False)
+                pa = vc.clone()   # 손바닥을 가상 중심에 둔다: 엄지 +x·네 손가락 -x 라 y 반전에 대칭(12cm 안팎 비교가 공정)
+            else:
+                t, pa, ff, cl, gr = hand_state(n, cp, up, 0.20, 0.0, 0.0, 0.0, False)
+            setattr(c, f"{side}_tips_pos", t); setattr(c, f"{side}_palm_pos", pa)
+            setattr(c, f"{side}_finger_force", ff); setattr(c, f"{side}_hand_closure", cl)
+            setattr(c, f"{side}_grasped", gr); setattr(c, f"{side}_palm_force", torch.zeros(n))
+        return c
+
+    # [14] 리시버: 자기 컵에서 같은 12 cm 라도 바깥쪽(+y)에 있는 것이 중심선 쪽(-y)보다 낫거나 같아야 한다
+    reset_cache(); out_r, _ = run(offset_ctx("rcv", -0.03, +0.12, 0.10))
+    reset_cache(); in_r, _ = run(offset_ctx("rcv", -0.03, -0.12, 0.10))
+    reset_cache(); wall_r, _ = run(grasp_path_ctx("rcv", 0.0, 0.2, 0.0, 0.0, False, 0.0))
+    print(f"[14] 리시버 손: 자기 컵 바깥 12cm {float(out_r.mean()):+.3f} · 중심선 쪽 12cm {float(in_r.mean()):+.3f} · 자기 컵 벽 {float(wall_r.mean()):+.3f}")
+    if float(in_r.mean()) > float(out_r.mean()) - 0.05:
+        print("    ✗ 리시버 손이 중심선 쪽(소스 쪽)으로 가는 것이 더 이득이다(i02m 왼손 이탈 구조)")
+        ok = False
+    if float(wall_r.mean()) < float(in_r.mean()) + 0.3:
+        print("    ✗ 자기 컵 벽에 붙는 수입이 중심선 쪽에 떠 있는 것보다 스텝당 0.3 이상 크지 않다")
+        ok = False
+
+    # [15] L1 원거리 접근 경사: 무작위 초기 거리(25 cm)에서 6 cm 까지 다가가면 스텝당 확실히 올라야 한다
+    for arm in ("src", "rcv"):
+        vals = {}
+        for d in (0.25, 0.15, 0.06):
+            reset_cache()
+            vals[d], _ = run(offset_ctx(arm, 0.0, (-1 if arm == "src" else 1) * d, 0.05))
+        g1 = float(vals[0.15].mean() - vals[0.25].mean()); g2 = float(vals[0.06].mean() - vals[0.15].mean())
+        print(f"[15] {arm} 원거리 접근: 25→15cm {g1:+.3f} · 15→6cm {g2:+.3f} (스텝당)")
+        if g1 < 0.05 or g2 < 0.05 or g1 + g2 < 0.15:
+            print(f"    ✗ {arm}: 원거리 접근 경사가 약하다")
+            ok = False
+
+    # [16] L3 들기 사다리: 파지한 채 테이블 < 3 cm < 8 cm
+    for arm in ("src", "rcv"):
+        v = []
+        for lift in (0.0, 0.03, 0.08):
+            reset_cache()
+            r_, _ = run(grasp_path_ctx(arm, 0.0, 0.8, 1.5, 1.5, True, lift, other_grasped=True))
+            v.append(float(r_.mean()))
+        print(f"[16] {arm} 들기 사다리: 테이블 {v[0]:+.2f} · 3cm {v[1]:+.2f} · 8cm {v[2]:+.2f}")
+        if not (v[1] > v[0] + 0.3 and v[2] > v[1]):
+            print(f"    ✗ {arm}: 테이블 위 파지 대비 들기 이득이 작다(cup_grasp L3)")
+            ok = False
+
+    # [17] L2 편 손 주차 < 한 손가락 접촉 < 양쪽 접촉
+    for arm in ("src", "rcv"):
+        reset_cache(); park, _ = run(grasp_path_ctx(arm, 0.0, 0.0, 0.0, 0.0, False, 0.0))
+        reset_cache(); one, _ = run(grasp_path_ctx(arm, 0.0, 0.5, 0.0, 0.5, False, 0.0))
+        reset_cache(); two, _ = run(grasp_path_ctx(arm, 0.0, 0.7, 0.6, 0.6, False, 0.0))
+        print(f"[17] {arm} 벽 앞 편 손 {float(park.mean()):+.3f} · 한쪽 접촉 {float(one.mean()):+.3f} · 양쪽 접촉 {float(two.mean()):+.3f}")
+        if not (float(one.mean()) > float(park.mean()) and float(two.mean()) > float(one.mean())):
+            print(f"    ✗ {arm}: 벽 앞 편 손이 접촉보다 이득이다(cup_grasp L2)")
+            ok = False
+
+    print(f"\n항 {len(names)}개: {', '.join(names)}")
+    print("판정:", "PASS" if ok else "FAIL")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,23 @@
+{
+ "label": "t2r3_i01b",
+ "track": "pour_bi3",
+ "iter": 1,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-short_b_pour_fab-lstm",
+ "commit": "ddec3c53",
+ "python_pid": 2785331,
+ "checkpoint": null,
+ "fresh": true,
+ "network": "LSTM 1024 (before_mlp, no concat) -> MLP [512,512], horizon 16, seq 16, minibatch 16384, sigma_init default (sigma 1.0)",
+ "env": "env.preset=i24 + obs_fabric_state (237/307) + fabric_velocity_ff_scale 0.0 + fabrics_damping_gain 20",
+ "reward": "pour_bi3 iter_01 (i24 + symmetric receiver)",
+ "note": "params/env.yaml is dumped before resolve_cfg applies the preset (shows 24 mm etc.); runtime values are i24 (preset re-applied on replay)",
+ "log": "~/logs/t2r/t2r3_i01b.log",
+ "started_local": "2026-09-29T00:54:01+09:00",
+ "started": 1790610841.1033337,
+ "agent_extra": "bounds_loss_coef 0.05",
+ "why": "t2r3_i01 결정론 궤적: 관절 떨림 경로 = 흔들리는 palm 목표 → fabric qd(고주파 0.20~0.24 rad/s) → PD 속도 FF 1.0 → 실제 관절 qd(0.24 rad/s). 기울기 45° 정체"
+}

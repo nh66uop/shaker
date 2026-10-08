@@ -1,0 +1,43 @@
+{
+ "label": "t2r_i26r",
+ "iter": 26,
+ "host": "server",
+ "gpu": 1,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "commit": "9f0bab0f",
+ "started": 1790342540.0,
+ "started_local": "2026-09-25 22:22",
+ "server_pids": [
+  3622819,
+  3622868
+ ],
+ "checkpoint": null,
+ "reward": "iter_26 c1r (selection.json)",
+ "launcher": "~/logs/t2r/launch_t2r.sh",
+ "log": "~/logs/t2r/t2r_i26r.log",
+ "launched_by": "kuku-ai-55 main",
+ "fresh": true,
+ "milestones": "fresh: 파지·리프트 ~e300, 기울기 출현 ~e800, 첫 붓기 ~e1200(i25f 첫 붓기 ep1147 참고). 각 시점 결정론 trace 로 확인",
+ "superseded": {
+  "label": "t2r_i26",
+  "iter": 26,
+  "host": "server",
+  "gpu": 1,
+  "num_envs": 4096,
+  "minibatch": 32768,
+  "commit": "8d7a4965",
+  "started_local": "2026-09-25 21:45",
+  "server_pids": [
+   3573264,
+   3573316
+  ],
+  "checkpoint": "log/rl_games/open-short/both/pour-fab/t2r_i25j/nn/last_open-short_b_pour_fab_ep_1250_rew_11247.685.pth (t2r_i25j ep1250)",
+  "reward": "iter_26 c1 (selection.json)",
+  "launcher": "~/logs/t2r/launch_t2r_ckpt.sh",
+  "log": "~/logs/t2r/t2r_i26.log",
+  "launched_by": "kuku-ai-55 main",
+  "gate_300": "ep1250+300 에서 결정론 trace: 세우기 > 0, 요청 ±1 적중률 상승, >120° 과회전 비율 하락 → 계속 / 처음부터 재학습 판정",
+  "started": 1790340300.0
+ }
+}

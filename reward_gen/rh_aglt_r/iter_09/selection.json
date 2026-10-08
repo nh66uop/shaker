@@ -1,0 +1,16 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획 준수(improvement.md 한 항목: 관절 여유 인자) + 원장 PASS(새 관절 한계 행 포함) + 궤적 원장 PASS",
+ "decided_by": "session (사용자 10.01 '확인 필요… 왼쪽도 나중에 저렇게 붕괴될 수 있으니' → 붕괴 원인 확인 → '왼팔도 같이 재시작')",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator (prompt.md)",
+   "hypothesis": null,
+   "gate": "validation_c1.json PASS",
+   "plan": "iter_08 대비: joint room = 0.5 min + 0.5 mean of clamp(margin/0.05); 파지 전 7항 × (0.5+0.5 room), 파지 뒤 4항 × (0.8+0.2 room); 진단 성분 joint_room(합산 제외). 다른 줄 변경 없음",
+   "deterministic_check": "원장 PASS: 기존 행 전부 + 0L 시작 실측 여유 1.00× · 0M 두 관절 한계 0.68× · 1L 한 관절 한계 0.71× · 여유 0/0.02/0.05 = 0.160/0.185/0.224 단조 · 6L·6G 0.886×. 궤적 원장 PASS: good_mirror 2.590, 나쁜 궤적 0.121~0.157(0.05~0.06×), 우 i08c ep1200 1.373 · 붕괴 ep1400 0.052"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "보상 변경 → 두 팔 fresh(seed 42), 2단계 ①(지연 0) 유지"
+}

@@ -1,0 +1,6 @@
+t2r3_i01b ep3500   src: palm_lift 평균 -1.492 (t300~, 스텝당)
+t2r3_i01b ep3500   rcv: palm_lift 평균 -0.579 (t300~, 스텝당)
+i24 best           src: palm_lift 평균 -0.115 (t300~, 스텝당)
+i24 best           rcv: palm_lift 평균 -0.613 (t300~, 스텝당)
+손바닥 0 N·최악 계수 순수익 단조 비감소: True (10 cm +0.000)
+손바닥 0 N·src_up=1 순수익 10 cm: +1.473 | 손바닥 3 N 이상 10 cm: +2.946

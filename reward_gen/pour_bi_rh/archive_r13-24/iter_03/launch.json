@@ -1,0 +1,12 @@
+{
+ "label": "t2r_rh2_i03",
+ "num_envs": 1024,
+ "started": 1789692328,
+ "commit": "786b88ed",
+ "host": "vision-3090",
+ "iter": "reward_gen/pour_bi_rh/iter_03",
+ "round": 3,
+ "fresh": false,
+ "checkpoint": "log/rl_games/open-rh/both/pour-fab-mimic/t2r_rh2_i01/nn/last_open-rh_b_pour_fab_mimic_ep_1250_rew_2128.1157.pth",
+ "note": "09.18 round 3 LLM 재생성(iter_03). i02(운영자 패치·fresh)는 e326 에서 폐기. i01 ep_1250 가중치만 로드(epoch 0 리셋). env 는 i01 과 동일(마찰 2.0·동결 1.0 N)."
+}

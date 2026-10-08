@@ -1,0 +1,25 @@
+{
+ "selected": "c1r",
+ "rule": "ingest PASS + 계획 준수(improvement.md 두 항목) + 원장 PASS + 궤적 원장 PASS(실제 정책 궤적 4종) + 궤적 유도 기울기(나쁜 궤적 쥐기 전 컵 근처 ≥ 0.8)",
+ "decided_by": "session (사용자 09.30 '왼손 학습처럼 결과가 나오도록 보상함수가 되게 해야해, 우연히 찾게 하는게 아니라')",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator (prompt.md, 가설 분할 없음)",
+   "hypothesis": null,
+   "gate": "validation_c1.json PASS",
+   "plan": "iter_06 대비: thumb_place(엄지 끝 상자 1.15~1.45 r · 입구 0.45~0.8, 벽 안쪽·입구 위는 0) 신설, thumb_steer(파지 전·컵 근처, 상한 0.04) 신설, thumb_f = 0.25+0.75·thumb_place 를 grasp_contact·grasp_hold·lift·transport·goal_hold 에 곱함. 그 밖 변경 없음(항 17개)",
+   "deterministic_check": "원장 PASS: 단조 0.171<0.224<0.386<1.207<3.373<8.782<11.708, 3s/2h 2.30, 3h(입구 위 덮기) 0.233 < 2h 0.372. 궤적 원장 PASS(우 env 결정론 64×1800): 좋은 파지(좌 i05 거울) 3.827/스텝, 입구 걸치기 0.11×, 입구 안 엄지 0.10×, 입구 덮기 0.05× · 덮기 쥔 스텝 0.128 < 머묾 0.372. 파지 전 엄지 유도 thumb_steer: 좋은 궤적 0.0049, 덮기 0.0004, 나머지 0",
+   "outcome": "aglt_r_i07 e0-714 에서 reward/thumb_steer 0.000 — 유도 항에 입구 아래·벽 바깥 램프를 곱해 나쁜 위치에서 값·기울기 0(궤적: 덮기 62 %·입구 안 100 %). 사용자 '다시 시작'"
+  },
+  "c1r": {
+   "source": "kuku-reward-generator 재시도(prompt_c1_repair.md, Review items = 세션 검토: 유도 항 0 기울기 실측)",
+   "hypothesis": null,
+   "gate": "validation_c1r.json PASS",
+   "plan": "c1 대비 한 줄: thumb_steer 의 thumb_place → box_attract(램프 없는 상자 끌림). 파지 쪽 thumb_f·post_f 그대로",
+   "deterministic_check": "원장 PASS(3s/2h 2.30, 3h 0.233 < 2h 0.372). 궤적 원장 PASS: 나쁜 궤적 0.05~0.11×, 덮기 쥔 스텝 0.128 < 머묾, 새 검사 '엄지를 좋은 자리로 5 mm 옮기면 보상 상승' 비율 나쁜 궤적 3종 모두 1.00(c1 은 0.34/0.33/0.59)"
+  }
+ },
+ "baseline_trace": "iter_03 0.93/0.85/0.09 · iter_05 0.73/0.67/0.10 · iter_06 0.40/0.37/0.11 (걸치기/입구 안/덮기 ÷ 좋은 파지)",
+ "warm_start": null,
+ "warm_start_why": "보상이 새 행동을 요구 → fresh(seed 42), 우팔만. 좌 aglt_l_i05 는 계속"
+}

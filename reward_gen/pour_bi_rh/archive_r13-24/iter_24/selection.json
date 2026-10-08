@@ -1,0 +1,73 @@
+{
+ "selected": "c1",
+ "candidates": {
+  "c1": {
+   "source": "claude kuku-reward-generator",
+   "gate": "PASS",
+   "terms_kept": "25/25 (iter_23's 25 summed terms, same names and order)",
+   "added": [],
+   "removed": [],
+   "changed": [
+    "aim_lip",
+    "place_rcv",
+    "tilt_open (rate = step difference of the unchanged potential)",
+    "grasp_src",
+    "grasp_rcv (held_val finger count)",
+    "tilt_open weight 0.1 -> 0.5"
+   ],
+   "diag_changed": [
+    "diag_theta_rate (wrap-safe step difference of theta)",
+    "diag_open_rate (step difference of PHI)"
+   ],
+   "conformance": "PASS: AST diff vs iter_23 (docstrings stripped) = exactly notes_round24 changes 1-3. (1) module-level _STEP_CACHE + _step_deltas (delta 0 on first call, N/device/dtype change, episode_progress not increasing; refreshed every call); place/aim = stage_cd * clamp(-delta/(V_PROG*CONTROL_DT), -1, 1), tilt_open = first_out*(carry_both*sep_ok*clamp(dPHI/(scale*dt),0,1) + clamp(dPHI/(scale*dt),-100,0)), CONTROL_DT = 1/60 (env cfg sim dt 1/120 x decimation 2); the velocity-built derivatives (_point_vel, _smoothstep_slope, v_mouth, du_src, dd_hat, dlip_*, dwin, phi_rate, dclear, dr_free, drel, des_*) and lip_pt are removed as dead code, _tilt_direction_error/_tilt_open_phi share _lean_cos (same formula). (2) _hand_cup held_val = 0.4 + 0.2 cq + 0.2 keep + 0.2 n_on/4, n_on = non-thumb fingers > CONTACT_F 1.0 N (= env contact_force_threshold, pour_fabric_env_cfg.py:322; finger order thumb first, robot_profiles.py RH56F1_RIGHT). (3) W_TILT_OPEN 0.5. Numerically: every other term and diagnostic is bit-identical to iter_23 on 2048 random states (max |diff| 0.0), potentials d_aim/d_place/PHI identical.",
+   "principles": "OK: no angle target/band (PHI monotone, unchanged); windows in cup_radius multiples unchanged; y~0 centreline unchanged; every speed/control/safety penalty and gate bit-identical; state-income ceiling unchanged (held_val max 1.0, W_GRASP 1.5); tilt_open stays a difference term; symmetric +-1 aim/place clamp kept; 3 changes only; no reward-audit.",
+   "review": "approve with residual risks. Signs and frames: payments positive when d_aim/d_place fall and PHI rises (float64 check [1]); no ctx velocity enters any income term any more, so the i23 COM/omega reading artefacts are gone (standing still pays exactly 0, [2]; COM-offset loop 0.000 vs iter_23 -38.7, [5c]). Env call order verified (IsaacLab direct_rl_env.py:388-398: episode_length_buf += 1, _get_dones, _get_rewards, then _reset_idx), so a reset env shows progress 1/900 below its last value and pays 0; drops terminate (pour_fabric_env.py _get_dones), no mid-episode cup teleport. Residuals: (a) first_out is not latched: bead_in_source_frac is instantaneous geometry (bead_flags.py), a bead poking past the rim and falling back sets first_out 1->0->1, and a tilt-up with first_out 1 / untilt with first_out 0 pays +25.0 per 30->80->30 deg cycle (104 steps) at W 0.5 (iter_23 +5.1). i23 traces: first_out rose 3 steps in 3/64 env at ep300, 0 at ep400-600, tilt_open on those env -1.4, so rare now. The notes' 94/episode cap holds only while first_out is monotone. (b) pre-existing symmetric clamp: slow-in/fast-out +33.5 aim+place vs -3.6 speed/spin per 56 steps (iter_23 +30.4); coaxial crossing +-5.5 (iter_23 +-5.4); regular closed loops at env dt: mean +0.017 (iter_23 +0.015). (c) pre-existing stage_cd gate: a 1-step grasp-flag flicker drops that step's difference (<= W_AIM+W_PLACE per flicker, ~4 flickers/env-episode at i23 ep600, untimed -> ~0). (d) validator dry run uses N=64 for all 3 seeds, so seeds 1-2 take differences between unrelated random contexts: validation.json magnitudes of aim/place/tilt_open mean nothing (finite, clamped). (e) one cache slot per loaded module: fine for one env per process; two same-N envs in one process would share it. (f) receiver already grips with ~3.5 non-thumb fingers, so change 2 adds +0.09..+0.12/step to the receiver and takes -0.05..-0.06/step from the 3-finger source (trace replay); ceiling unchanged.",
+   "magnitudes": {
+    "trace_replay_c1_on_i23": "per-env episode (mean) ep300/400/500/600: aim 79.5/106.5/122.8/124.8 (i23 paid median 42/5/76/109), place 53.1/72.3/82.5/86.6 (i23 50/79/88/110), tilt_open -0.17/-0.17/+0.35/+0.26, max +7.5 (i23 -1.2/-7.2/-6.1/-2.0); grasp delta src -33/-38/-47/-53, rcv +80/+81/+85/+92 per episode; src n_on 2.0, rcv 3.4-3.75",
+    "per_step_notes_table": "S2 parked +2.55 -> ~+2.62 (aim+place -0.02 -> 0, tilt_open tax -> 0, grasp net +0.05 at current contacts). S3 - S2 -0.84 -> ~-0.77 (the aim -0.07 was a velocity artefact).",
+    "pour_vs_hold": "pre-bead transition (~40-60 steps at <= 1 rad/s) costs ~-31..-46 against tilt_open +31 (lean toward the receiver to 60 deg inside the window) / +47 (90 deg): about neutral, no longer a tax (i23: -33 plus -1..-7). After the first bead, the notes' outcome sums apply unchanged: 20/0 +14127, 18/2 +8262, 16/4 +2701 vs a whole S2 episode ~+2360, so a clean pour (<= 4 spilled, grasp kept) clearly out-earns holding; 13/7 +49 is a wash; losing the grasp -1130 still dominates. The only lever on grasp loss is change 2: 2 -> 4 non-thumb fingers = +0.15/step (~+130/episode). So c1 removes the pre-bead barrier but does not make an attempt clearly positive until the source grip survives tilting (i23: 15/15 envs past 60 deg lost it).",
+    "budget": "state ceiling per step 1.5+1.5+1.5+0.5 = 5.0 unchanged < outcome level at 0.9 in / 0.05 spill (transferred 5.76 + tail); tilt_open <= 94/episode while first_out is monotone"
+   },
+   "deterministic_check": {
+    "script": "check_step_diff.py",
+    "identity": "all 25 summed terms except aim/place/tilt_open/grasp and every diagnostic except theta/open rate: max |c1 - iter_23| 0.0 on 2048 random states; grasp vs notes formula 5.4e-16; first call pays 0.0",
+    "formula_float64": "aim/place/tilt_open vs notes formula on iter_23 potentials at t and t-1: max 1.5e-14 / 9.4e-15 / 0.0 per step",
+    "vs_exact_derivative": "step difference vs iter_23 exact derivative with true link-origin velocities (trapezoid): median 3.0e-05 / 2.8e-06 / 1.4e-05, p99 1.7e-03 / 3.4e-03 / 3.4e-03 reward/step (aim/place/tilt_open)",
+    "standing_still": "fixed pose, random readings |v|<=0.3 m/s |w|<=3 rad/s, 60 steps: c1 max|sum| 0.0 (iter_23 mean -5.8, p99 |sum| 49.5)",
+    "closed_loops": "512 loops, env dt: unclamped aim+place |sum| <= 6.7e-14 (telescoping); tilt_open sum max +2.2e-14 on every loop (<= 0); clamped regular loops mean +0.017 max +3.4 (iter_23 +0.015 / +3.5)",
+    "cache": "first call 0, N change 0, new-episode envs 0 (others match reference 3.3e-15), repeated call 0 and next step unaffected, dtype change 0",
+    "residual_probes": "slow-in/fast-out +33.5 (iter_23 +30.4); coaxial +-5.5 (+-5.4); COM-offset loop 0.000 (-38.7); first_out flicker cycle +25.0 (+5.1), without flicker -0.18"
+   },
+   "trace_replay": {
+    "script": "/tmp/claude-1000/-home-user-kuku-ai/0a7d9a38-2e9d-48fa-b7dd-87085c217254/scratchpad/i24/replay_c1.py (i23 det traces ep300-600 in scratchpad/r24)",
+    "grasp_recon_check": "old held_val rebuilt from trace geometry matches term_grasp_src within 6.8e-07"
+   }
+  },
+  "q1": {
+   "source": "local qwen",
+   "gate": "FAIL RuntimeError: torch.where condition is Float (g = grasped.to(dtype) in _hand_cup)",
+   "conformance": "FAIL: aim and place become STATE terms exp(-k d/r) (budget rule), tilt_open becomes a per-step state income 0.5*carry*sep_ok*PHI (pays for holding a tilt), _progress removed, _shake_pen signature merged (arm shake penalty changed), perm replaced by win in spill relief / unaimed / pour_phase / rcv_steady, ~20 diagnostics removed"
+  },
+  "q2": {
+   "source": "local qwen",
+   "gate": "FAIL NameError: zhi",
+   "conformance": "FAIL: after the NameError, `~_prev_state` on a dict raises TypeError; any env reset (is_reset.any()) zeroes the delta of ALL envs, which with 4096 envs is almost every step; perm replaced by win in spill relief / unaimed / pour_phase / rcv_steady (outcome and control gates changed); velocity-built dlip_* still computed"
+  },
+  "q3": {
+   "source": "local qwen",
+   "gate": "FAIL RuntimeError: ambiguous tensor bool (cache['ep'] != episode_progress)",
+   "conformance": "FAIL: the cache resets whenever episode_progress changes, i.e. every step, so even with .any() every rate is 0; _spout_window dwin uses dw_hi instead of dw_z (changed code); tilt_open window still from the velocity-built path"
+  }
+ },
+ "rule": "gate PASS AND plan conformance (iter_23 terms kept unless notes_round24 changes them, only changes 1-3, AST + bit-identity check) AND user principles; then defect review and float64 deterministic check of the changed difference terms",
+ "warm_start": "notes_round24 권고: 파지 단계 ckpt rh2_i07-r3 ep400 (서버 ~/rl_ws/ckpt_in/pour_bi_rh/grasp_stage_i07r3_ep400.pth, TaskSpec REQ-grasp-stage-warmstart, i21-i23 과 같음). 변경 2 가 파지 사다리를 바꾸므로 파지부터 다시 배운다. i23 ep300 (~/rl_ws/ckpt_in/pour_bi_rh/rh3_i23_ep300.pth) 은 사용자 승인이 필요한 선택지일 뿐이다(3 지 파지를 물려받고 TaskSpec 이 금지). d_rh_warm_ep250 은 결정 대기.",
+ "watch_next_round": "(1) tilt_open per-env episode sum must stay <= 94 and diag_first_out must not rise inside an episode; if it does with positive tilt_open, latch first_out in the same cache (first_out_eff = min(first_out, cached value) while episode_progress increases), one line. (2) diag_src_n_contact toward 5 and grasp breaks after tilting > 60 deg. (3) deterministic eval: tilt > 60 deg with dir err <= 60 deg while the source grasp holds; aim/place paid now equal the position truth by construction.",
+ "open_decisions_from_critic": [
+  "change 1 is the first state-holding reward in this loop (module cache); main session confirmation",
+  "change 2 puts K=5 into the reward, not only the judgment; user confirmation recommended (Q9 said K=5 with logging first, logging done in i23)",
+  "d_rh_warm_ep250 and the i23 ep300 option need a user TaskSpec exception; d_rh_grasp_flicker (M=0 flicker handling) still pending"
+ ],
+ "decided_by": "t2r sub-session gate/review (recommendation; main session launches)",
+ "at": "2026-09-26T08:37",
+ "history": []
+}

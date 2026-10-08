@@ -1,0 +1,14 @@
+{
+ "label": "t2r_rh3_i09",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "started_local": "2026-09-22 09:30",
+ "commit": "e678e9c2",
+ "run_dir": "t2r_rh3_i09",
+ "server_pids": [3362940, 3362947],
+ "checkpoint": "ckpt_in/t2r_rh2_i09_ep2900.pth (= vision-3090 t2r_rh2_i09 ep_2900)",
+ "checkpoint_note": "가중치만 로드(epoch 0 리셋). 보상 iter_09 무변경 — 종료 시점이 최대 상승 구간이라 같은 보상으로 이어 간다.",
+ "launch_note": "conda proj-hdgp-py311 activate 후 CUDA_VISIBLE_DEVICES=0 로 기동. kit python 은 isaaclab 모듈이 없어 실패한다."
+}

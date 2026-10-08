@@ -1,0 +1,22 @@
+{
+ "label": "t2r3_i03",
+ "track": "pour_bi3",
+ "iter": 3,
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-short_b_pour_fab-lstm",
+ "commit": "c20d0983 (contains affd1d8a; later commits do not touch pour_fabric, modules/t2r, train.py, run_pour_t2r.sh)",
+ "python_pid": 3777061,
+ "checkpoint": null,
+ "fresh": true,
+ "network": "LSTM 1024 (before_mlp, no concat) -> MLP [512,512], horizon 16, seq 16, minibatch 16384, sigma_init default",
+ "env": "env.preset=i24 + obs_fabric_state (237/307) + fabric_velocity_ff_scale 0.0 + fabrics_damping_gain 20",
+ "reward": "pour_bi3 iter_03 (iter_01 + palm_lift bonus both hands)",
+ "agent_extra": "bounds_loss_coef 0.05, entropy_coef 0.0015",
+ "log": "~/logs/t2r/t2r3_i03.log",
+ "started_local": "2026-09-29T13:41:34+09:00",
+ "why": "t2r3_i02c (warm from i02b ep750) lagged fresh i01b at e287 (lift 5.2 vs 12.1 cm, grasp 0.70 vs 0.83); fresh iter_03 so it differs from i01b only in palm bonus + entropy_coef",
+ "launcher": "~/logs/t2r/launch_t2r_gpu.sh"
+}

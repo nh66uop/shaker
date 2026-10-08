@@ -1,0 +1,18 @@
+{
+ "label": "t2r_rh3_i18",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "started": 1790299178.8580008,
+ "started_local": "2026-09-25 10:19",
+ "commit": "7ec9da65",
+ "run_dir": "t2r_rh3_i18",
+ "server_pids": [
+  3130289,
+  3130296
+ ],
+ "checkpoint": "/tmp/grasp_stage_i07r3_ep400.pth (rh2_i07-r3 ep400, entropy ~22)",
+ "checkpoint_note": "i17g 와 같은 출발점 — 높이 허용만의 효과를 가르기 위해 웜스타트를 고정했다.",
+ "env_note": "env 무변경. iter_18 = iter_17 + LIFT_FREE_SRC0 0.24→0.40 · LIFT_TARGET_SRC 0.15→0.30(그 외 전부 동일)."
+}

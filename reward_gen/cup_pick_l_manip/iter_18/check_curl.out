@@ -1,0 +1,105 @@
+===== r17
+  A env_mult tip press(0.3,0,5)                    0.8023135907853778
+  A env_mult curl(2,2,1)                           0.9999999999985835
+  A env_mult tip only(0,0,3)                       0.7322500004544844
+  A max rise of env_mult on harder tip (saturated) 1.4146461779773745e-12
+  A env_mult range (random)                        [0.1, 1.0]
+  A finger permutation max diff                    2.220446049250313e-16
+  A digit removed: max rise                        0.0
+  sizing (at-success forces, e1000)            {'today': 0.8512, '+1 digit curled': 0.041, 'all curled': 1.0, '+1 digit / all curled': 0.041, 'today / all curled': 0.8512}
+  round-17 trade (index to tip + palm)          {'hold B/A': 1.1182, 'lift B/A': 1.064, 'hold C/B': 1.0178, 'hold D/B': 1.0513}
+  pen_table vs lowest link height               {'3.0cm': 0.0, '2.0cm': 0.0, '1.5cm': 0.0, '1.0cm': 0.0, '0.5cm': 0.0, '0.0cm': 0.0592}
+  closed loop, goal_progress + pen_drift        {'constant grip': -13.662, 'recede tipped, return curled': -9.6695}
+===== c1
+  B tip_press(0.3,0,5)                 0.11320754716981123
+  B curl(2,2,1)                        0.9999999999999933
+  B tip_only(0,0,3)                    0.0
+  B no_contact                         0.0
+  B max_rise_on_harder_tip             0.15637232460700504
+  B at(i0,i1,tip)                      [0.0, 0.05, 0.0]
+  B near_zero_max(F<=1e-3)             2.7621425754798284e-05
+  B near_zero_monotone                 True
+  B bounded                            True
+  B floor                              0.5
+  A env_mult tip press(0.3,0,5)                    0.597789870640137
+  A env_mult curl(2,2,1)                           0.9999999999985805
+  A env_mult tip only(0,0,3)                       0.47124999999999995
+  A max rise of env_mult on harder tip (saturated) 1.4146461779773745e-12
+  A layerB_vs_A max abs err                        8.745808496302132e-07
+  A env_mult range (random)                        [0.1, 1.0]
+  A finger permutation max diff                    2.220446049250313e-16
+  A digit removed: max rise                        0.0
+  sizing (at-success forces, e1000)            {'today': 0.6971, '+1 digit curled': 0.0823, 'all curled': 1.0, '+1 digit / all curled': 0.0823, 'today / all curled': 0.6971}
+  round-17 trade (index to tip + palm)          {'hold B/A': 1.0865, 'lift B/A': 1.0339, 'hold C/B': 1.0435, 'hold D/B': 1.1252}
+  pen_table vs lowest link height               {'3.0cm': 0.0, '2.0cm': 0.0, '1.5cm': 0.15, '1.0cm': 0.3, '0.5cm': 0.3, '0.0cm': 0.3}
+  closed loop, goal_progress + pen_drift        {'constant grip': -13.662, 'recede tipped, return curled': -5.5389}
+===== q2
+  B tip_press(0.3,0,5)                 0.05660377358490561
+  B curl(2,2,1)                        0.7999999999999947
+  B tip_only(0,0,3)                    0.0
+  B no_contact                         0.0
+  B max_rise_on_harder_tip             0.0
+  B at(i0,i1,tip)                      [0.0, 0.0, 0.0]
+  B near_zero_max(F<=1e-3)             1.657285545287897e-05
+  B near_zero_monotone                 True
+  B bounded                            True
+  B floor                              0.6
+  A env_mult tip press(0.3,0,5)                    0.6568496858008311
+  A env_mult curl(2,2,1)                           0.9279999999986949
+  A env_mult tip only(0,0,3)                       0.5455
+  A max rise of env_mult on harder tip (saturated) 0.0
+  A layerB_vs_A max abs err                        7.579700702642356e-07
+  A env_mult range (random)                        [0.1, 0.9902]
+  A finger permutation max diff                    3.3306690738754696e-16
+  A digit removed: max rise                        0.0
+  sizing (at-success forces, e1000)            {'today': 0.7034, '+1 digit curled': 0.0344, 'all curled': 0.8536, '+1 digit / all curled': 0.0403, 'today / all curled': 0.824}
+  round-17 trade (index to tip + palm)          {'hold B/A': 1.1149, 'lift B/A': 1.0609, 'hold C/B': 1.0169, 'hold D/B': 1.0489}
+  pen_table vs lowest link height               {'3.0cm': 0.0, '2.0cm': 0.0, '1.5cm': 0.1386, '1.0cm': 0.2285, '0.5cm': 0.2715, '0.0cm': 0.2892}
+  closed loop, goal_progress + pen_drift        {'constant grip': -13.662, 'recede tipped, return curled': -8.1858}
+===== q3
+  B tip_press(0.3,0,5)                 0.37924528301886756
+  B curl(2,2,1)                        0.9999999999999933
+  B tip_only(0,0,3)                    0.2999999987633078
+  B no_contact                         0.0
+  B max_rise_on_harder_tip             0.15637232460700504
+  B at(i0,i1,tip)                      [0.0, 0.05, 0.0]
+  B near_zero_max(F<=1e-3)             2.7621425754798284e-05
+  B near_zero_monotone                 True
+  B bounded                            True
+  B floor                              0.75
+  A env_mult tip press(0.3,0,5)                    0.8400249103097812
+  A env_mult curl(2,2,1)                           0.9999999999985818
+  A env_mult tip only(0,0,3)                       0.6950624997395216
+  A max rise of env_mult on harder tip (saturated) 1.4146461779773745e-12
+  A layerB_vs_A max abs err                        8.745808505183916e-07
+  A env_mult range (random)                        [0.075, 1.0]
+  A finger permutation max diff                    2.220446049250313e-16
+  A digit removed: max rise                        0.0
+  sizing (at-success forces, e1000)            {'today': 0.8728, '+1 digit curled': 0.0321, 'all curled': 1.0, '+1 digit / all curled': 0.0321, 'today / all curled': 0.8728}
+  round-17 trade (index to tip + palm)          {'hold B/A': 1.1197, 'lift B/A': 1.0654, 'hold C/B': 1.0134, 'hold D/B': 1.0382}
+  pen_table vs lowest link height               {'3.0cm': 0.0, '2.0cm': 0.0, '1.5cm': 0.1386, '1.0cm': 0.2285, '0.5cm': 0.2715, '0.0cm': 0.2892}
+  closed loop, goal_progress + pen_drift        {'constant grip': -13.662, 'recede tipped, return curled': -10.4311}
+===== c1r
+  B tip_press(0.3,0,5)                 0.0862182063346149
+  B curl(2,2,1)                        0.9999999999947539
+  B tip_only(0,0,3)                    0.0
+  B no_contact                         0.0
+  B max_rise_on_harder_tip             0.0
+  B at(i0,i1,tip)                      [0.0, 0.0, 0.0]
+  B near_zero_max(F<=1e-3)             1.6572855455576388e-05
+  B near_zero_monotone                 True
+  B bounded                            True
+  B floor                              0.5
+  A env_mult tip press(0.3,0,5)                    0.5857211234265812
+  A env_mult curl(2,2,1)                           0.9999999999962227
+  A env_mult tip only(0,0,3)                       0.47124999999999995
+  A max rise of env_mult on harder tip (saturated) 1.414757200279837e-12
+  A layerB_vs_A max abs err                        8.745794349840352e-07
+  A env_mult range (random)                        [0.1, 1.0]
+  A finger permutation max diff                    2.220446049250313e-16
+  A digit removed: max rise                        0.0
+  sizing (at-success forces, e1000)            {'today': 0.69, '+1 digit curled': 0.0831, 'all curled': 1.0, '+1 digit / all curled': 0.0831, 'today / all curled': 0.69}
+  round-17 trade (index to tip + palm)          {'hold B/A': 1.085, 'lift B/A': 1.0324, 'hold C/B': 1.0449, 'hold D/B': 1.1275}
+  pen_table vs lowest link height               {'3.0cm': 0.0, '2.0cm': 0.0, '1.5cm': 0.15, '1.0cm': 0.3, '0.5cm': 0.3, '0.0cm': 0.3}
+  closed loop, goal_progress + pen_drift        {'constant grip': -13.662, 'recede tipped, return curled': -5.2952}
+rate/difference terms: no candidate adds one (goal_progress and lift_rise are unchanged from iter_17)

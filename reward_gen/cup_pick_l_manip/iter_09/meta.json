@@ -1,0 +1,23 @@
+{
+ "track": "cup_pick_l_manip",
+ "iter": 9,
+ "task": "Pick an object up with a five-fingered hand, carry it to the goal, and hold it there against disturbances. This reward is applied to a policy that already reaches the object, closes a five-digit grasp on it, lifts it and keeps it upright, but hovers with it instead of settling at the goal. The job of this reward is the last part: bring the object to ctx.goal_pos and come to rest there, upright and still, and keep holding it while the environment pushes and twists the object.\n\nWrite the reward so that it works for any object shape: use only the object's actual surface as the environment reports it (palm_surface_dist, link_surface_dist, link_surface_dir, link_surface_normal, palm_surface_dir, palm_surface_normal), the contact forces between the hand and the object (palm_cup_force, link_cup_force), the object pose and velocity, and the goal. Do NOT use ctx.approach_done or ctx.envelope_done, and do not use cup_radius, cup_axis, cup_half_height or any pose template: there is no stage switch, every term is a smooth function of the current state.\n\nThe budget matters more than any single term. In the previous round 92 % of the per-step income was earned before the object ever arrived at the goal (grasping terms 3.86/step, lift 2.25/step, everything about the goal 1.04/step), so holding the object up anywhere was already worth almost as much as finishing the task, and the policy did exactly that. Set the per-step ceilings so that the income only appears at the end:\n\n- reaching and closing the hand: at most about 0.3/step in total, and it must fade out once the object is held, since the policy already knows how to grasp.\n- keeping the grasp: at most about 0.8/step in total (contact per digit, digit count, palm contact, opposition). Enough not to forget the grasp, not enough to live on.\n- lifting: at most about 1.0/step, and multiplied by how close the object is to the goal in the horizontal plane, so that hovering at the right height in the wrong place earns almost nothing. Keep the cap at the height the goal needs (ctx.goal_pos[:, 2] - ctx.cup_spawn_pos[:, 2]).\n- moving towards the goal: at most about 2.5/step, shaped over the whole 0 to 0.30 m range so there is a gradient from far away, and also paying for the reduction of ctx.goal_dist from one step to the next, not only for the distance itself.\n- at rest at the goal, upright, still holding: about 10/step, the dominant income of the whole reward, several times anything that can be earned anywhere else.\n- a large bonus on ctx.success, worth clearly more than a second of hovering.\n\nKeep the object upright throughout by multiplying the lift, goal and hold income by uprightness (ctx.cup_tilt), which is what made the previous round carry the cup upright; do not go back to a small additive tilt penalty.\n\nThe environment now applies an external force and torque to the object once it is lifted and near the goal, growing as the policy succeeds. The object will be pushed and twisted while it is held at the goal, so the grasp has to be robust and the hand has to bring the object back. Do not add a term for the disturbance itself; instead make sure that losing the object, or drifting away from the goal, costs much more than the hold income gained, and that a grip that is merely touching (few digits, little opposition) cannot collect the hold income: the hold must be gated on a real hold, palm plus several opposing digits.\n\nAlso: holding the closed grasp on the table must not be worth staying for; putting the object down after lifting must not let the lift income be earned again; lowering a held object towards the table must be worth less than keeping it still. Penalise fast arm motion and fast object motion while holding, but keep those small enough that carrying to the goal is always better than standing still.",
+ "task_file": "/tmp/claude-1000/-home-user-rl-ws/227884a1-6374-45ed-b991-5715273403ab/scratchpad/iter09_task.txt",
+ "variant": "rand_left",
+ "created": "2026-09-23T12:57:25.218633",
+ "context": "openarm.agnostic.tasks.manip_stages.object_context.ObjectRewardContext",
+ "prev_iter": "reward_gen/cup_pick_l_manip/iter_08",
+ "history_iters": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8
+ ],
+ "description": "reward_gen/cup_pick_l_manip/iter_08/observation.md",
+ "feedback": "reward_gen/cup_pick_l_manip/iter_08/improvement.md",
+ "events": null
+}

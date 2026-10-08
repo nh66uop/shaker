@@ -1,0 +1,17 @@
+{
+ "label": "aglt_r_i11",
+ "host": "vision-3090",
+ "gpu": 0,
+ "num_envs": 4096,
+ "seed": 42,
+ "task": "open-rh_r_aglt-lstm",
+ "python_pid": 320518,
+ "commit": "e0f50008",
+ "reward": "iter_11 c1r (sha256 8da3a43caa6b)",
+ "overrides": ["env.arm_cmd_delay_steps=[0,0]", "env.hand_cmd_delay_steps=[0,0]"],
+ "stage": "1_no_delay",
+ "fresh": true,
+ "save_frequency": 200,
+ "console": "vision-3090:~/rl_ws/our_source/rh_aglt_runs/aglt_r_i11.out",
+ "started": "2026-10-01 (epoch 3 확인, VRAM 16.0 GB)"
+}

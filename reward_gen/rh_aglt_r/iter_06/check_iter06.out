@@ -1,0 +1,6 @@
+[3gH    H    H    H    H    H    H    H    H    H    H    H    H    H    H    H    H    H    H    H   [INFO] Using python from: /home/user/rl_ws/IsaacLab/_isaac_sim/python.sh
+thumb r/R 0.8,0.95,1.0,1.05,1.1,1.18,1.28,1.4 @0.89 mouth: [5.995, 5.995, 5.995, 9.295, 12.97, 12.97, 12.97, 12.149]
+pinky force 0..1.5 N: [13.837, 14.559, 15.284, 15.987, 16.59, 16.59]
+fingers down 0..40 deg: [16.59, 16.589, 15.756, 14.447, 13.194, 12.003, 11.885]
+thumb-inside ladder 3,4,5,6: [0.495, 1.629, 4.462, 5.995]
+inside(<=1.0R) < outer(1.18R) x0.6: True | rises 0.8..1.18: True | pinky monotone up: True | tilt monotone down: True | floor (40deg > 0.6*level): True | defect ladder rises: True

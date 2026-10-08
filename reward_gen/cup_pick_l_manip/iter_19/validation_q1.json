@@ -1,0 +1,10 @@
+{
+ "ok": false,
+ "errors": [
+  "SyntaxError: invalid syntax (<unknown>, line 248)"
+ ],
+ "warnings": [],
+ "term_stats": {},
+ "total_stats": {},
+ "fields_used": []
+}

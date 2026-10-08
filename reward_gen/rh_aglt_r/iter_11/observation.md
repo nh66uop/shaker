@@ -1,0 +1,5 @@
+iter_11 trained c1r (selection.json). Run aglt_r_i11 (right, fresh, 4096 envs, seed 42, no command delay, vision-3090), stopped by the user at epoch ~2080.
+- Palm within 10 cm from ~450 (faster than iter_09); parked beside the cup with the thumb tip on the rim (1.05-1.25 cup radii, 1.0-1.1 x the mouth height) until ~1650.
+- From ~1700: grasp 0.4-0.68, lifted 0.67, goal successes 2.6 per episode at tolerance 0.087 m — but a two-finger fingertip PINCH: contact thumb 1.00, index 1.00, middle 0.00, ring 0.00, little 0.00 (all of epochs 1700-2080); palm 1.8-2.0 cup radii from the axis (far, not an envelope); height factor 0.70-0.84 (grasping high); finger factor stuck at 0.76-0.77.
+- Cause (reward): the four-finger combination 0.4 mean + 0.6 min is flat until the LAST finger touches: with the other fingertips at wall closeness 0.5, finger factor for 1, 2, 3, 4 fingers touching = 0.78, 0.79, 0.81, 1.00. Adding the 2nd and 3rd finger is worth +1-2 %, so the pinch is a stable optimum. The ledger only checked "one finger off", never the 1->2->3->4 ladder.
+- User verdict (10.01): "i11 cannot become an envelope grasp after all" — stopped.

@@ -1,0 +1,17 @@
+{
+ "track": "cup_pick_l_manip",
+ "iter": 3,
+ "task": "Stage 2 of a two-stage task, and the only stage this reward is for: from the pre-grasp pose beside the cup, close the hand around it, lift it, carry it to the goal and hold it there. A first policy, trained with a different reward, already brings the hand to the cup; this reward is applied to that policy's weights, so the episode still begins with the hand at the raised start and the first thing it does is travel to the cup. Do not undo that: keep paying enough for reaching the pre-grasp pose in the default open hand pose with the start orientation (ctx.approach_done, the gate the environment latches) that the policy keeps doing it, but that part is solved and must not be where the value sits.\n\nOnce ctx.approach_done is set, close the hand into an envelope grasp. The palm goes against the side of the cup and all five digits wrap the cup body: the thumb on the near side and the four fingers around the far side, each finger's links in contact with the cup. The environment sets ctx.envelope_done once the palm, the thumb and at least four digits have held the cup for several consecutive steps. Count the digits separately: a grasp with three digits in contact must be worth clearly less than one with five, and the reward for closing must keep rising as the fourth and the fifth digit arrive rather than saturating once a few links touch. In the previous attempt the ring finger never reached the cup while the thumb, middle and pinky did, so contact on the index and the ring finger has to pay as much as contact on the others. Reward the finger links for wrapping around the cup body along its surface, not for pressing towards its axis.\n\nThen lift. With the envelope closed, raise the cup straight up off the table: pay for the height of the cup above the height it started at (ctx.cup_pos[:, 2] - ctx.cup_spawn_pos[:, 2]), rising with that height, and for upward motion right after the envelope closes so that lifting is learned quickly. Holding the closed grasp on the table must not by itself be worth staying for, and moving the hand or the cup downward towards the table while holding it must be worth less than keeping it still and clearly less than raising it.\n\nThen carry the cup to ctx.goal_pos and hold it there, upright and still, so the environment keeps counting successes: a success needs ctx.goal_dist <= ctx.success_tol for ctx.success_hold_steps consecutive steps with the fingers wrapped. Coming to rest at the goal must be worth more than lifting the cup repeatedly; putting the cup down after reaching the goal must not be a way to earn the lifting income again. You may add a bonus on ctx.success.\n\nThroughout: keep the cup upright, do not drop it, do not knock it over, do not push the hand or the palm into the table, and lift smoothly — penalise fast arm motion and fast cup motion while the cup is held, but keep those penalties small enough that a slow lift is always better than no lift.",
+ "task_file": null,
+ "variant": "rand_left",
+ "created": "2026-09-21T13:14:42.029289",
+ "context": "openarm.agnostic.tasks.grasp_fj_t2r.t2r.context.RewardContext",
+ "prev_iter": "reward_gen/cup_pick_l_manip/iter_02",
+ "history_iters": [
+  1,
+  2
+ ],
+ "description": "reward_gen/cup_pick_l_manip/iter_02/observation.md",
+ "feedback": "reward_gen/cup_pick_l_manip/iter_02/improvement.md",
+ "events": null
+}

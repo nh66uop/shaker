@@ -1,0 +1,20 @@
+{
+ "selected": "c1",
+ "md5": "bfe41cc2f4b3abe691244475a9c6e4e7",
+ "base": "reward_gen/cup_grasp_l/iter_02/compute_reward.py (iters 03-08 dropped)",
+ "rule": "gate PASS + plan (AST vs iter_02: envelope-quality block only) + check_iter09",
+ "decided_by": "main session; user 09-28 '기준 보상을 02로 돌아가면서, tip_press만 안나오게 해봐'",
+ "env": "hand_action_zero_open off (default, as iter_02 was trained)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator prompt.md, Hypothesis A",
+   "hypothesis": "A",
+   "gate": "PASS",
+   "plan": "PASS (only env_count/env_depth/curl_factor -> per-digit wrap mean)",
+   "deterministic_check": "check_iter09_c1.out: L18 three-digit hold 0.45 of five (iter_02 0.42); L18b pad-press 0.74 (iter_02 0.85); L4 press/roll 0.50 (iter_02 0.67); L7 0.46 (0.65); remaining fails L10/L11b/L11c/L14 identical to iter_02 (out of scope)"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "fresh, seed 42 (iter_02 right run succeeded fresh)",
+ "at": "2026-09-28T13:07:21"
+}

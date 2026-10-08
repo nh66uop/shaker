@@ -1,0 +1,1 @@
+Mirror of reward_gen/cup_grasp_l/iter_10 = iter_09 (iter_02 + per-digit wrap envelope) + origin-relative approach only. Right iter_07 (= L iter_09) grasped at the rim, index/thumb above the mouth, no lift.

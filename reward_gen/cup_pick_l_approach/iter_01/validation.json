@@ -1,0 +1,113 @@
+{
+ "ok": true,
+ "errors": [],
+ "warnings": [],
+ "term_stats": {
+  "approach": {
+   "mean": 0.15976044535636902,
+   "abs_max": 0.5918384194374084
+  },
+  "orient": {
+   "mean": 0.10106017192204794,
+   "abs_max": 0.32461681962013245
+  },
+  "hand_open": {
+   "mean": 0.06883832315603891,
+   "abs_max": 0.17580659687519073
+  },
+  "hold_still": {
+   "mean": 0.0,
+   "abs_max": 0.0
+  },
+  "contact_pen": {
+   "mean": -1.1999999284744263,
+   "abs_max": 1.2000000476837158
+  },
+  "cup_disturb_pen": {
+   "mean": -1.4999850193659463,
+   "abs_max": 1.5
+  },
+  "table_pen": {
+   "mean": -0.08010871708393097,
+   "abs_max": 0.5
+  },
+  "hand_cmd_pen": {
+   "mean": -0.16680370767911276,
+   "abs_max": 0.1942850798368454
+  },
+  "arm_action_pen": {
+   "mean": -0.006896455927441517,
+   "abs_max": 0.012478688731789589
+  },
+  "action_rate_pen": {
+   "mean": -0.033328295995791755,
+   "abs_max": 0.05000000074505806
+  },
+  "diag_pose_dist": {
+   "mean": 0.3742109735806783,
+   "abs_max": 1.0316951274871826
+  },
+  "diag_offset_normal": {
+   "mean": -0.07470360025763512,
+   "abs_max": 0.7322075963020325
+  },
+  "diag_offset_finger": {
+   "mean": -0.04356412465373675,
+   "abs_max": 0.6386898756027222
+  },
+  "diag_offset_axial": {
+   "mean": -0.0029115580643216763,
+   "abs_max": 0.7416287064552307
+  },
+  "diag_hand_dev_max": {
+   "mean": 0.6958494583765666,
+   "abs_max": 0.9525763988494873
+  },
+  "diag_cup_disp": {
+   "mean": 0.3915107250213623,
+   "abs_max": 0.8150399327278137
+  },
+  "diag_contact_force_max": {
+   "mean": 4.690335273742676,
+   "abs_max": 4.999354362487793
+  },
+  "diag_in_pose": {
+   "mean": 0.0,
+   "abs_max": 0.0
+  },
+  "diag_arm_speed": {
+   "mean": 1.5002921422322593,
+   "abs_max": 2.0631189346313477
+  }
+ },
+ "total_stats": {
+  "mean": -2.657463312149048,
+  "abs_max": 3.3169827461242676
+ },
+ "fields_used": [
+  "actions",
+  "approach_done",
+  "arm_qd",
+  "cup_ang_vel",
+  "cup_axis",
+  "cup_half_height",
+  "cup_lin_vel",
+  "cup_pos",
+  "cup_radius",
+  "cup_spawn_pos",
+  "cup_tilt",
+  "hand_default_q_norm",
+  "hand_q_norm",
+  "hand_qd",
+  "hand_target_norm",
+  "hand_z_min",
+  "link_cup_force",
+  "palm_clearance",
+  "palm_cup_force",
+  "palm_finger_dir",
+  "palm_normal",
+  "palm_pos",
+  "prev_actions",
+  "table_z"
+ ]
+}

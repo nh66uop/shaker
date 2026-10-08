@@ -1,0 +1,1 @@
+Mirror of reward_gen/cup_grasp_l/iter_11 = iter_10 + palm-seating engage counts only touching digits' flexion. Right iter_08 (= L iter_10) travelled as a fist and parked beside the cup at body height.

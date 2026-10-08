@@ -1,0 +1,1 @@
+Mirror of reward_gen/cup_grasp_l/iter_02 (same reward both arms, user principle). Generated from the left track's history (iter_00 B -> iter_01 A -> iter_02 A); the right arm trained iter_00 only. prompt.md/meta.json are the left track's.

@@ -1,0 +1,66 @@
+{
+ "selected": "c1",
+ "rule": "게이트 PASS + 계획 준수 + 결정론 성질 검사 PASS. 후보가 하나(경쟁 가설 없음, 사용자 지시 3가지가 한 설계)",
+ "decided_by": "session 146751a7 (pour_bi_rh 자동화)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator (단일 호출, 가설 분할 없음)",
+   "hypothesis": null,
+   "gate": {
+    "ingest": "PASS",
+    "terms": 25,
+    "validation": "validation_c1.json"
+   },
+   "plan": "iter_00 은 새 설계라 AST diff 대상이 없다. 계획 준수는 notes_reset_iter00_0926.md 의 요구 3가지를 결정론 검사로 확인했다",
+   "deterministic_check": {
+    "script": "check_iter00.py",
+    "verdict": "PASS",
+    "budget": {
+     "pour_step_income": 20.28,
+     "rotation_delivery_share": 0.93,
+     "park_step_income": 1.1
+    },
+    "angle": {
+     "sweep_deg_income": {
+      "0": 1.23,
+      "20": 1.3,
+      "40": 1.4,
+      "55": 2.0,
+      "70": 5.62,
+      "85": 9.22,
+      "100": 9.81
+     },
+     "monotone_0_70": true,
+     "no_penalty_past_70": true,
+     "same_75deg": {
+      "aimed": 7.3,
+      "wrong_direction": 0.47,
+      "outside_window": 1.02
+     }
+    },
+    "joint_margin": {
+     "same_70deg_high_margin": 5.67,
+     "j7_at_limit": 5.48,
+     "diff": 0.19,
+     "note": "구분은 하지만 크기가 붓기 수입의 3 % 수준 — ep300 결정론에서 j7 포화가 남으면 W_MARGIN 상향 후보"
+    },
+    "common": {
+     "finite": true,
+     "stateless_repeat": true,
+     "n_change": true,
+     "closed_cycle_sum": 65.46,
+     "static_same_length": 38.0,
+     "note": "각도 수입이 상태형이라 왕복이 정지보다 스텝당 0.9 높다. 차분형 항(aim_progress·deliver·spill)은 대칭 clamp 라 펌프 없음"
+    }
+   }
+  }
+ },
+ "warm_start": "~/rl_ws/ckpt_in/pour_bi_rh/grasp_stage_i07r3_ep400.pth (rh2_i07-r3 ep400, 파지 단계)",
+ "warm_start_why": "i16g 에서 확인 — 파지는 물려받고 붓기 습관은 물려받지 않는다. 보상이 전면 교체됐지만 파지 단계 ckpt 는 붓기 자세를 갖고 있지 않아 예외로 둔다(DESIGN_BRIEF 7)",
+ "watch": [
+  "ep300 결정론에서 j7 하한 붙는 비율",
+  "pour_open 이 실제로 지불되는 스텝 비율(창·방향 게이트 통과율)",
+  "state_decay 로 상태 수입이 줄면서 파지가 흔들리지 않는지",
+  "deliver 대 spill 단가(15 대 6)에서 흘림이 늘지 않는지"
+ ]
+}

@@ -1,0 +1,16 @@
+{
+ "selected": "c1",
+ "rule": "ingest PASS + 계획 준수(improvement.md 두 항목) + 원장 PASS + 성질 검사(check_iter06.py) 통과",
+ "decided_by": "session (사용자 09.30 '새로 시작': 우 i05 종료, iter_06 으로 우만 fresh)",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator (prompt.md, 가설 분할 없음)",
+   "hypothesis": null,
+   "gate": "validation_c1.json PASS",
+   "plan": "iter_05 대비: in_r 경계 1.0→1.1 r(실측 0.95 / 1.18 r), on_wall 띠 중심 1.18 r(±0.10 전액, ±0.22 에서 0), inside_f = 1 − 0.5·thumb_inside 를 post_f 로 grasp_hold·lift·transport·goal_hold 에 곱함. 그 밖 변경 없음",
+   "deterministic_check": "check_iter06.out: 목표에서 든 상태 엄지 반경 0.8~1.0 r 5.99 → 1.1~1.28 r 12.97 단조 상승(입구 안 < 바깥 × 0.6), 새끼·기울기 단조 유지, 엄지 입구 안이어도 들기 사다리 상승. 원장 PASS: 3j/6j 0.29×/0.36×, 3i/6i 0.29×/0.36×, 6k 0.83×, 6d 0.83×, 3s/2h 2.24×"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "보상이 바뀐 행동(바깥 엄지)을 요구 → fresh(seed 42), 우팔만. 좌 aglt_l_i05 는 iter_05 로 계속(사용자 동의)"
+}

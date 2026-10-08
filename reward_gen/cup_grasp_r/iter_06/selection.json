@@ -1,0 +1,26 @@
+{
+ "selected": "c1r",
+ "md5": "0101b3d5e1100d7fe9093c5e57568a3e",
+ "rule": "gate PASS + plan (AST vs iter_07: open_pose flat-top only) + check_iter08",
+ "decided_by": "main session; user 09-28 '1,2 모두 필요'",
+ "env_change": "cup_grasp hand_action_zero_open=true (action 0 = reset open pose); launcher EXTRA",
+ "candidates": {
+  "c1": {
+   "source": "kuku-reward-generator prompt.md, Hypothesis A",
+   "hypothesis": "A",
+   "gate": "PASS",
+   "plan": "PASS",
+   "deterministic_check": "check_iter08_c1.out: L17 PASS (third 93 %); L16 FAIL (half-curled fist keeps ~60 %: open-fist margin 0.018 < 0.03)"
+  },
+  "c1r": {
+   "source": "kuku-reward-generator prompt_c1_repair.md (review: fist margin), Hypothesis A",
+   "hypothesis": "A",
+   "gate": "PASS",
+   "plan": "PASS (mean band dead 0.25/scale 0.15 x worst-joint band dead 0.50/scale 0.30)",
+   "deterministic_check": "check_iter08_c1r.out: 28 PASS; L11 FAIL by design; L17 third 90 %, half 13 %, flat near open; L16 open 0.247 vs fist 0.199; L15b/L16c monotone"
+  }
+ },
+ "warm_start": null,
+ "warm_start_why": "action meaning changed (hand zero-open); fresh",
+ "at": "2026-09-28T10:14:03"
+}

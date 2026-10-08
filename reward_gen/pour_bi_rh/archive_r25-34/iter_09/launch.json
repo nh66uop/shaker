@@ -1,0 +1,58 @@
+{
+ "label": "t2r_rh4_i09",
+ "iter": 9,
+ "host": "server",
+ "gpu": 1,
+ "num_envs": 4096,
+ "task": "open-rh_b_pour_fab_mimic-lstm",
+ "python_pid": 2060135,
+ "network": "관측 → LSTM 1024 → LayerNorm → MLP [512,512] → 명령 24 (before_mlp True, concat 끔)",
+ "overrides": {
+  "horizon_length": 16,
+  "seq_length": 16,
+  "minibatch_size": 16384,
+  "save_frequency": 50,
+  "mini_epochs": 2,
+  "central_value_config.mini_epochs": 2,
+  "learning_rate": "1e-4",
+  "lr_schedule": "adaptive",
+  "kl_threshold": 0.016,
+  "e_clip": 0.1,
+  "central_value_config.learning_rate": "1e-4",
+  "entropy_coef": "0.0005 (yaml 그대로)",
+  "network.rnn.before_mlp": true,
+  "network.rnn.concat_input": false,
+  "network.rnn.concat_output": false,
+  "config.clip_actions": false,
+  "env.enable_self_collisions": true
+ },
+ "reward": "iter_09 c1r2 (sha256 3aaa6d75)",
+ "server_head": "aa3129db",
+ "checkpoint": null,
+ "started_local": "2026-09-28 15:49",
+ "launched_by": "session 146751a7, 사용자 'a,b 필요' + 손 제어 '액션을 바꾸거나 액추에이터를 맞춘다' 09-28",
+ "entropy_budget": "프레임 기준 판정: task/*_grasped 0.05 전에 entropy < 15 면 종료 후보 보고 (memory lstm-h16-entropy-budget)",
+ "why": "i08: 편 손 상태형 가산(0.13~0.16/스텝)이 컵 11~12 cm 앞 주차 자리를 만듦, 손가락 방향 0. i09 = 편 손 차분형 + 원거리 손가락 배치 + descend 강화, 손 명령 증분(닫힘 속도)·벤더 1 s 속도",
+ "env_overrides": {
+  "palm_action_mode": "increment",
+  "palm_action_ema_alpha": 0.25,
+  "src_palm_vel_max": [
+   0.6,
+   180.0
+  ],
+  "rcv_palm_vel_max": [
+   0.4,
+   120.0
+  ],
+  "src_palm_leash": [
+   0.06,
+   30.0
+  ],
+  "rcv_palm_leash": [
+   0.05,
+   15.0
+  ],
+  "hand_action_mode": "increment",
+  "synergy_close_speed": 0.0167
+ }
+}

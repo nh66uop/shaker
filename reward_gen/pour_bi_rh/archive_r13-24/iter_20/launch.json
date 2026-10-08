@@ -1,0 +1,19 @@
+{
+ "label": "t2r_rh3_i20",
+ "host": "server",
+ "gpu": 0,
+ "num_envs": 4096,
+ "minibatch": 32768,
+ "started": 1790319239.9933631,
+ "started_local": "2026-09-25 15:53",
+ "commit": "e66d5bdd",
+ "run_dir": "t2r_rh3_i20",
+ "server_pids": [
+  3342727,
+  3342734
+ ],
+ "deteval_watcher_pid": 3342936,
+ "deteval_out": "log/pour_fabric_mimic/t2r_rh3_i20_deteval.tsv",
+ "checkpoint": "/tmp/grasp_stage_i07r3_ep400.pth (rh2_i07-r3 ep400, entropy ~22)",
+ "checkpoint_note": "파지 단계 — 붓기 습관 없음."
+}

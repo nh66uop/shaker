@@ -1,0 +1,30 @@
+{
+ "track": "grasp_fj_rand_left",
+ "iter": 0,
+ "label": "fj_randL_i00b",
+ "label_prefix": "fj_randL_i",
+ "round": 1,
+ "status": "round_end",
+ "awaiting": "approval_iter_00",
+ "best": null,
+ "success_ticks": 0,
+ "algo": {
+  "from_iter_00": "PPO-LSTM 4096 (open-short_l_grasp_fj_t2r_rand-lstm) · 처음부터(가중치 이어받기 없음)"
+ },
+ "policy_source": "scripts/reward_gen/t2r_fj_round.py ROUND_POLICY + TRACKS.grasp_fj_rand_left.early_stop False",
+ "env_frozen_from": "09.20 좌팔 leaf GraspFJT2RRandLeftEnvCfg — 우 GraspFJT2RRandEnvCfg 의 y 반전: 프로필 tesollo_left_short_tl(19관절, thumb_2 잠금 +1.57, 유휴 우팔 = 우판 유휴 좌팔 부호 미러) · 시작 자세 = 우 × _ARM_SIGN_L(FK palm_ee (0.090, +0.272, 0.450), 법선 −y, 손가락 +x) · 소환 x 0.10–0.40 · y 0.00–+0.30 · 손 그림자 (0,0.27,0.26,0.34,0.385) · 상판 구멍 y +0.30 ×2 + (0.135,0).",
+ "history": [
+  "i00: 사용자 결정(09.20) '왼팔로도 학습' — 컵 범위 좌우 대칭 · 처음부터 i01 보상 · 유휴 우팔 접기. 시드 = grasp_fj_rand/iter_01 보상에서 시작 방향 한 줄(n[:,1] → −n[:,1])만 바꾼 것(생성 아님). ctx 는 좌손에서도 hand_q_norm '0 곧음 · 1 굽힘'(음의 각으로 조이는 관절 1−x), 접근 방향 조건 법선 −y. ingest PASS · 로컬 부팅 스모크(64 env random 200 스텝) GATE PASS — 관절표 = 부팅 실측(오차 0.0002) · NaN 0 · 방향 조건 통과 1.0 · 시작 거리 343.6 mm.",
+  "i00 기동(09.20): 사용자 'Local에서 학습'(서버 GPU0 = 다른 세션 IKER · GPU1 = 붓기). 로컬 5090 · run_fj.sh(isaaclab.sh) · 4096 env PPO-LSTM · seed 42 · epoch ≈4.5 s · VRAM 19.5 GB. train.py PID 485161. 서버 도구(status/video/launch)는 서버 전용이라 로컬 틱은 TB 직접 읽기 + pgrep.",
+  "i00 1차 런(fj_randL_i00) 폐기 — e3000 에서 PhysX `PxgCudaDeviceMemoryAllocator failed to allocate 94 MB`(같은 5090 에서 Claude 가 라운드 끝 영상 play 를 띄워 32 GB 가 꽉 참) 이후 물리가 죽고 6,700 epoch 이 동결값으로 돌았다(reward −0.012 · episode_lengths 337 · 모든 지표 소수 3자리 고정). 깨지기 전: e1000-2000 먼 출발 접근 0.93 · 간극 0.04 m · e2000-3000 닿은 손가락 0.73→1.19(파지 시작), 인벨롭 0. 로그는 fj_randL_i00_crashed_e3000 으로 보존. 사용자 승인 후 SIGKILL(SIGTERM 9분 무응답).",
+  "i00b 재개(09.20, 사용자 'e2400 체크포인트에서 재개'): 깨지기 전 최고 가중치 fj_randL_i00_best_pre_crash.pth(nn best, 05:52 ≈ e2400) 로 이어 받아 같은 보상으로 재기동. 로컬 5090 · 4096 env · epoch ≈4.4 s. ★학습 중 같은 GPU 에서 play 금지 — 이번 사고의 원인.",
+  "i00b 라운드 끝(09.20, e1533 · 2.1 h · 멈춤 판정: 접근 0.86-0.94 유지인데 인벨롭 0 이 1500 epoch): 닿은 손가락 엄지 0.67 · 중지 0.70 · 새끼 0.59 · **검지 0.0004 · 약지 0.0003** → 4지 요건 미달. 정책 없는 닫기 프로브(probe_grasp_fj_t2r_close_hand.py)에서 좌우 손 모두 5지 접촉·힘 유사(좌 22.5/23.7 N vs 우 22.8/25.6 N) → 미러 버그 아님, 보상이 만든 3지 습관. 영상 fj_randL_i00b_0920_1254(e800 가중치). 학습은 영상 전 PID 종료. 초안 작성, 승인 대기."
+ ],
+ "note": "로컬 런 — 서버 도구 미사용. ★학습 중 같은 GPU 에서 영상(play)을 띄우지 않는다(32 GB 카드, 학습만으로 19.8 GB). 영상은 라운드 종료 후에 찍는다.",
+ "host": "local RTX 5090 (user@10.102.101.234)",
+ "pid": null,
+ "commit": "2f818285",
+ "started": 1789868853.7242746,
+ "console": "/home/user/rl_ws/our_source/fj_t2r_runs/fj_randL_i00b.out",
+ "logdir": "/home/user/rl_ws/hdgp/log/rl_games/open-short/left/grasp-fj-t2r-rand/fj_randL_i00b"
+}

@@ -1,0 +1,52 @@
+{
+ "selected": "c1",
+ "candidates": {
+  "c1": {
+   "source": "claude kuku-reward-generator (full prompt.md, rendered by t2r_ms.py reflect from iter_19 observation/improvement with the six surface fields)",
+   "gate": "PASS (t2r_ms ingest via isaaclab.sh python, cpu+cuda dry run, no errors, no warnings; validation_c1.json md5 771e4c46)",
+   "plan": "conforms to iter_19/improvement.md. AST vs iter_19/compute_reward.py: 8 statements removed (CURL_FULL_SHARE, CURL_FORCE_REF, link_f, digit_f, inner_share, inner_f, press, old digit_curl), 6 added (FOLLOW_DEAD 0.010, FOLLOW_SCALE 0.006, link_dist = ctx.link_surface_dist, lift_off = amax - amin, follow = exp(-(lift_off - DEAD)+ / SCALE), digit_curl = digit_touch * follow); every other statement identical, signature identical (quoted annotation). The added lines read only ctx.link_surface_dist (an existing surface field, no rebuilt geometry), no force (digit_touch is the pre-existing soft contact), no hand_q / joint angle, no constant digit index, no digit name. CURL_FLOOR 0.50, hand_curl mean, curl_factor and env_q lines unchanged. The inner-link force share is gone in every form. On the validator's fake ctx (4 seeds x 256) the 20 non-downstream terms (reach, palm_in, close, grasp_*, every pen_* incl. speed/control/squeeze) are exactly equal to iter_19; only the six env_mult-multiplied terms differ (lift_height, lift_rise, goal_reach, goal_progress, goal_hold, success_bonus)",
+   "deterministic_check": {
+    "script": "check_iter20.py (float64, CPU; reuses iter_18/check_curl.py make_ctx; each candidate's own code end-to-end with env_mult = success_bonus / 62, and the candidate's body cut after env_mult returning locals(); the two agree to 1.1e-16)",
+    "result": "diagnosis shapes, five digits alike: roll (ring) and roll (index) hand_curl 1.000, pip_hook 0.264, tip_hook middle 0.097, tip_hook thumb 0.135; with the same forces env_mult roll 0.994 vs pip_hook 0.665 vs tip_hook 0.591 (tip press 0.3/0/5 N), so curl > tip press whatever the force split. Harder tip (other links fixed, every shape): max rise of hand_curl 3.7e-12 from 2 N, 1.9e-3 from 0.5 N (soft-contact on-ramp tanh(F/0.15), shared with held), and still 3.7e-12 when the tip is pushed 1 mm deeper per 10 N. Digit removed (force 0, geometry kept or moved away): max rise hand_curl 0, env_mult 0. Bounded on random states incl. negative and far distances and 1000 N spikes: digit_curl [0, 1], curl_factor [0.5, 1], env_mult [0.105, 1.0], finite. Smooth near zero: F <= 1e-3 N gives hand_curl <= 0.0024, monotone, 2.7e-9 at 1e-9 N (no fallback); lift_off <= 1 cm is flat 1.0, max step 0.0165 per 0.1 mm of lift_off (continuous, one kink at FOLLOW_DEAD). Symmetric: 5-digit permutation 2e-16 on hand_curl, 4-finger permutation 2e-16 on env_mult. Relative: +2 cm on all three points 1e-15. Farthest or middle point moved further off: max rise 0. Force x3 on touching digits: max change 0.0024",
+    "replay": "offline, the new factor on the m18_curl traces (DATA rl/eval/cup_pick_l/m18_curl/raw, held = lifted and dz >= 3 cm), candidate code in float64. 256-env seed 42 (tracked 40 env): e1000 hand_curl 0.259 -> 0.159 (median 0.148, p90 0.243, held steps with hand_curl >= 0.5: 0.0 %), m18 e800 0.254 -> 0.210 (median 0.187, p90 0.35, >= 0.5: 0.07 %); the same states with every touching digit following would score 0.975 / 0.994, so both are scored at 16 % / 21 % of a curled hand = NOT curled. env_mult e1000 0.558 -> 0.523 (-6.3 %), e800 0.565 -> 0.549 (-2.8 %), identical to m18_curl/tools/sizing.py. Operator's frames (video replica, env 11 cup_big_s130): e1000 hand_curl 0.065 at 5 s and 0.12 from 7 s to 14.9 s (iter_19 0.200); e800 0.205 at 5 s, 0.192 at 7 s (iter_19 0.118 / 0.169); every digit 0.04-0.35. Step-to-step |d digit_curl| 0.001-0.008 on held steps (no noise chatter)",
+    "rate_terms": "no rate term added or changed (the pen_* rate/speed terms are exactly equal to iter_19; goal_progress and lift_rise differ only by the env_mult factor they already carried). Closed radial loop 0.10 <-> 0.15 m at 0.1 m/s with the curl modulated by GEOMETRY in step with the motion (recede with every digit tip-hooked, return rolled; the new way to game a multiplied rate term): goal_progress + pen_drift sum -5.46 (constant roll -13.66), whole reward over the loop 218.6 vs 362.0 for staying rolled at the inner point, so not farmable. iter_18 loop and table band re-run unchanged (-13.66 / -13.55; 0 / 0.15 / 0.30 at 2 / 1.5 / <= 1 cm)"
+   },
+   "residual_risk": [
+    "ring finger, not operator-verified: on held steps the e800 ring scores >= 0.5 on 31 % (256 env) and 78 % (12-env video replica: envs 1, 2, 4, 6, 7, 9 read ring 0.96-1.00, e.g. env 6 cup_big_s105 mean 1.00). The operator's video shows env 11 (s130) only, where the ring is 0.20. If the operator also calls those ring poses a tip press, FOLLOW_DEAD/FOLLOW_SCALE are too lenient; one frame from env 6 or 9 of the e800 video settles it",
+    "wall-following without flexing the last two joints is paid in two geometries (both measured here on synthetic states, both also paid by iter_18, so not introduced): (a) fingers straight and parallel to the cup axis with the thumb opposite: hand_curl 1.0, env_mult 1.0 (opposition does not block it, contrary to the diagnosis' hypothesis); (b) a straight k0-k1-tip chain touching at its middle on the large cups (outer radius >= 4.6 cm): lift_off 0.87-0.97 cm -> curl 1.0; the same chain touching at the tip (the operator's straight bar) 0.03. The m18 policies wrap horizontally (pad end 115-148 deg around from the palm), so (a) needs a new approach posture; watch pad-end azimuth and finger direction vs the cup axis in the m20 replay",
+    "rim / lid contact: lift_off has no side-wall weighting (the plan does not ask for one), so a digit lying on a rim or the shaker lid can read a small lift_off; env_depth already pays such links. Check the lid/rim share in the m20 replay (c1's own note)",
+    "iter_18 residual unchanged: palm contact paid inside held and hold_grip"
+   ]
+  },
+  "q1": {
+   "source": "local qwen (condensed prompt_qwen.md)",
+   "gate": "PASS (cpu+cuda dry run, no warnings)",
+   "plan": "conforms: AST identical to c1 (only comments differ; its rule (g) comment says ROUND 19 instead of 20). Same numbers on every check and on the fake ctx (max |q1 - c1| = 0)",
+   "rejected": "not rejected on substance: same code as c1. c1 is recorded because its response carries the diagnosis, the plan check and the residual notes, and its comments name the right round"
+  },
+  "q2": {
+   "source": "local qwen (condensed prompt_qwen.md)",
+   "gate": "PASS (cpu+cuda dry run, no warnings)",
+   "plan": "does not conform. Besides the planned curl lines it (1) unquotes the compute_reward annotation (\"RewardContext\" -> RewardContext), (2) deletes the CURL_FLOOR constant and writes curl_factor = 0.5 + 0.5 * hand_curl, (3) rewrites env_mult = 0.1 + 0.9 * env_q with ENV_FLOOR left defined but unused. Behaviour identical to c1 on every check (max |q2 - c1| = 0)",
+   "rejected": "interface change with no benefit (same defect as iter_19 q3): a bare exec now raises NameError 'RewardContext' (checked), which breaks the diagnosis wrappers (m18_term/tools/eval_term_reasons.py exec with ns = {_DIAG, __name__}) and check_curl-style loaders; plus two unplanned edits that hard-code the floors outside the named constants"
+  },
+  "q3": {
+   "source": "local qwen (condensed prompt_qwen.md)",
+   "gate": "PASS (cpu+cuda dry run, no warnings)",
+   "plan": "conforms in behaviour, not byte/AST-identical to c1: CURL_FLOOR moved after the two new constants and lift_off inlined on ctx.link_surface_dist (no link_dist alias). Signature unchanged. Same numbers on every check (max |q3 - c1| = 0 on the fake ctx)",
+   "rejected": "not rejected on substance; c1 is preferred because it keeps the iter_19 statement order (smaller diff) and its comments are the round-20 ones"
+  }
+ },
+ "rule": "gate PASS AND plan conformance (iter_19/improvement.md: only the per-digit curl measure changes, lift_off / follow / digit_touch x follow with FOLLOW_DEAD 0.010 and FOLLOW_SCALE 0.006; inner_share, press, CURL_FULL_SHARE, CURL_FORCE_REF removed in every form; the rest identical to iter_19/compute_reward.py by AST; symmetric, no per-finger term, no absolute force or angle target, surface fields from ctx, interface unchanged, no speed/control relaxation, iter_16/18 structure and budgets kept) AND deterministic property check (tip press < curl on the diagnosis shapes; harder tip never raises the curl; digit removal never raises it; bounded; smooth near zero) AND offline replay (e1000 and m18 e800, both judged tip press, scored as not curled)",
+ "decided_by": "gate review subagent (recommendation; main confirms)",
+ "at": "2026-09-26T11:12",
+ "warm_start": "ckpt_in/cup_pick/cp_l_m18_e800.pth",
+ "warm_start_why": "best evaluated checkpoint (fixed-tol success 0.842, goal3 0.660) and the one m19 already starts from, so an iter_20 run differs from m19 by the reward only. The diagnosis gives no reason to prefer another: e1000 predates the curl factor and scores lower on the new signal (0.159 vs 0.210), e1250 regressed (0.785). At the switch e800 loses 2.8 % of its downstream income (env_mult 0.565 -> 0.549), a smaller shock than m18's iter_16 -> iter_18 critic change. A cp_l_m19 checkpoint can replace it only after a fixed-tol eval shows it beats 0.842 (m19 has the mirrored y bound); that is the main session's call",
+ "notes": [
+  "compute_reward.py = compute_reward_c1.py (md5 25341075), validation.json = validation_c1.json (md5 771e4c46; all four validation files are identical because the four codes compute the same thing)",
+  "no repair written: c1 needs none",
+  "environment for the launch: keep cp_l_m19's env (hdgp b4140657, object_out_y (-0.25, 0.60) mirrored, user decision d_cup_l_out_y) and m18's curriculum start (tol_start 0.1), so the reward is the only difference from m19",
+  "watch in the first m20 replay: per-digit lift_off distribution on held steps (share <= 1 cm), ring and index shapes on s100-s115, pad-end azimuth and finger direction vs the cup axis (residual (a)), rim/lid contact share on the shaker, env_mult dip of 3-6 % at the switch with grasp/lift holding",
+  "nothing launched, stopped or committed by this review; no GPU used (CPU float64 only; the ingest dry run used the local 5090 briefly)"
+ ]
+}

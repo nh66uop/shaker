@@ -1,0 +1,23 @@
+== c1
+  PASS  L1 return: approach-and-touch beats standing (curl 0.35): stand +1.138 approach +8.078 | one-step stand +0.0180 closer-moving -0.0133
+  PASS  L2 flat open hand on wall < one digit contact: flat +0.3497 one-digit +0.7404
+  PASS  L3 4-digit grasp: table < 3 cm < 8 cm: table +0.8955 3cm +3.1723 8cm +4.2690
+  PASS  L4 at goal: fingertip press < rolled: press +6.5326 roll +9.7786 ratio 0.668
+  PASS  L6 pinch < pinch+palm seated (object nudged): pinch +0.3851 seated +1.1061 margin +0.7210
+  PASS  L6b pinch+third digit < pinch+palm seated: third digit +0.3984 seated +1.1061
+  PASS  L7 at goal: segment wrap > fingertip press: press +6.5061 wrap +10.0382 ratio 0.648 (need < 0.87)
+  PASS  L8 tip-only -> segments near -> segments touching rises: far +0.6510 near +0.6999 touching +0.9962
+  PASS  L9 segments touching: table < 3 cm up: table +0.9962 3cm +3.1689
+  PASS  L5 finite on fake contexts: range -1.939..+31.006
+== ref01
+  PASS  L1 return: approach-and-touch beats standing (curl 0.35): stand +1.138 approach +8.111 | one-step stand +0.0180 closer-moving -0.0133
+  PASS  L2 flat open hand on wall < one digit contact: flat +0.3497 one-digit +0.7895
+  PASS  L3 4-digit grasp: table < 3 cm < 8 cm: table +0.9849 3cm +3.2252 8cm +4.3030
+  PASS  L4 at goal: fingertip press < rolled: press +7.0988 roll +9.8987 ratio 0.717
+  PASS  L6 pinch < pinch+palm seated (object nudged): pinch +0.3970 seated +1.1254 margin +0.7284
+  PASS  L6b pinch+third digit < pinch+palm seated: third digit +0.4253 seated +1.1254
+  PASS  L7 at goal: segment wrap > fingertip press: press +7.0988 wrap +9.8987 ratio 0.717 (need < 0.87)
+  FAIL  L8 tip-only -> segments near -> segments touching rises: far +0.7473 near +0.7473 touching +0.9000
+  PASS  L9 segments touching: table < 3 cm up: table +0.9000 3cm +3.0340
+  PASS  L5 finite on fake contexts: range -1.775..+30.332
+SUMMARY {'c1': True, 'ref01': False}

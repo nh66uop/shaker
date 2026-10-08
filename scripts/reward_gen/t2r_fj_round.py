@@ -1,0 +1,646 @@
+#!/usr/bin/env python3
+"""grasp_fj t2r 자동 루프 — 라운드 판정 · 다음 iter 프롬프트 · 서버 기동 (붓기 `t2r_round.py` 와 코드 공유 없음).
+
+  status  : 서버 콘솔·프로세스(RUN_LABEL 대조)·TFEvents → verdict → iter_NN/status.json
+  video   : 최신 체크포인트 스냅샷 → 서버 GPU0 play 영상(학습 tol) → 로컬 our_source/fj_t2r_videos + 프레임 시트
+  advance : 사용자 승인한 관찰·개선 피드백(+참고 지표)으로 `t2r_fj.py reflect` → history.jsonl + iter_(NN+1)/prompt.md
+  launch  : 검증 PASS·push 확인 → 서버 git 동기화·HEAD 대조 → (선택) 이전 런을 **PID 로만** 종료 → run_fj.sh →
+            새 PID 를 RUN_LABEL·CUDA 로 확인 → iter_NN/launch.json
+
+모든 명령은 `--track`(기본 grasp_fj_envelope)으로 gym id·로그 폴더·학습 알고리즘·env 수를 고른다(`TRACKS`).
+★09.14 사용자 "보상 구조가 확실하지 않은데 SAPG·env 수를 너무 늘린 게 아닌지" → reach 보상 루프는 PPO-LSTM 4096 env,
+  파지·리프트가 되는 보상이 나온 뒤 최종 정책만 SAPG 12,288. (reach i00 만 SAPG 12,288 로 돌았다.)
+
+    python3 scripts/reward_gen/t2r_fj_round.py status  --track grasp_fj_reach --label fj_reach_i01 --iter reward_gen/grasp_fj_reach/iter_01
+    python3 scripts/reward_gen/t2r_fj_round.py advance --track grasp_fj_reach --label fj_reach_i00 --iter reward_gen/grasp_fj_reach/iter_00 \
+        --description reward_gen/grasp_fj_reach/iter_00/observation.md --feedback reward_gen/grasp_fj_reach/iter_00/improvement.md
+    python3 scripts/reward_gen/t2r_fj_round.py launch  --track grasp_fj_reach --label fj_reach_i01 --iter reward_gen/grasp_fj_reach/iter_01
+
+판정 규칙(ROUND_POLICY — 루프 프롬프트는 이 값을 인용만 한다):
+  · 로그 Traceback/Killed/overflow, 또는 죽었는데 epoch < 10 → crashed / 그 밖에 죽음 → dead
+  · 성공 ≥ DONE_SUCCESSES · task/tol ≤ DONE_TOL · 인벨롭 판정이 실패가 아님 → done_candidate
+      인벨롭 = 성공 순간 손가락 ≥ DONE_FINGERS 그리고 손바닥 ≥ DONE_PALM. 지표가 없거나 아직 성공이 없으면 판정 보류(None)
+      → 종료 게이트의 영상이 가른다.
+  · 유지 = 성공(ctrl/prev_ep_successes_mean 최근 평균) ≥ KEEP_SUCCESSES **또는** 공차 커리큘럼이 최근 TOL_WINDOW epoch 안에
+      조여졌다 → continue(success) / continue(curriculum). 단 epoch ≥ 2×ROUND_EPOCHS 인데 인벨롭 판정이 실패면 advance(envelope)
+      ★왜 커리큘럼을 보나(09.14 i00 실측): 공차는 3000 프레임(≈188 epoch)마다 성공 평균 ≥ 2.0 이면 ×0.9 로만 조여진다
+        (e562·e749·e937). 조일 때마다 성공 수가 떨어져(3.46→2.72) 성공은 게이트 2.0 근처로 수렴한다 —
+        성공만 보면 들기·접촉이 오르는 중인 런을 죽인다.
+  · 막힌 단계 = 에피소드 퍼널(`stage/<단계>_ep`: 접근 → 파지 → 인벨롭 → 리프트 → 성공)에서 앞 단계가 창 내내 포화
+      (now·ago ≥ STUCK_PREV)인데 다음 단계가 거의 0(now ≤ STUCK_NEXT)이고 그 뒤 어느 단계도 STAGE_EPS 만큼 안 올랐다 →
+      epoch ≥ TOL_WINDOW 면 e1000 전이라도 advance(stuck:<단계>)
+      ★09.14 reach i00: 접근 0.98 · 파지 0 · 손바닥 접촉 0.61 · 손가락 0.03 — 사용자 "막힌 단계 200 epoch 정체면 라운드 끝".
+  · 그 밖에 퍼널 어느 단계가 최근 TOL_WINDOW epoch 에 STAGE_EPS 이상 올랐으면 epoch < 2×ROUND_EPOCHS · 경과 < 2×ROUND_HOURS 까지
+      continue(stage) — zero-shot 초반은 성공이 0 인 채 접근·파지가 오른다.
+  · 유지가 아니고 epoch ≥ ROUND_EPOCHS 또는 ROUND_HOURS 경과 → advance
+"""
+
+from __future__ import annotations
+
+import argparse
+import glob
+import json
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+_HDGP = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_HDGP / "scripts" / "tools"))
+from parse_tfevents import load_tfevents   # noqa: E402
+
+#: ★09.14 근거: 12,288 env 에서 ~340 epoch/h. fj_i2(사람 보상)는 e51 에 들기, e500 에 성공 3.8~4.0 —
+#:   ROUND 1000 epoch(~3h) 안에 들기·성공이 안 서면 보상이 신호를 못 주는 것으로 본다.
+#:   KEEP 2.0 = 공차 커리큘럼 게이트(tol_success_threshold). TOL_WINDOW 200 = 커리큘럼 점검 간격(3000 프레임 ≈ 188 epoch)+여유.
+#:   DONE_TOL 0.03 = 느슨한 공차(시작 0.1125)의 성공은 종료 근거가 아니다. 인벨롭 = 사용자 09.13 "5손가락 개입".
+#:   STAGE_EPS 0.02 = 퍼널 에피소드 비율이 200 epoch 에 2%p 이상 오르면 "오르는 중"(이벤트 EMA 흔들림보다 크게).
+#:   STUCK_PREV 0.9 · STUCK_NEXT 0.02 = 사용자 09.14 "앞 단계 ≥ 0.9 인데 다음 단계가 0 으로 200 epoch 안 오르면 라운드 끝".
+#:   ★09.15 사용자 "의도한 동작이 전혀 안 나오는데 학습이 진행되는 게 잘못" → 단계 체크포인트(사용자 선택): 보상 게이트 래치
+#:   (env `grasp_gates.py`)의 에피소드 비율을 최근 창 평균으로 본다 — CHECK_APPROACH_EPOCH 까지 접근 래치 ≥ CHECK_APPROACH_MIN,
+#:   CHECK_ENVELOPE_EPOCH 까지 인벨롭 래치 ≥ CHECK_ENVELOPE_MIN. 못 미치면 stop(checkpoint:<단계>) → 라운드 끝(영상 → 초안 → 승인).
+#:   epoch 값은 12,288 env 기준(reach 4096 → e600 · e1500).
+ROUND_POLICY = {"ROUND_EPOCHS": 1000, "ROUND_HOURS": 4.0, "KEEP_SUCCESSES": 2.0, "TOL_WINDOW": 200, "TOL_EPS": 1e-4,
+                "DONE_SUCCESSES": 4.0, "DONE_TOL": 0.03, "DONE_FINGERS": 4.0, "DONE_PALM": 0.5,
+                "STAGE_EPS": 0.02, "STUCK_PREV": 0.9, "STUCK_NEXT": 0.02, "MAX_ROUNDS": 8, "LAST_N": 50,
+                "CHECK_APPROACH_EPOCH": 200, "CHECK_APPROACH_MIN": 0.3,
+                "CHECK_ENVELOPE_EPOCH": 500, "CHECK_ENVELOPE_MIN": 0.05}
+SERVER = "server"
+SERVER_HDGP = "/home/oem/rl_ws/hdgp"
+SERVER_CONSOLE = "/home/oem/rl_ws/our_source/fj_t2r_runs"
+GPU = "0"                     # ★사용자 09.13: fj 실험은 GPU0 만(GPU1 = 붓기 루프)
+SAPG_BLOCKS = 6               # run_fj.sh 상류 규약: num_envs ÷ 6 = expl_coef_block_size
+#: PPO-LSTM(`rl_games_ppo_lstm_cfg.yaml`)은 horizon 16 · minibatch 16,384 — num_envs×16 이 미니배치로 나뉘려면 1024 의 배수.
+PPO_ENV_MULTIPLE = 1024
+#: 트랙(reward_gen/<track>) → gym id·play id·로그 폴더·학습 알고리즘·env 수·영상 길이(스텝).
+#:   ★09.14 reach(최종 목표 env: 테이블 가장자리 시작·cup_family·15 s) — 영상은 한 에피소드(900 스텝)를 다 담는다.
+#:   ★09.14 사용자 결정: reach 보상 루프는 PPO-LSTM 4096(`-lstm`). train.py 는 `-lstm`/`-sapg` 를 벗겨 같은 로그 폴더를 쓴다.
+TRACKS: dict[str, dict] = {
+    "grasp_fj_envelope": {"task": "open-short_r_grasp_fj_t2r-lstm-sapg",
+                          "play": "open-short_r_grasp_fj_t2r-play-lstm-sapg", "logdir": "grasp-fj-t2r",
+                          "sapg": True, "num_envs": 12288, "video_length": 700},
+    "grasp_fj_reach": {"task": "open-short_r_grasp_fj_t2r_reach-lstm",
+                       "play": "open-short_r_grasp_fj_t2r_reach-play-lstm", "logdir": "grasp-fj-t2r-reach",
+                       "sapg": False, "num_envs": 4096, "video_length": 900},
+    #   ★09.15 사용자 "보상함수를 다시 구성 — 기본 핸드 자세로 접근 → 접근한 상태에서 인벨롭 파지 → 리프트": 같은 reach env
+    #   (보상 게이트 래치 추가)·같은 알고리즘을 **새 이력**으로 돈다(reach 6라운드 이력은 생성기에 넣지 않는다). 라벨 fj_stage_iNN.
+    #   ★09.15 23:0x 사용자 "T2R 제대로 적용하면서 진행되는건지?" → "시작 상태 커리큘럼 + env 고정": 라운드는 끝까지 학습한 뒤 영상으로
+    #   판정한다 — `early_stop: False` 가 체크포인트·막힘·단계 연장을 끈다(`track_policy`).
+    "grasp_fj_stage": {"task": "open-short_r_grasp_fj_t2r_reach-lstm",
+                       "play": "open-short_r_grasp_fj_t2r_reach-play-lstm", "logdir": "grasp-fj-t2r-reach",
+                       "sapg": False, "num_envs": 4096, "video_length": 900, "early_stop": False},
+    #   ★09.17 사용자 "컵 위치 랜덤(x 0.10–0.40 · y −0.30–0.00) · 가까운 출발 끔 · 보상 i08 로 iter_00 부터 재시작 — 여기까지는
+    #   기본 보상 골자를 만든 실험". 새 env(rand leaf)·새 이력. 라벨 fj_rand_iNN. 판정 규약은 grasp_fj_stage 와 같다.
+    "grasp_fj_rand": {"task": "open-short_r_grasp_fj_t2r_rand-lstm",
+                      "play": "open-short_r_grasp_fj_t2r_rand-play-lstm", "logdir": "grasp-fj-t2r-rand",
+                      "sapg": False, "num_envs": 4096, "video_length": 900, "early_stop": False},
+    # ★09.20 사용자 "왼팔로도 학습" — rand 의 좌팔 거울상. 서버 로그는 `.../open-short/left/grasp-fj-t2r-rand/`,
+    #   로컬 미러는 우판과 섞이지 않게 `grasp-fj-t2r-rand-left`. 영상 카메라도 y 반전.
+    # ★09.20 프레임워크(사용자: "framework 기반 확장 · 작업에 맞게 디렉토리 이름") — 과제 `cup_pick`, 단계 `approach`(접근·인벨롭) → `manip`(리프트·목표).
+    #   정책은 하나이고 보상만 단계로 갈아 끼우며 같은 가중치를 이어 받는다. 같은 gym id·같은 로그 폴더(cup-pick)를 쓰고 라벨 접두사와 보상 이력만 나뉜다.
+    #   s2r 동결 트랙(grasp-fj-t2r-rand)과 섞이지 않는다. 새 과제는 이 네 줄을 과제명만 바꿔 복제한다.
+    "cup_pick_l_approach": {"task": "open-short_l_cup_pick-lstm", "play": "open-short_l_cup_pick-play-lstm",
+                              "logdir": "cup-pick", "side": "left", "mirror": "cup-pick-left",
+                              "video_cam": ("1.10,0.80,0.78", "0.36,0.16,0.44"),
+                              "sapg": False, "num_envs": 4096, "video_length": 900, "early_stop": False},
+    "cup_pick_l_manip": {"task": "open-short_l_cup_pick-lstm", "play": "open-short_l_cup_pick-play-lstm",
+                              "logdir": "cup-pick", "side": "left", "mirror": "cup-pick-left",
+                              "video_cam": ("1.10,0.80,0.78", "0.36,0.16,0.44"),
+                              "sapg": False, "num_envs": 4096, "video_length": 900, "early_stop": False},
+    "cup_pick_r_approach": {"task": "open-short_r_cup_pick-lstm", "play": "open-short_r_cup_pick-play-lstm",
+                              "logdir": "cup-pick", "side": "right", "mirror": "cup-pick-right",
+                              "sapg": False, "num_envs": 4096, "video_length": 900, "early_stop": False},
+    "cup_pick_r_manip": {"task": "open-short_r_cup_pick-lstm", "play": "open-short_r_cup_pick-play-lstm",
+                              "logdir": "cup-pick", "side": "right", "mirror": "cup-pick-right",
+                              "sapg": False, "num_envs": 4096, "video_length": 900, "early_stop": False},
+    # deprecated — 이름 변경 전 좌팔 1단계 런(fj_abL_a00) 전용. 그 런이 끝나면 지운다.
+    "grasp_fj_ab_l_approach": {"task": "open-short_l_grasp_fj_ab-lstm", "play": "open-short_l_grasp_fj_ab-play-lstm",
+                               "logdir": "grasp-fj-ab", "side": "left", "mirror": "grasp-fj-ab-left",
+                               "video_cam": ("1.10,0.80,0.78", "0.36,0.16,0.44"),
+                               "sapg": False, "num_envs": 4096, "video_length": 900, "early_stop": False},
+    "grasp_fj_rand_left": {"task": "open-short_l_grasp_fj_t2r_rand-lstm",
+                           "play": "open-short_l_grasp_fj_t2r_rand-play-lstm", "logdir": "grasp-fj-t2r-rand",
+                           "side": "left", "mirror": "grasp-fj-t2r-rand-left",
+                           "video_cam": ("1.10,0.80,0.78", "0.36,0.16,0.44"),
+                           "sapg": False, "num_envs": 4096, "video_length": 900, "early_stop": False},
+}
+SUCCESS_TAG = "ctrl/prev_ep_successes_mean"
+KEY_TAGS = (SUCCESS_TAG, "task/successes_mean", "task/lifted_frac", "task/tol", "task/tilt_deg",
+            "task/grasp_q_at_success", "done/tipped", "done/fell", "done/out_xy", "done/hand_floor",
+            "done/abnormal", "done/max_goals")
+#: 에피소드 퍼널 단계 — env `grasp_fj_t2r/stage_funnel.STAGES` 와 같은 순서(테스트가 대조한다).
+STAGE_NAMES = ("reach", "grasp", "envelope", "lift", "success")
+_CRASH_WORDS = ("Traceback", "Killed", "overflow")
+
+
+def track(name: str) -> dict:
+    """트랙 설정 + 서버 로그 폴더·로컬 미러 경로."""
+    if name not in TRACKS:
+        raise SystemExit(f"[round_fj] 모르는 트랙: {name} (있는 것: {sorted(TRACKS)})")
+    t = dict(TRACKS[name])
+    t["server_logdir"] = f"{SERVER_HDGP}/log/rl_games/open-short/{t.get('side', 'right')}/{t['logdir']}"
+    t["local_mirror"] = _HDGP / "log" / "server_mirror" / t.get("mirror", t["logdir"])
+    return t
+
+
+#: ROUND_POLICY 의 epoch 창은 SAPG 12,288 env(epoch 당 12,288×16 = 196,608 프레임)에서 잡았다.
+#: ★09.14 사용자 "프레임 기준으로 맞춤" — env 수가 다른 트랙은 같은 프레임이 되게 epoch 창을 env 수에 반비례로 늘린다
+#:   (reach PPO-LSTM 4096 → ×3: 라운드 3000 · 창 600 · 평균 150 epoch). 시간 상한 ROUND_HOURS 는 그대로.
+REF_ENVS = 12288
+_EPOCH_KEYS = ("ROUND_EPOCHS", "TOL_WINDOW", "LAST_N", "CHECK_APPROACH_EPOCH", "CHECK_ENVELOPE_EPOCH")
+
+
+#: 조기 판정을 끈 트랙의 체크포인트 epoch — 도달하지 않는 값
+NEVER_EPOCH = 10 ** 9
+
+
+def track_policy(t: dict, policy: dict = ROUND_POLICY) -> dict:
+    """트랙의 판정 수치 — epoch 창만 env 수로 환산해 프레임 기준을 맞춘다.
+
+    ★`early_stop: False`(09.15 grasp_fj_stage 시작 상태 커리큘럼) — 체크포인트·막힘·단계 연장을 끄고 ROUND_EPOCHS/HOURS 에서만 끝낸다.
+    """
+    scale = REF_ENVS / float(t["num_envs"])
+    pol = {**policy, **{k: int(round(policy[k] * scale)) for k in _EPOCH_KEYS}}
+    if t.get("early_stop", True):
+        return pol
+    return {**pol, "CHECK_APPROACH_EPOCH": NEVER_EPOCH, "CHECK_ENVELOPE_EPOCH": NEVER_EPOCH,
+            "STUCK_STOP": False, "STAGE_EXTEND": False}
+
+
+def _ssh(cmd: str, timeout: int = 60, allow_timeout: bool = False) -> str:
+    try:
+        r = subprocess.run(["ssh", "-o", "BatchMode=yes", SERVER, cmd], capture_output=True, text=True,
+                           timeout=timeout)
+    except subprocess.TimeoutExpired:
+        if allow_timeout:
+            return ""
+        raise SystemExit(f"[round_fj] ssh {timeout}s 초과: {cmd[:80]}")
+    return r.stdout
+
+
+def _git(*args: str) -> str:
+    return subprocess.run(["git", "-C", str(_HDGP), *args], capture_output=True, text=True,
+                          check=True).stdout.strip()
+
+
+# ---------------------------------------------------------------------------- 순수 함수(테스트 대상)
+def procs_cmd(label: str | None = None) -> str:
+    """oem 의 train.py 프로세스를 `PID= LABEL= CUDA_VISIBLE_DEVICES=` 로 찍는 서버 명령. label 이면 그 런만.
+
+    ★`train[.]py` — 이 명령을 실행하는 셸 자신과 매칭되지 않게(pgrep -f 는 자기 명령줄도 본다).
+    """
+    only = f"[ \"$l\" = '{label}' ] && " if label else ""
+    return ("for p in $(pgrep -u oem -f 'rl_games/train[.]py'); do "
+            "e=$(tr '\\0' '\\n' < /proc/$p/environ 2>/dev/null); "
+            "l=$(echo \"$e\" | grep '^RUN_LABEL=' | cut -d= -f2); "
+            "c=$(echo \"$e\" | grep '^CUDA_VISIBLE_DEVICES='); "
+            f"{only}echo \"PID=$p LABEL=$l $c\"; done")
+
+
+def parse_procs(text: str) -> list[tuple[int, str, str]]:
+    rows = []
+    for ln in text.splitlines():
+        s = ln.strip()
+        if s.startswith("PID="):
+            kv = dict(p.split("=", 1) for p in s.split() if "=" in p)
+            rows.append((int(kv["PID"]), kv.get("LABEL", ""), kv.get("CUDA_VISIBLE_DEVICES", "")))
+    return rows
+
+
+def parse_tail(text: str) -> dict:
+    """콘솔 grep + procs_cmd 출력 → {epoch, crashed, procs, alive}."""
+    st = {"epoch": None, "crashed": False, "procs": parse_procs(text), "alive": False}
+    for ln in text.splitlines():
+        s = ln.strip()
+        if s.startswith("PID="):
+            continue
+        if s.startswith("epoch") and ":" in s:
+            try:
+                st["epoch"] = int(s.split(":", 1)[1].split("/")[0].replace(",", "").strip())
+            except ValueError:
+                pass
+        elif any(w in s for w in _CRASH_WORDS):
+            st["crashed"] = True
+    st["alive"] = bool(st["procs"])
+    return st
+
+
+def summarize(data: dict, last_n: int, window: int) -> dict:
+    """`load_tfevents` 결과 → 판정 태그 {n, last(최근 last_n 평균), now(마지막 점), ago(window epoch 전), max, first}."""
+    out = {}
+    for raw, pts in data.items():
+        if not raw.endswith("/iter"):
+            continue
+        tag = raw[:-5]
+        if tag in KEY_TAGS or tag.startswith(("reward/", "contact/", "stage/")):
+            vals = [v for _, v in pts if v == v]
+            if vals:
+                tail = vals[-last_n:]
+                ago = vals[-(window + 1)] if len(vals) > window else vals[0]
+                out[tag] = {"n": len(vals), "last": round(sum(tail) / len(tail), 4), "now": round(vals[-1], 4),
+                            "ago": round(ago, 4), "max": round(max(vals), 4), "first": round(vals[0], 4)}
+    return out
+
+
+def envelope_ok(summary: dict, policy: dict = ROUND_POLICY) -> bool | None:
+    """성공 순간 접촉으로 본 인벨롭 여부. 지표가 없거나(구 코드) 아직 성공이 없으면(−1) None = 영상으로."""
+    f = summary.get("contact/fingers_touching_at_success", {}).get("now")
+    p = summary.get("contact/palm_touching_at_success", {}).get("now")
+    if f is None or p is None or f < 0 or p < 0:
+        return None
+    return f >= policy["DONE_FINGERS"] and p >= policy["DONE_PALM"]
+
+
+def curriculum_moving(summary: dict, policy: dict = ROUND_POLICY) -> bool:
+    """최근 TOL_WINDOW epoch 안에 공차가 조여졌나 = 마지막 커리큘럼 점검에서 성공 게이트를 넘었다."""
+    t = summary.get("task/tol")
+    return bool(t) and (t["ago"] - t["now"]) > policy["TOL_EPS"]
+
+
+def stage_funnel(summary: dict) -> dict:
+    """에피소드 퍼널 {단계: (now, ago)} — 태그가 없거나 아직 끝난 에피소드가 없으면(−1) None. ago 의 −1 은 0 으로 본다."""
+    out = {}
+    for s in STAGE_NAMES:
+        m = summary.get(f"stage/{s}_ep")
+        out[s] = None if (not m or m["now"] < 0) else (m["now"], max(m["ago"], 0.0))
+    return out
+
+
+def stage_moving(summary: dict, policy: dict = ROUND_POLICY) -> bool:
+    """최근 TOL_WINDOW epoch 안에 퍼널 어느 단계든 STAGE_EPS 이상 올랐나."""
+    return any(v is not None and v[0] - v[1] >= policy["STAGE_EPS"] for v in stage_funnel(summary).values())
+
+
+def stage_stuck(summary: dict, policy: dict = ROUND_POLICY) -> str | None:
+    """막힌 단계 이름 — 앞 단계가 창 내내 포화인데 다음 단계가 거의 0 이고 그 뒤 어느 단계도 안 오른다. 없으면 None.
+
+    ★"그 뒤 어느 단계도" — 퍼널은 포함 관계를 강제하지 않는다(인벨롭 없이 들 수 있다). 리프트가 오르는 중이면
+      인벨롭이 0 이어도 라운드를 끊지 않는다.
+    """
+    fun = stage_funnel(summary)
+    for k in range(len(STAGE_NAMES) - 1):
+        prev, nxt = fun[STAGE_NAMES[k]], fun[STAGE_NAMES[k + 1]]
+        if prev is None or nxt is None:
+            continue
+        if min(prev) < policy["STUCK_PREV"] or nxt[0] > policy["STUCK_NEXT"]:
+            continue
+        later = [fun[n] for n in STAGE_NAMES[k + 1:]]
+        if all(v is None or v[0] - v[1] < policy["STAGE_EPS"] for v in later):
+            return STAGE_NAMES[k + 1]
+    return None
+
+
+#: 보상 게이트 래치 에피소드 비율 태그 — env `grasp_fj_t2r_env.GATE_NAMES` 순서(`stage/<이름>_gate_ep`).
+GATE_CHECKS = (("approach", "CHECK_APPROACH_EPOCH", "CHECK_APPROACH_MIN"),
+               ("envelope", "CHECK_ENVELOPE_EPOCH", "CHECK_ENVELOPE_MIN"))
+
+
+def gate_checkpoint(summary: dict, epoch: int, policy: dict = ROUND_POLICY) -> str | None:
+    """체크포인트를 못 넘은 첫 단계 이름 — 게이트 태그가 없으면(옛 트랙) None.
+
+    ★최근 창 평균(last)으로 본다 — 마지막 한 점은 모드가 오가는 정책에서 제멋대로다(09.15 i02·i04 판정). −1(끝난 에피소드 없음)은 0.
+    """
+    for name, epoch_key, min_key in GATE_CHECKS:
+        m = summary.get(f"stage/{name}_gate_ep")
+        if not m or epoch < policy[epoch_key]:
+            continue
+        if max(m.get("last", m.get("now", 0.0)), 0.0) < policy[min_key]:
+            return name
+    return None
+
+
+def judge(summary: dict, st: dict, hours: float | None, policy: dict = ROUND_POLICY) -> tuple[str, dict]:
+    epoch = st.get("epoch") or 0
+    succ = summary.get(SUCCESS_TAG, {}).get("last", 0.0)
+    tol = summary.get("task/tol", {}).get("now")
+    env_ok = envelope_ok(summary, policy)
+    moving = curriculum_moving(summary, policy)
+    stage_up = stage_moving(summary, policy)
+    stuck = stage_stuck(summary, policy)
+    checkpoint = gate_checkpoint(summary, epoch, policy)
+    info = {"epoch": epoch, "successes": succ, "tol": tol, "curriculum_moving": moving, "stage_moving": stage_up,
+            "stage_stuck": stuck, "envelope_ok": env_ok, "checkpoint": checkpoint}
+    if st.get("crashed") or (not st.get("alive") and epoch < 10):
+        return "crashed", info
+    if not st.get("alive"):
+        return "dead", info
+    if (succ >= policy["DONE_SUCCESSES"] and tol is not None and tol <= policy["DONE_TOL"]
+            and env_ok is not False):
+        return "done_candidate", info
+    # ★09.15 사용자 "의도한 동작이 안 나오는데 학습이 진행되는 게 잘못" — 단계를 건너뛴 성공도 여기서 멈춘다(성공 유지 규칙보다 먼저).
+    if checkpoint:
+        return f"stop(checkpoint:{checkpoint})", info
+    keep_succ = succ >= policy["KEEP_SUCCESSES"]
+    if keep_succ or moving:
+        if env_ok is False and epoch >= 2 * policy["ROUND_EPOCHS"]:
+            return "advance(envelope)", info
+        return ("continue(success)" if keep_succ else "continue(curriculum)"), info
+    if stuck and policy.get("STUCK_STOP", True) and epoch >= policy["TOL_WINDOW"]:
+        return f"advance(stuck:{stuck})", info
+    if (stage_up and policy.get("STAGE_EXTEND", True) and epoch < 2 * policy["ROUND_EPOCHS"]
+            and (hours or 0.0) < 2 * policy["ROUND_HOURS"]):
+        return "continue(stage)", info
+    if epoch >= policy["ROUND_EPOCHS"] or (hours or 0.0) >= policy["ROUND_HOURS"]:
+        return "advance", info
+    return "continue", info
+
+
+def launch_command(label: str, rel_iter: str, num_envs: int, seed: int,
+                   task: str = TRACKS["grasp_fj_envelope"]["task"], sapg: bool = True,
+                   checkpoint: str | None = None) -> str:
+    """서버에서 run_fj.sh 를 백그라운드로 띄우는 한 줄.
+
+    ★i1/i2·i00 과 같은 런처. `SERVER=1` 이 없으면 서버의 ../IsaacLab 으로 가서 conda 를 안 탄다.
+    ★백그라운드 detach 는 `nohup bash <파일> > log 2>&1 < /dev/null &` 만 된다(서버 conda 함정).
+    ★SAPG 가 아니면 블록 인자를 넘기지 않는다 — PPO-LSTM 설정에는 `expl_coef_block_size` 키가 없다.
+    ★checkpoint(서버 절대 경로)를 주면 train.py `--checkpoint` 로 가중치만 이어 받는다 — epoch 은 0 부터(train.py 기본
+      reset_epoch), 판정 창·체크포인트 epoch 이 새 라운드 기준 그대로 맞는다(09.17 사용자 "체크포인트로 시작").
+    """
+    code = f"{SERVER_HDGP}/{rel_iter}/compute_reward.py"
+    if sapg:
+        if num_envs % SAPG_BLOCKS:
+            raise ValueError(f"num_envs {num_envs} 가 SAPG {SAPG_BLOCKS}블록으로 안 나뉜다")
+        blk = num_envs // SAPG_BLOCKS
+        algo = f"BLK={blk} "
+        extra = f"agent.params.config.expl_coef_block_size={blk} env.reward_code_path={code}"
+    else:
+        if num_envs % PPO_ENV_MULTIPLE:
+            raise ValueError(f"num_envs {num_envs} × horizon 16 이 PPO 미니배치 16,384 로 안 나뉜다({PPO_ENV_MULTIPLE} 의 배수)")
+        algo = ""
+        extra = f"env.reward_code_path={code}"
+    if checkpoint:
+        if not checkpoint.startswith("/") or any(c in checkpoint for c in " '\"$;&|`"):
+            raise ValueError(f"checkpoint 는 공백·따옴표 없는 서버 절대 경로여야 한다: {checkpoint!r}")
+        extra = f"--checkpoint {checkpoint} {extra}"
+    return (f"mkdir -p {SERVER_CONSOLE} && cd {SERVER_HDGP} && TASK={task} RUN={label} GPU={GPU} "
+            f"ENVS={num_envs} {algo}SEED={seed} SERVER=1 NOTE='t2r {rel_iter}' "
+            f"EXTRA='{extra}' "
+            f"nohup bash scripts/experiments/run_fj.sh > {SERVER_CONSOLE}/{label}.out 2>&1 < /dev/null &")
+
+
+VIDEO_CAM = ("1.10,-0.80,0.78", "0.36,-0.16,0.44")      # fj_i2·i00 영상과 같은 시점
+SERVER_VIDEOS = "/home/oem/rl_ws/our_source/fj_t2r_videos"
+LOCAL_VIDEOS = _HDGP.parent / "our_source" / "fj_t2r_videos"
+
+
+def video_command(run_dir: str, label: str, tol_eval: float, ts: str, num_envs: int = 12, view_env: int = 11,
+                  length: int = 700, task: str = TRACKS["grasp_fj_envelope"]["task"],
+                  play_task: str = TRACKS["grasp_fj_envelope"]["play"], cam: tuple = VIDEO_CAM) -> str:
+    """서버에서 최신 체크포인트를 스냅샷해 play 영상을 찍는 한 줄(동기).
+
+    ★옛 `run_fj_video_srv.sh` 는 task 가 `open-sens_r_grasp_fj` 로 박혀 있어 못 쓴다 — t2r play id 로 직접 부른다.
+    ★학습 중에 덮어써지는 파일을 직접 읽지 않게 스냅샷을 뜬다. `env.tol_eval` 은 play 복원에서 살아남는다.
+    """
+    if num_envs % SAPG_BLOCKS:
+        raise ValueError(f"num_envs {num_envs} 가 SAPG {SAPG_BLOCKS}블록으로 안 나뉜다")
+    out = f"{SERVER_VIDEOS}/{label}_{ts}.mp4"
+    return ("source ~/miniforge3/etc/profile.d/conda.sh && conda activate proj-hdgp-py311 && "
+            "source /home/oem/isaacsim/5.1.0/setup_conda_env.sh 2>/dev/null; "
+            f"cd {SERVER_HDGP} && export PYTHONPATH={SERVER_HDGP}/vendor/rl_games_sapg:{SERVER_HDGP}/source/openarm:"
+            f"$PYTHONPATH CUDA_VISIBLE_DEVICES={GPU}; "
+            f"SRC=$(ls -t {run_dir}/last/*.pth {run_dir}/nn/{task}.pth 2>/dev/null | head -1); "
+            f"SNAP={run_dir}/nn/snap_{ts}.pth; cp \"$SRC\" \"$SNAP\" && echo \"SNAP $SNAP <- $SRC\" && "
+            f"timeout 1500 python scripts/reinforcement_learning/rl_games/play.py --task {play_task} "
+            f"--checkpoint \"$SNAP\" --num_envs {num_envs} --headless --view_env_index {view_env} --video "
+            f"--video_length {length} --cam_eye {cam[0]} --cam_lookat {cam[1]} env.tol_eval={tol_eval} "
+            f"> {SERVER_CONSOLE}/video_{label}_{ts}.out 2>&1; echo \"PLAY EXIT $?\"; "
+            f"V=$(find {run_dir} -name '*.mp4' -newer \"$SNAP\" 2>/dev/null | head -1); mkdir -p {SERVER_VIDEOS}; "
+            f"[ -n \"$V\" ] && cp \"$V\" {out} && echo \"VIDEO {out}\"")
+
+
+def extract_frames(video: Path, out_dir: Path) -> list[Path]:
+    """영상 → 4×3 시트 1장 + 정지 프레임 5장(OpenCV). 로컬 ffmpeg 가 없어 cv2 로 뽑는다."""
+    import cv2
+    import numpy as np
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    cap = cv2.VideoCapture(str(video))
+    fps = cap.get(cv2.CAP_PROP_FPS) or 60.0
+    frames = []
+    while True:
+        ok, fr = cap.read()
+        if not ok:
+            break
+        frames.append(fr)
+    if not frames:
+        raise SystemExit(f"[round_fj] 영상에서 프레임을 못 읽었다: {video}")
+    h, w = frames[0].shape[:2]
+    idx = [int(k * (len(frames) - 1) / 11) for k in range(12)]
+    thumbs = []
+    for i in idx:
+        t = cv2.resize(frames[i], (480, int(480 * h / w)))
+        cv2.putText(t, f"f{i} ({i / fps:.1f}s)", (8, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        thumbs.append(t)
+    sheet = out_dir / "sheet.png"
+    cv2.imwrite(str(sheet), np.vstack([np.hstack(thumbs[r * 4:(r + 1) * 4]) for r in range(3)]))
+    paths = [sheet]
+    for q in (0.15, 0.3, 0.45, 0.6, 0.8):
+        i = int(len(frames) * q)
+        p = out_dir / f"f{i:04d}.png"
+        cv2.imwrite(str(p), frames[i])
+        paths.append(p)
+    return paths
+
+
+# ---------------------------------------------------------------------------- 서버 I/O
+def run_dir_for(label: str, server_logdir: str) -> str:
+    out = _ssh(f"ls -dt {server_logdir}/{label} {server_logdir}/{label}-* 2>/dev/null | head -1").strip()
+    if not out:
+        raise SystemExit(f"[round_fj] 서버에 런 디렉터리가 없다: {server_logdir}/{label}")
+    return out
+
+
+def sync(label: str, t: dict) -> Path:
+    rd = run_dir_for(label, t["server_logdir"])
+    dst = t["local_mirror"] / Path(rd).name
+    dst.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["rsync", "-aq", "--include=summaries/***", "--exclude=*", f"{SERVER}:{rd}/", str(dst) + "/"],
+                   check=False, timeout=300)
+    return dst
+
+
+def cmd_status(a) -> int:
+    t = track(a.track)
+    log = f"{SERVER_CONSOLE}/{a.label}.out"
+    st = parse_tail(_ssh(f"grep -a -E 'epoch  |Traceback|Killed|overflow' {log} 2>/dev/null | tail -3; "
+                         + procs_cmd(a.label)))
+    mirror = sync(a.label, t)
+    pol = track_policy(t)                           # ★epoch 창은 프레임 기준(env 수 환산)
+    files = sorted(glob.glob(str(mirror / "summaries" / "events.out.tfevents.*")))
+    summ = (summarize(load_tfevents(files[-1]), pol["LAST_N"], pol["TOL_WINDOW"])
+            if files else {})
+    it = Path(a.iter)
+    started = json.loads((it / "launch.json").read_text())["started"] if (it / "launch.json").exists() else None
+    hours = (time.time() - started) / 3600.0 if started else None
+    n_tb = max((v["n"] for v in summ.values()), default=0)
+    st["epoch"] = max(st["epoch"] or 0, n_tb)      # ★콘솔은 블록 버퍼라 뒤처진다 — TB 점 개수와 큰 쪽
+    verdict, info = judge(summ, st, hours, pol)
+    funnel = stage_funnel(summ)
+    rep = {"track": a.track, "label": a.label, "verdict": verdict, **info, "alive": st["alive"], "procs": st["procs"],
+           "crashed_log": st["crashed"], "hours": round(hours, 2) if hours else None, "mirror": str(mirror),
+           "funnel": funnel, "policy": pol, "metrics": summ}
+    (it / "status.json").write_text(json.dumps(rep, indent=1, ensure_ascii=False), encoding="utf-8")
+    print(json.dumps({k: rep[k] for k in ("track", "label", "verdict", "epoch", "successes", "tol",
+                                          "curriculum_moving", "stage_moving", "stage_stuck", "envelope_ok",
+                                          "alive", "hours")},
+                     ensure_ascii=False))
+    print("  funnel(ep) " + " → ".join(
+        f"{s} " + ("—" if v is None else f"{v[0]:.2f}({v[0] - v[1]:+.2f})") for s, v in funnel.items()))
+    for tag in (SUCCESS_TAG, "task/lifted_frac", "task/tol", "stage/palm_cup_gap",
+                "contact/fingers_touching_at_success", "contact/palm_touching_at_success",
+                "contact/fingers_touching", "contact/palm_touching", "reward/total", "done/tipped"):
+        if tag in summ:
+            m = summ[tag]
+            print(f"  {tag:38s} last {m['last']:+.3f}  now {m['now']:+.3f}  ago {m['ago']:+.3f}  max {m['max']:+.3f}")
+    return 0
+
+
+def cmd_advance(a) -> int:
+    """사용자 승인한 관찰·개선 피드백으로 다음 iter 프롬프트(원본 t2r interactive). 지표 표는 참고로 붙인다."""
+    cmd = [sys.executable, str(_HDGP / "scripts" / "reward_gen" / "t2r_fj.py"), "reflect",
+           "--iter", a.iter, "--description", a.description, "--feedback", a.feedback]
+    if getattr(a, "task_file", None):
+        cmd += ["--task-file", a.task_file]
+    if not a.no_metrics:
+        mirror = sync(a.label, track(a.track))
+        files = sorted(glob.glob(str(mirror / "summaries" / "events.out.tfevents.*")))
+        if not files:
+            raise SystemExit("[round_fj] events 없음 — --no-metrics 로 지표 표 없이 진행할 수 있다")
+        cmd += ["--events", files[-1]]
+    return subprocess.call(cmd)
+
+
+def cmd_video(a) -> int:
+    t = track(a.track)
+    it = Path(a.iter)
+    tol = a.tol
+    if tol is None and (it / "status.json").exists():
+        tol = json.loads((it / "status.json").read_text()).get("tol")
+    if tol is None:
+        raise SystemExit("[round_fj] 재생 tol 을 모른다 — status 를 먼저 돌리거나 --tol 로 준다")
+    # ★런이 쓴 태스크(launch.json)로 재생한다 — 트랙 기본값이 바뀌어도(reach i00 = SAPG) 체크포인트 이름·에이전트 설정이 맞는다.
+    task = json.loads((it / "launch.json").read_text()).get("task", t["task"]) if (it / "launch.json").exists() else t["task"]
+    play = task.replace("-lstm", "-play-lstm", 1)
+    ts = time.strftime("%m%d_%H%M")
+    out = _ssh(video_command(run_dir_for(a.label, t["server_logdir"]), a.label, float(tol), ts,
+                             length=getattr(a, "length", None) or t["video_length"], task=task, play_task=play,
+                             cam=tuple(t.get("video_cam", VIDEO_CAM))),
+               timeout=1800)
+    print(out.strip()[-600:])
+    remote = next((ln.split(" ", 1)[1].strip() for ln in out.splitlines() if ln.startswith("VIDEO ")), None)
+    if not remote:
+        raise SystemExit(f"[round_fj] 영상이 안 만들어졌다 — 서버 {SERVER_CONSOLE}/video_{a.label}_{ts}.out 확인")
+    LOCAL_VIDEOS.mkdir(parents=True, exist_ok=True)
+    local = LOCAL_VIDEOS / Path(remote).name
+    subprocess.run(["rsync", "-aq", f"{SERVER}:{remote}", str(local)], check=True, timeout=300)
+    paths = extract_frames(local, LOCAL_VIDEOS / f"frames_{local.stem}")
+    print(json.dumps({"video": str(local), "frames": [str(p) for p in paths], "tol_eval": tol}, ensure_ascii=False))
+    return 0
+
+
+def cmd_launch(a) -> int:
+    t = track(a.track)
+    num_envs = a.num_envs or t["num_envs"]
+    it = Path(a.iter).resolve()
+    rel = it.relative_to(_HDGP).as_posix()
+    v = json.loads((it / "validation.json").read_text())
+    if not v.get("ok"):
+        raise SystemExit(f"[round_fj] validation FAIL — 기동 안 함: {v.get('errors')}")
+    cmd = launch_command(a.label, rel, num_envs, a.seed, task=t["task"], sapg=t["sapg"],
+                         checkpoint=a.checkpoint)   # env 수·경로 검증을 먼저
+    _git("fetch", "-q", "origin")
+    if subprocess.run(["git", "-C", str(_HDGP), "merge-base", "--is-ancestor", "HEAD", "origin/main"]).returncode:
+        raise SystemExit("[round_fj] 로컬 HEAD 가 origin/main 에 없다 — 먼저 git push origin main")
+    target = _git("rev-parse", "origin/main")
+    if not _git("ls-tree", "--name-only", "origin/main", f"{rel}/compute_reward.py"):
+        raise SystemExit(f"[round_fj] {rel}/compute_reward.py 가 origin/main 에 없다")
+    dirty = _ssh(f"cd {SERVER_HDGP} && git status --porcelain --untracked-files=no").strip()
+    if dirty:
+        raise SystemExit(f"[round_fj] 서버 tracked dirty — 고유 작업물 확인 전 reset 하지 않는다:\n{dirty}")
+    srv = _ssh(f"cd {SERVER_HDGP} && git fetch -q origin && git reset -q --hard origin/main && git rev-parse HEAD",
+               timeout=180).strip().splitlines()
+    if srv[-1:] != [target]:
+        raise SystemExit(f"[round_fj] 서버 HEAD {srv[-1:]} ≠ origin/main {target}")
+
+    if a.checkpoint and _ssh(f"test -f {a.checkpoint} && echo OK").strip() != "OK":
+        raise SystemExit(f"[round_fj] 서버에 체크포인트가 없다: {a.checkpoint}")
+    procs = parse_procs(_ssh(procs_cmd()))
+    if any(lab == a.label for _, lab, _ in procs):
+        raise SystemExit(f"[round_fj] {a.label} 가 이미 돌고 있다 — 중복 기동 금지")
+    on_gpu = [p for p in procs if p[2] == GPU]
+    victims = [p for p in on_gpu if a.kill_label and p[1] == a.kill_label]
+    strangers = [p for p in on_gpu if p not in victims]
+    if strangers:
+        raise SystemExit(f"[round_fj] GPU{GPU} 에 다른 학습이 있다(건드리지 않는다): {strangers}")
+    if a.kill_label and not victims:
+        print(f"[round_fj] 경고: 종료할 {a.kill_label} 가 GPU{GPU} 에 없다(이미 끝났을 수 있다)")
+    for pid, lab, _ in victims:
+        print(f"[round_fj] 종료: pid {pid} (RUN_LABEL={lab}, CUDA {GPU})")
+        _ssh(f"kill {pid}")
+    gone = {pid for pid, _, _ in victims}
+    # ★09.14 실측: Isaac 은 SIGTERM 뒤 종료에 60초 넘게 걸린다(i00 이 60초 대기에서 걸려 기동이 중단됐다) — 5분 기다린다.
+    for _ in range(60):
+        if not gone & {pid for pid, _, _ in parse_procs(_ssh(procs_cmd()))}:
+            break
+        time.sleep(5)
+    else:
+        raise SystemExit(f"[round_fj] 이전 런 {sorted(gone)} 이 5분 안에 안 죽었다 — 확인 필요(SIGKILL 은 사용자 확인 후)")
+
+    _ssh(cmd, timeout=20, allow_timeout=True)
+    # ★기동은 되는데 ssh 가 안 돌아온다(09.14 실측) — 성공 여부는 PID 로만 판단한다.
+    pid = None
+    for _ in range(45):
+        rows = parse_procs(_ssh(procs_cmd(a.label)))
+        if rows:
+            pid, _, cuda = rows[0]
+            if cuda != GPU:
+                raise SystemExit(f"[round_fj] 새 런이 GPU{cuda} 에 떴다 — 즉시 확인 필요 (pid {pid})")
+            break
+        time.sleep(2)
+    if pid is None:
+        raise SystemExit(f"[round_fj] 90초 안에 {a.label} 프로세스가 안 보인다 — {SERVER_CONSOLE}/{a.label}.out 확인")
+    launch = {"track": a.track, "label": a.label, "task": t["task"], "sapg": t["sapg"], "num_envs": num_envs,
+              "started": time.time(), "commit": target, "gpu": int(GPU), "pid": pid,
+              "console": f"{SERVER_CONSOLE}/{a.label}.out", "killed": sorted(gone), "checkpoint": a.checkpoint}
+    (it / "launch.json").write_text(json.dumps(launch, indent=1, ensure_ascii=False), encoding="utf-8")
+    print(json.dumps(launch, ensure_ascii=False))
+    return 0
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    s = sub.add_parser("status")
+    s.add_argument("--label", required=True)
+    s.add_argument("--iter", required=True)
+    s.set_defaults(fn=cmd_status)
+    v = sub.add_parser("advance")
+    v.add_argument("--label", required=True)
+    v.add_argument("--iter", required=True)
+    v.add_argument("--description", required=True, help="영상 관찰(사용자 승인본)")
+    v.add_argument("--feedback", required=True, help="개선 피드백(사용자 승인본)")
+    v.add_argument("--no-metrics", action="store_true", help="참고 지표 표를 붙이지 않는다(원본 t2r 그대로)")
+    v.add_argument("--task-file", default=None, help="(선택) 과제 문장을 바꾼 라운드 — 없으면 지난 iter meta 의 task 승계")
+    v.set_defaults(fn=cmd_advance)
+    vd = sub.add_parser("video")
+    vd.add_argument("--label", required=True)
+    vd.add_argument("--iter", required=True)
+    vd.add_argument("--tol", type=float, default=None, help="재생 tol(기본: status.json 의 학습 tol)")
+    vd.add_argument("--length", type=int, default=None,
+                    help="영상 스텝 수(기본: 트랙 video_length). ★09.16 가까운 출발은 두 번째 에피소드부터 — 여러 에피소드를 담을 때")
+    vd.set_defaults(fn=cmd_video)
+    la = sub.add_parser("launch")
+    la.add_argument("--label", required=True)
+    la.add_argument("--iter", required=True)
+    la.add_argument("--kill-label", default=None)
+    la.add_argument("--num-envs", type=int, default=None, help="기본: 트랙 설정(reach 4096 PPO · envelope 12,288 SAPG)")
+    la.add_argument("--seed", type=int, default=42)
+    la.add_argument("--checkpoint", default=None, help="(선택) 서버 절대 경로 .pth — 가중치만 이어 받고 epoch 은 0 부터")
+    la.set_defaults(fn=cmd_launch)
+    for sp in (s, v, vd, la):
+        sp.add_argument("--track", default="grasp_fj_envelope", choices=sorted(TRACKS))
+    a = ap.parse_args(argv)
+    return a.fn(a)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

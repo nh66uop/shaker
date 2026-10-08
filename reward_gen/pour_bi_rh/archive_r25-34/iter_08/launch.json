@@ -1,0 +1,56 @@
+{
+ "label": "t2r_rh4_i08",
+ "iter": 8,
+ "host": "server",
+ "gpu": 1,
+ "num_envs": 4096,
+ "task": "open-rh_b_pour_fab_mimic-lstm",
+ "python_pid": 1946574,
+ "network": "관측 → LSTM 1024 → LayerNorm → MLP [512,512] → 명령 24 (before_mlp True, concat 끔)",
+ "overrides": {
+  "horizon_length": 16,
+  "seq_length": 16,
+  "minibatch_size": 16384,
+  "save_frequency": 50,
+  "mini_epochs": 2,
+  "central_value_config.mini_epochs": 2,
+  "learning_rate": "1e-4",
+  "lr_schedule": "adaptive",
+  "kl_threshold": 0.016,
+  "e_clip": 0.1,
+  "central_value_config.learning_rate": "1e-4",
+  "entropy_coef": "0.0005 (yaml 그대로)",
+  "network.rnn.before_mlp": true,
+  "network.rnn.concat_input": false,
+  "network.rnn.concat_output": false,
+  "config.clip_actions": false,
+  "env.enable_self_collisions": true
+ },
+ "reward": "iter_08 c1 (sha256 bbb75192)",
+ "server_head": "92dd93d2",
+ "checkpoint": null,
+ "started_local": "2026-09-28 14:24",
+ "launched_by": "session 146751a7, 사용자 '1,2 진행' 09-28 (DG-5F 증분 방식)",
+ "entropy_budget": "프레임 기준 판정: task/*_grasped 0.05 전에 entropy < 15 면 종료 후보 보고 (memory lstm-h16-entropy-budget)",
+ "why": "i03~i07 매번 파지 전 단계에서 막힘(palm 명령 포화·주차·쥔 손 접근). iter_08 = env 증분 palm 지령 + 차분형 접근 + 접근 중 편 손, 나머지 iter_07",
+ "env_overrides": {
+  "palm_action_mode": "increment",
+  "palm_action_ema_alpha": 0.25,
+  "src_palm_vel_max": [
+   0.6,
+   180.0
+  ],
+  "rcv_palm_vel_max": [
+   0.4,
+   120.0
+  ],
+  "src_palm_leash": [
+   0.06,
+   30.0
+  ],
+  "rcv_palm_leash": [
+   0.05,
+   15.0
+  ]
+ }
+}
